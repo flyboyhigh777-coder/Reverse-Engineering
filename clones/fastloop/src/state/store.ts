@@ -26,7 +26,8 @@ function initialState(): AppState {
   return {
     version: 1,
     stage: 'quiz',
-    premium: false,
+    premium: true,
+    proGranted: true,
     profile: EMPTY_PROFILE,
     planId: '16:8',
     current: null,
@@ -71,7 +72,13 @@ export function demoState(now: number): AppState {
   };
 }
 
-let state: AppState = storage.load() ?? initialState();
+/** Opens PRO once for state saved before this build; later opt-outs persist. */
+function grantPro(loaded: AppState): AppState {
+  return loaded.proGranted ? loaded : { ...loaded, premium: true, proGranted: true };
+}
+
+let state: AppState = grantPro(storage.load() ?? initialState());
+storage.save(state);
 const listeners = new Set<() => void>();
 
 function set(next: AppState): void {
@@ -143,7 +150,12 @@ export const actions = {
 
   /** Demo checkout: flips the local flag. No payment is taken anywhere. */
   unlockPremium(): void {
-    set({ ...state, premium: true, stage: 'app' });
+    set({ ...state, premium: true, proGranted: true, stage: 'app' });
+  },
+
+  /** Lets you drop back to the free tier to inspect what the original locks. */
+  setPremium(premium: boolean): void {
+    set({ ...state, premium, proGranted: true });
   },
 
   setPlan(planId: PlanId): void {

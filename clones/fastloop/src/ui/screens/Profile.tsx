@@ -20,11 +20,28 @@ export function Profile({ onRequestPro }: { onRequestPro: (reason: string) => vo
           <span className={state.premium ? 'pill accent' : 'pill'}>{state.premium ? 'PRO включён' : 'Бесплатный режим'}</span>
         </div>
         {state.premium ? (
-          <p className="tiny muted">Все схемы и история открыты. Это демо-флаг, никакой оплаты не было.</p>
+          <>
+            <p className="tiny muted">
+              Все схемы, история и разбор фаз открыты. В этой сборке PRO включён по умолчанию — оплаты не было и не будет.
+            </p>
+            <button type="button" className="btn ghost sm" onClick={() => actions.setPremium(false)}>
+              Выключить PRO и посмотреть бесплатный режим
+            </button>
+          </>
         ) : (
-          <button type="button" className="btn block" onClick={() => onRequestPro('Полный доступ к схемам, истории и фазам.')}>
-            Посмотреть PRO
-          </button>
+          <>
+            <p className="tiny muted">
+              Заперты схемы 18:6 и длиннее, правка времени окна, полная история и разбор фаз — так же, как в оригинале.
+            </p>
+            <div className="row wrap" style={{ gap: 8 }}>
+              <button type="button" className="btn sm" onClick={() => actions.setPremium(true)}>
+                Вернуть PRO
+              </button>
+              <button type="button" className="btn ghost sm" onClick={() => onRequestPro('Полный доступ к схемам, истории и фазам.')}>
+                Посмотреть экран PRO
+              </button>
+            </div>
+          </>
         )}
       </Card>
 

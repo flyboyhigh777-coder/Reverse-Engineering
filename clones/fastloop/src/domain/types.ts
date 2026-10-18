@@ -57,6 +57,9 @@ export interface AppState {
   readonly version: 1;
   readonly stage: Exclude<Phase, 'route'>;
   readonly premium: boolean;
+  /** PRO is on by default in this build; the flag records that the one-time
+   *  grant already ran, so turning PRO off in Profile is not undone on reload. */
+  readonly proGranted: boolean;
   readonly profile: Profile;
   readonly planId: PlanId;
   readonly current: FastSession | null;

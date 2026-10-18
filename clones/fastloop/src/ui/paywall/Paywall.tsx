@@ -35,14 +35,22 @@ export function Paywall(): JSX.Element {
   const [canClose, setCanClose] = useState(false);
   const [restored, setRestored] = useState(false);
 
+  // With PRO already on this screen is only a walkthrough of the funnel, so
+  // the hold-back timer and the delayed close are not applied.
+  const alreadyPro = state.premium;
+
   useEffect(() => {
+    if (alreadyPro) {
+      setCanClose(true);
+      return;
+    }
     const tick = window.setInterval(() => setLeft((value) => Math.max(0, value - 1)), 1000);
     const close = window.setTimeout(() => setCanClose(true), CLOSE_DELAY_MS);
     return () => {
       window.clearInterval(tick);
       window.clearTimeout(close);
     };
-  }, []);
+  }, [alreadyPro]);
 
   const projection = projectGoal(state.profile.startKg, state.profile.goalKg, state.planId, state.profile.activity, Date.now());
   const name = state.profile.name.trim();
@@ -53,7 +61,11 @@ export function Paywall(): JSX.Element {
     <div className="shell">
       <div className="screen">
         <div className="row between" style={{ minHeight: 30 }}>
-          <span className="pill warm num">предложение истекает через {minutes}:{seconds}</span>
+          {alreadyPro ? (
+            <span className="pill accent">PRO уже открыт в этой сборке</span>
+          ) : (
+            <span className="pill warm num">предложение истекает через {minutes}:{seconds}</span>
+          )}
           {canClose ? (
             <button type="button" className="closebtn" aria-label="Закрыть" onClick={() => actions.setStage('app')}>
               ×
@@ -111,13 +123,18 @@ export function Paywall(): JSX.Element {
           })}
         </div>
 
-        <button type="button" className="btn block" onClick={() => actions.unlockPremium()}>
-          Оформить PRO
+        <button
+          type="button"
+          className="btn block"
+          onClick={() => (alreadyPro ? actions.setStage('app') : actions.unlockPremium())}
+        >
+          {alreadyPro ? 'Продолжить' : 'Оформить PRO'}
         </button>
 
         <p className="tiny muted" style={{ textAlign: 'center' }}>
-          Демонстрация: оплата не проводится, платёжные данные не запрашиваются и никуда не отправляются. Кнопка просто включает
-          PRO-режим в этой копии приложения.
+          {alreadyPro
+            ? 'Экран оставлен как часть разбора воронки. Все функции уже открыты, платить ничего не нужно; вернуться к бесплатному режиму можно в профиле.'
+            : 'Демонстрация: оплата не проводится, платёжные данные не запрашиваются и никуда не отправляются. Кнопка просто включает PRO-режим в этой копии приложения.'}
         </p>
 
         <div className="row" style={{ justifyContent: 'center', gap: 14, flexWrap: 'wrap' }}>

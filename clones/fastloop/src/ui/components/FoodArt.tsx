@@ -10,7 +10,8 @@
 
 export type ArtKind =
   | 'bowl' | 'leaf' | 'fish' | 'egg' | 'soup' | 'grain' | 'meat' | 'berry' | 'nuts' | 'avocado'
-  | 'sunrise' | 'protein' | 'coin' | 'clock' | 'sprout' | 'return';
+  | 'sunrise' | 'protein' | 'coin' | 'clock' | 'sprout' | 'return'
+  | 'sunset' | 'run' | 'lowcarb' | 'crescent' | 'night';
 
 const GRADIENTS: Record<ArtKind, readonly [string, string]> = {
   bowl: ['#0f766e', '#5eead4'],
@@ -29,6 +30,11 @@ const GRADIENTS: Record<ArtKind, readonly [string, string]> = {
   clock: ['#3730a3', '#a5b4fc'],
   sprout: ['#14532d', '#a7f3d0'],
   return: ['#7c2d12', '#fdba74'],
+  sunset: ['#7e22ce', '#f0abfc'],
+  run: ['#065f46', '#6ee7b7'],
+  lowcarb: ['#831843', '#f9a8d4'],
+  crescent: ['#1e1b4b', '#a5b4fc'],
+  night: ['#0f172a', '#94a3b8'],
 };
 
 /** Glyphs are drawn in a 48×48 box and scaled by the tile. */
@@ -69,6 +75,16 @@ function Glyph({ kind }: { kind: ArtKind }): JSX.Element {
       return <g {...stroke}><path d="M24 42V22" /><path d="M24 24c-7 0-12-5-12-11 7 0 12 4 12 11zM24 22c6 0 11-4 11-10-6 0-11 4-11 10z" /></g>;
     case 'return':
       return <g {...stroke}><path d="M38 24a14 14 0 1 1-5-10.7" /><path d="M38 8v8h-8" /></g>;
+    case 'sunset':
+      return <g {...stroke}><path d="M5 36h38" /><path d="M24 30V20M14 26l3 3M34 26l-3 3M7 36h4M37 36h4" /><path d="M15 36a9 9 0 0 1 18 0" /><path d="M10 42h28" /></g>;
+    case 'run':
+      return <g {...stroke}><circle cx="29" cy="11" r="4" /><path d="M26 18l-6 6 5 5-3 11" /><path d="M20 24l-8 2M25 29l9 3 3 9" /></g>;
+    case 'lowcarb':
+      return <g {...stroke}><path d="M24 40V16" /><path d="M24 20c4-4 8-4 10-2-1 4-6 7-10 7zM24 20c-4-4-8-4-10-2 1 4 6 7 10 7z" /><path d="M9 9l30 30" /></g>;
+    case 'crescent':
+      return <g {...stroke}><path d="M31 8a16 16 0 1 0 0 32 13 13 0 0 1 0-32z" /><path d="M36 16l1.6 3.4 3.4.5-2.5 2.5.6 3.6-3.1-1.7-3.1 1.7.6-3.6-2.5-2.5 3.4-.5z" /></g>;
+    case 'night':
+      return <g {...stroke}><path d="M33 10a14 14 0 1 0 5 11" /><circle cx="24" cy="26" r="10" /><path d="M24 20v6l4 3" /></g>;
     default:
       return <g />;
   }

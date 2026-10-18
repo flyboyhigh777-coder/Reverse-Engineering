@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { MEAL_PLANS, dayMacros, planAverage, planRecipes } from '../../domain/mealPlans';
+import { DEFAULT_SLOTS, MEAL_PLANS, PLAN_SECTIONS, dayMacros, planAverage, planRecipes } from '../../domain/mealPlans';
 import type { MealPlan } from '../../domain/mealPlans';
 import { RECIPES, RECIPE_CATEGORIES, RECIPE_TAGS, recipeById } from '../../domain/recipes';
 import type { Macros, Recipe, RecipeTag } from '../../domain/recipes';
 import { useAppState } from '../../state/store';
 import { ArtTile } from '../components/FoodArt';
-import { Card, Sheet } from '../components/common';
+import { Sheet } from '../components/common';
 
 export function Recipes({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
   const [tab, setTab] = useState<'recipes' | 'plans'>('recipes');
@@ -215,37 +215,44 @@ function PlanList({ onRequestPro }: { onRequestPro: (reason: string) => void }):
         </span>
       </button>
 
-      <div className="col" style={{ gap: 10 }}>
-        <div className="section-head">
-          <h2>Все планы</h2>
-        </div>
-        <div className="col" style={{ gap: 12 }}>
-          {MEAL_PLANS.map((plan) => {
-            const locked = plan.premium && !state.premium;
-            const avg = planAverage(plan);
-            return (
-              <button key={plan.id} type="button" className="lockbtn" onClick={() => openPlan(plan)}>
-                <Card>
-                  <span className="art" style={{ position: 'relative' }}>
-                    <ArtTile kind={plan.art} height={92} label="" />
-                    {locked ? <span className="badge-pro">PRO</span> : null}
-                  </span>
-                  <div className="row between" style={{ gap: 10, alignItems: 'flex-start' }}>
-                    <span className="col grow" style={{ gap: 3 }}>
-                      <strong style={{ fontFamily: 'var(--display)', fontSize: 16 }}>{plan.title}</strong>
-                      <span className="tiny muted">{plan.lede}</span>
+      {PLAN_SECTIONS.map((section) => {
+        const items = MEAL_PLANS.filter((plan) => plan.section === section);
+        if (items.length === 0) return null;
+        return (
+          <div className="col" key={section} style={{ gap: 10 }}>
+            <div className="section-head">
+              <h2>{section}</h2>
+            </div>
+            <div className="carousel">
+              {items.map((plan) => {
+                const locked = plan.premium && !state.premium;
+                const avg = planAverage(plan);
+                return (
+                  <button key={plan.id} type="button" className="tile wide" onClick={() => openPlan(plan)}>
+                    <span className="art">
+                      <ArtTile kind={plan.art} height={110} label={plan.title} />
+                      {locked ? <span className="badge-pro">PRO</span> : null}
                     </span>
-                    <span className="pill accent">{plan.goal}</span>
-                  </div>
-                  <span className="tiny muted num">
-                    7 дней · ≈ {avg.kcal} ккал и {avg.protein} г белка в день, базовые порции
-                  </span>
-                </Card>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+                    <span className="row between" style={{ gap: 8, alignItems: 'flex-start' }}>
+                      <span className="tile-title grow">{plan.title}</span>
+                      <span className="pill accent">{plan.goal}</span>
+                    </span>
+                    <span className="tiny muted">{plan.lede}</span>
+                    <span className="tiny muted num">
+                      7 дней · ≈ {avg.kcal} ккал, {avg.protein} г белка, {avg.fiber} г клетчатки
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+
+      <p className="banner">
+        Калорийность в планах — это базовые порции, а не ваша норма. Большинству взрослых нужно больше: добавьте перекус
+        или увеличьте порцию под свой расход. Разумный коридор снижения веса — 0,5–1 кг в неделю.
+      </p>
 
       {open ? <PlanSheet plan={open} onClose={() => setOpen(null)} /> : null}
     </>
@@ -257,6 +264,7 @@ function PlanSheet({ plan, onClose }: { plan: MealPlan; onClose: () => void }): 
   const current = plan.days[day];
   const macros = dayMacros(current);
   const names = (id?: string) => (id ? recipeById(id)?.title ?? '' : '');
+  const slots = plan.slots ?? DEFAULT_SLOTS;
 
   return (
     <Sheet title={plan.title} onClose={onClose}>
@@ -280,14 +288,14 @@ function PlanSheet({ plan, onClose }: { plan: MealPlan; onClose: () => void }): 
       <div className="col" style={{ gap: 9 }}>
         <span className="eyebrow">{current.label}</span>
         {([
-          ['Завтрак', current.breakfast],
-          ['Обед', current.lunch],
-          ['Ужин', current.dinner],
-          ['Перекус', current.snack],
+          [slots[0], current.breakfast],
+          [slots[1], current.lunch],
+          [slots[2], current.dinner],
+          [slots[3], current.snack],
         ] as const).map(([slot, id]) =>
           id ? (
             <div className="row between" key={slot} style={{ gap: 10 }}>
-              <span className="tiny muted" style={{ minWidth: 62 }}>{slot}</span>
+              <span className="tiny muted" style={{ minWidth: 96 }}>{slot}</span>
               <span className="tiny grow" style={{ fontWeight: 600, textAlign: 'right' }}>{names(id)}</span>
             </div>
           ) : null,

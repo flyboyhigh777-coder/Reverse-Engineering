@@ -16,7 +16,18 @@ export interface Option {
 export type QuizStep =
   | { readonly kind: 'single'; readonly id: string; readonly question: string; readonly hint?: string; readonly options: readonly Option[] }
   | { readonly kind: 'multi'; readonly id: string; readonly question: string; readonly hint?: string; readonly options: readonly Option[] }
-  | { readonly kind: 'number'; readonly id: string; readonly question: string; readonly unit: string; readonly min: number; readonly max: number; readonly initial: number; readonly step?: number }
+  | {
+      readonly kind: 'number';
+      readonly id: string;
+      readonly question: string;
+      readonly unit: string;
+      readonly min: number;
+      readonly max: number;
+      readonly initial: number;
+      readonly step?: number;
+      /** Spacing of numbered ticks on the tape, in value units. */
+      readonly labelEvery?: number;
+    }
   | { readonly kind: 'scale'; readonly id: string; readonly question: string; readonly low: string; readonly high: string }
   | { readonly kind: 'date'; readonly id: string; readonly question: string; readonly hint?: string }
   | { readonly kind: 'text'; readonly id: string; readonly question: string; readonly placeholder: string; readonly optional: boolean }
@@ -33,10 +44,10 @@ export const QUIZ: readonly QuizStep[] = [
     { value: 'male', label: 'Мужской' },
     { value: 'other', label: 'Не хочу указывать' },
   ] },
-  { kind: 'number', id: 'age', question: 'Сколько вам лет?', unit: 'лет', min: 14, max: 99, initial: 32 },
-  { kind: 'number', id: 'height', question: 'Ваш рост', unit: 'см', min: 120, max: 220, initial: 170 },
-  { kind: 'number', id: 'weight', question: 'Текущий вес', unit: 'кг', min: 35, max: 250, initial: 78, step: 0.5 },
-  { kind: 'number', id: 'goalWeight', question: 'Какой вес вы хотите?', unit: 'кг', min: 35, max: 250, initial: 68, step: 0.5 },
+  { kind: 'number', id: 'age', question: 'Сколько вам лет?', unit: 'лет', min: 14, max: 99, initial: 32, labelEvery: 5 },
+  { kind: 'number', id: 'height', question: 'Ваш рост', unit: 'см', min: 120, max: 220, initial: 170, labelEvery: 10 },
+  { kind: 'number', id: 'weight', question: 'Текущий вес', unit: 'кг', min: 35, max: 250, initial: 78, step: 0.5, labelEvery: 5 },
+  { kind: 'number', id: 'goalWeight', question: 'Какой вес вы хотите?', unit: 'кг', min: 35, max: 250, initial: 68, step: 0.5, labelEvery: 5 },
   { kind: 'single', id: 'goal', question: 'Главная цель', options: [
     { value: 'lose', label: 'Снизить вес' },
     { value: 'maintain', label: 'Удержать вес' },

@@ -10,7 +10,7 @@ import {
   remainingMs,
 } from '../../domain/fasting';
 import { nextPhaseAfter, phaseAtHours } from '../../domain/phases';
-import { CUSTOM_MAX_HOURS, CUSTOM_MIN_HOURS, PLANS, WEEKDAYS, resolvePlan } from '../../domain/plans';
+import { CUSTOM_MAX_HOURS, CUSTOM_MIN_HOURS, LEVEL_HINT, LEVEL_ORDER, PLANS, WEEKDAYS, resolvePlan } from '../../domain/plans';
 import { activePlan } from '../../domain/schedule';
 import { readDiagnostics, useStepCounter } from '../../state/steps';
 import { fastStats, stepsTarget, waterTargetMl, formatWeight, displayToKg, weightUnit } from '../../domain/metrics';
@@ -18,6 +18,7 @@ import type { PlanId } from '../../domain/types';
 import { actions, useAppState } from '../../state/store';
 import { useNow } from '../useNow';
 import { Ring, PhaseRail } from '../components/Ring';
+import { Ruler } from '../components/Ruler';
 import { Card, DropIcon, LockPill, ScaleIcon, Sheet, StepIcon } from '../components/common';
 
 export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
@@ -308,31 +309,44 @@ function PlanSheet({ onLocked, onClose }: { onLocked: (reason: string) => void; 
 
   return (
     <Sheet title="Схема голодания" onClose={onClose}>
-      <div className="col" style={{ gap: 9 }}>
-        {PLANS.map((plan) => {
-          const locked = plan.premium && !premium;
-          const isCustom = plan.id === 'custom';
-          return (
-            <button
-              key={plan.id}
-              type="button"
-              className="option"
-              aria-pressed={plan.id === planId}
-              onClick={() => (locked ? onLocked('Длинные окна и своё окно открываются в PRO.') : actions.setPlan(plan.id))}
-            >
-              <span className="mark" />
-              <span className="col grow" style={{ gap: 1 }}>
-                <span className="row wrap" style={{ gap: 7 }}>
-                  <strong>{plan.title}</strong>
-                  {isCustom ? <span className="pill accent num">{custom.title}</span> : <span className="pill">{plan.level}</span>}
-                  {locked ? <LockPill /> : null}
+      <p className="tiny muted">
+        Поднимайтесь на ступень, когда текущая схема держится без усилий примерно неделю. Перескакивать через уровень —
+        самый частый способ бросить на третий день.
+      </p>
+
+      {LEVEL_ORDER.map((level) => (
+        <div className="col" key={level} style={{ gap: 9 }}>
+          <div className="col" style={{ gap: 1 }}>
+            <span className="eyebrow">{level}</span>
+            <span className="tiny muted">{LEVEL_HINT[level]}</span>
+          </div>
+          {PLANS.filter((plan) => plan.level === level).map((plan) => {
+            const locked = plan.premium && !premium;
+            const isCustom = plan.id === 'custom';
+            const selected = plan.id === planId;
+            return (
+              <button
+                key={plan.id}
+                type="button"
+                className="option"
+                aria-pressed={selected}
+                onClick={() => (locked ? onLocked('Длинные окна и своё окно открываются в PRO.') : actions.setPlan(plan.id))}
+              >
+                <span className="mark" />
+                <span className="col grow" style={{ gap: 3 }}>
+                  <span className="row wrap" style={{ gap: 7 }}>
+                    <strong>{plan.title}</strong>
+                    {isCustom ? <span className="pill accent num">{custom.title}</span> : null}
+                    {locked ? <LockPill /> : null}
+                  </span>
+                  <span className="tiny muted">{plan.blurb}</span>
+                  {selected ? <span className="tiny">{plan.suits}</span> : null}
                 </span>
-                <span className="tiny muted">{plan.blurb}</span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
+              </button>
+            );
+          })}
+        </div>
+      ))}
 
       {planId === 'custom' && premium ? (
         <div className="col" style={{ gap: 10 }}>
@@ -342,15 +356,14 @@ function PlanSheet({ onLocked, onClose }: { onLocked: (reason: string) => void; 
               {custom.fastHours} ч голодания / {custom.eatHours} ч еды
             </span>
           </div>
-          <input
-            id="custom-hours"
-            type="range"
+          <Ruler
+            value={customFastHours}
             min={CUSTOM_MIN_HOURS}
             max={CUSTOM_MAX_HOURS}
             step={0.5}
-            value={customFastHours}
-            onChange={(event) => actions.setCustomHours(Number(event.target.value))}
-            aria-label="Часы голодания"
+            unit="ч"
+            labelEvery={2}
+            onChange={(next) => actions.setCustomHours(next)}
           />
         </div>
       ) : null}
@@ -463,28 +476,20 @@ function WeightSheet({
   onSave: (kg: number) => void;
   onClose: () => void;
 }): JSX.Element {
-  const [value, setValue] = useState(() => (units === 'metric' ? initial : initial * 2.2046226218).toFixed(1));
+  const metric = units === 'metric';
+  const [shown, setShown] = useState(() => Number((metric ? initial : initial * 2.2046226218).toFixed(1)));
   return (
     <Sheet title="Записать вес" onClose={onClose}>
-      <div className="row" style={{ gap: 10 }}>
-        <input
-          id="weight-input"
-          type="number"
-          inputMode="decimal"
-          step="0.1"
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-        />
-        <span className="muted">{weightUnit(units)}</span>
-      </div>
-      <button
-        type="button"
-        className="btn block"
-        onClick={() => {
-          const parsed = Number.parseFloat(value.replace(',', '.'));
-          if (Number.isFinite(parsed) && parsed > 0) onSave(displayToKg(parsed, units));
-        }}
-      >
+      <Ruler
+        value={shown}
+        min={metric ? 35 : 77}
+        max={metric ? 250 : 551}
+        step={metric ? 0.1 : 0.2}
+        unit={weightUnit(units)}
+        labelEvery={metric ? 1 : 2}
+        onChange={setShown}
+      />
+      <button type="button" className="btn block" onClick={() => onSave(displayToKg(shown, units))}>
         Сохранить
       </button>
     </Sheet>

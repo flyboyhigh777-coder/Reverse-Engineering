@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { QUIZ } from '../../domain/quiz';
 import type { QuizStep } from '../../domain/quiz';
 import { actions, useAppState } from '../../state/store';
+import { Ruler } from '../components/Ruler';
 
 const DAY_MS = 86_400_000;
 
@@ -186,25 +187,19 @@ function StepBody({
     case 'number': {
       const current = Number(value) || step.initial;
       return (
-        <div className="col" style={{ gap: 18, paddingBlock: 12 }}>
-          <div className="bigvalue">
-            {current}
-            <span style={{ fontSize: 18, color: 'var(--ink-3)', marginLeft: 6 }}>{step.unit}</span>
-          </div>
-          <input
-            id={`q-${step.id}`}
-            type="range"
+        <div className="col" style={{ gap: 14, paddingBlock: 10 }}>
+          <Ruler
+            value={current}
             min={step.min}
             max={step.max}
             step={step.step ?? 1}
-            value={current}
-            onChange={(event) => onSet(event.target.value)}
-            aria-label={step.question}
+            unit={step.unit}
+            labelEvery={step.labelEvery ?? 10}
+            onChange={(next) => onSet(String(next))}
           />
-          <div className="row between tiny muted num">
-            <span>{step.min}</span>
-            <span>{step.max}</span>
-          </div>
+          <p className="tiny muted" style={{ textAlign: 'center' }}>
+            Потяните шкалу или нажмите на число, чтобы ввести вручную.
+          </p>
         </div>
       );
     }

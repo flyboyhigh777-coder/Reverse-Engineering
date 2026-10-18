@@ -99,6 +99,16 @@ export function BookIcon(): JSX.Element {
   );
 }
 
+export function ChefIcon(): JSX.Element {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M7.5 11.5a4 4 0 1 1 2.2-7.3 4.2 4.2 0 0 1 8.6 0 4 4 0 1 1 2.2 7.3z" />
+      <path d="M7.5 11.5V19a1.5 1.5 0 0 0 1.5 1.5h6a1.5 1.5 0 0 0 1.5-1.5v-7.5" />
+      <path d="M7.8 15.5h8.4" />
+    </svg>
+  );
+}
+
 export function PersonIcon(): JSX.Element {
   return (
     <svg {...ICON_PROPS}>

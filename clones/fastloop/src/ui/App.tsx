@@ -8,14 +8,16 @@ import { ProSheet } from './paywall/ProSheet';
 import { Learn } from './screens/Learn';
 import { Profile } from './screens/Profile';
 import { Progress } from './screens/Progress';
+import { Recipes } from './screens/Recipes';
 import { Timer } from './screens/Timer';
-import { BookIcon, ChartIcon, PersonIcon, TimerIcon } from './components/common';
+import { BookIcon, ChartIcon, ChefIcon, PersonIcon, TimerIcon } from './components/common';
 
-type Tab = 'timer' | 'progress' | 'learn' | 'profile';
+type Tab = 'timer' | 'progress' | 'recipes' | 'learn' | 'profile';
 
 const TABS: readonly { id: Tab; label: string; icon: () => JSX.Element }[] = [
   { id: 'timer', label: 'Таймер', icon: TimerIcon },
   { id: 'progress', label: 'Прогресс', icon: ChartIcon },
+  { id: 'recipes', label: 'Рецепты', icon: ChefIcon },
   { id: 'learn', label: 'Статьи', icon: BookIcon },
   { id: 'profile', label: 'Профиль', icon: PersonIcon },
 ];
@@ -37,6 +39,7 @@ export function App(): JSX.Element {
       <main className="screen">
         {tab === 'timer' ? <Timer onRequestPro={requestPro} /> : null}
         {tab === 'progress' ? <Progress onRequestPro={requestPro} /> : null}
+        {tab === 'recipes' ? <Recipes onRequestPro={requestPro} /> : null}
         {tab === 'learn' ? <Learn onRequestPro={requestPro} /> : null}
         {tab === 'profile' ? <Profile onRequestPro={requestPro} /> : null}
       </main>

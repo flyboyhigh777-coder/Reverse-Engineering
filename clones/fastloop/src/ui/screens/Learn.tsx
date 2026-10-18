@@ -3,7 +3,22 @@ import { ARTICLES, CATEGORIES, EVIDENCE_LABEL } from '../../domain/articles';
 import type { Article, Evidence } from '../../domain/articles';
 import { DISCLAIMER } from '../../domain/phases';
 import { useAppState } from '../../state/store';
+import { ArtTile } from '../components/FoodArt';
+import type { ArtKind } from '../components/FoodArt';
 import { Card, LockPill, Sheet } from '../components/common';
+
+/** Art for the featured strip — one per category, so it stays recognisable. */
+const CATEGORY_ART: Record<string, ArtKind> = {
+  'Основы': 'sunrise',
+  'Практика': 'clock',
+  'Питание': 'bowl',
+  'Движение': 'protein',
+  'Сон': 'return',
+  'Кето': 'avocado',
+  'Осторожно': 'berry',
+};
+
+const FEATURED = ['water-practice', 'breaking', 'protein', 'start-training', 'red-flags'];
 
 const EVIDENCE_COLOR: Record<Evidence, string> = {
   established: 'var(--good)',
@@ -34,7 +49,35 @@ export function Learn({ onRequestPro }: { onRequestPro: (reason: string) => void
         У каждой статьи стоит метка того, насколько надёжны данные под ней — включая «спорно» на материалах про саму эту тему.
       </p>
 
-      <div className="row wrap" style={{ gap: 7 }}>
+      <div className="col" style={{ gap: 10 }}>
+        <div className="section-head">
+          <h2>Стоит прочитать</h2>
+        </div>
+        <div className="carousel">
+          {FEATURED.map((id) => {
+            const article = ARTICLES.find((item) => item.id === id);
+            if (!article) return null;
+            const locked = article.premium && !state.premium;
+            return (
+              <button
+                key={id}
+                type="button"
+                className="tile"
+                onClick={() => (locked ? onRequestPro('Эта статья входит в PRO.') : setOpen(article))}
+              >
+                <span className="art">
+                  <ArtTile kind={CATEGORY_ART[article.category] ?? 'bowl'} label={article.title} />
+                  {locked ? <span className="badge-pro">PRO</span> : null}
+                </span>
+                <span className="tile-title">{article.title}</span>
+                <span className="tiny muted">{article.minutes} мин · {EVIDENCE_LABEL[article.evidence]}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="carousel chiprow">
         {['Все', ...CATEGORIES].map((name) => (
           <button key={name} type="button" className="chip" aria-pressed={filter === name} onClick={() => setFilter(name)}>
             {name}

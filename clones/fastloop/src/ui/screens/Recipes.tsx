@@ -1,0 +1,311 @@
+import { useState } from 'react';
+import { MEAL_PLANS, dayMacros, planAverage, planRecipes } from '../../domain/mealPlans';
+import type { MealPlan } from '../../domain/mealPlans';
+import { RECIPES, RECIPE_CATEGORIES, RECIPE_TAGS, recipeById } from '../../domain/recipes';
+import type { Macros, Recipe, RecipeTag } from '../../domain/recipes';
+import { useAppState } from '../../state/store';
+import { ArtTile } from '../components/FoodArt';
+import { Card, Sheet } from '../components/common';
+
+export function Recipes({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
+  const [tab, setTab] = useState<'recipes' | 'plans'>('recipes');
+
+  return (
+    <>
+      <div className="subtabs" role="tablist" aria-label="Рецепты и планы">
+        <button type="button" role="tab" aria-selected={tab === 'recipes'} onClick={() => setTab('recipes')}>
+          Рецепты
+        </button>
+        <button type="button" role="tab" aria-selected={tab === 'plans'} onClick={() => setTab('plans')}>
+          Планы питания
+        </button>
+      </div>
+
+      {tab === 'recipes' ? <RecipeList onRequestPro={onRequestPro} /> : <PlanList onRequestPro={onRequestPro} />}
+    </>
+  );
+}
+
+function MacroRow({ macros, per }: { macros: Macros; per?: string }): JSX.Element {
+  return (
+    <div className="col" style={{ gap: 5 }}>
+      <div className="macro-row">
+        <div className="macro"><b>{macros.kcal}</b><span>ккал</span></div>
+        <div className="macro"><b>{macros.protein}</b><span>белок, г</span></div>
+        <div className="macro"><b>{macros.fat}</b><span>жиры, г</span></div>
+        <div className="macro"><b>{macros.carbs}</b><span>углев., г</span></div>
+      </div>
+      <span className="tiny muted">
+        ≈ на {per ?? 'порцию'}, клетчатка {macros.fiber} г. Значения приблизительные: зависят от продуктов и размера порции.
+      </span>
+    </div>
+  );
+}
+
+function RecipeTile({ recipe, locked, onOpen }: { recipe: Recipe; locked: boolean; onOpen: () => void }): JSX.Element {
+  return (
+    <button type="button" className="tile" onClick={onOpen}>
+      <span className="art">
+        <ArtTile kind={recipe.art} label={recipe.title} />
+        {locked ? <span className="badge-pro">PRO</span> : null}
+      </span>
+      <span className="tile-title">{recipe.title}</span>
+      <span className="tiny muted num">
+        {recipe.macros.kcal} ккал · {recipe.macros.protein} г белка · {recipe.minutes} мин
+      </span>
+    </button>
+  );
+}
+
+function RecipeList({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
+  const state = useAppState();
+  const [open, setOpen] = useState<Recipe | null>(null);
+  const [tag, setTag] = useState<RecipeTag | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  const pool = tag ? RECIPES.filter((recipe) => recipe.tags.includes(tag)) : RECIPES;
+  const hero = recipeById('tuna-bean');
+
+  const openRecipe = (recipe: Recipe) => {
+    if (recipe.premium && !state.premium) onRequestPro('Этот рецепт входит в PRO.');
+    else setOpen(recipe);
+  };
+
+  return (
+    <>
+      {hero ? (
+        <button type="button" className="hero" onClick={() => openRecipe(hero)}>
+          <ArtTile kind="fish" height={150} rounded={18} label="" variant="hero" />
+          <span className="hero-text">
+            <strong>Нечего готовить?</strong>
+            <span>Две банки из шкафа, десять минут и 29 г белка</span>
+          </span>
+        </button>
+      ) : null}
+
+      <div className="carousel chiprow">
+        <button type="button" className="chip" aria-pressed={tag === null} onClick={() => setTag(null)}>
+          всё
+        </button>
+        {RECIPE_TAGS.map((name) => (
+          <button key={name} type="button" className="chip" aria-pressed={tag === name} onClick={() => setTag(tag === name ? null : name)}>
+            {name}
+          </button>
+        ))}
+      </div>
+
+      {RECIPE_CATEGORIES.map((category) => {
+        const items = pool.filter((recipe) => recipe.category === category);
+        if (items.length === 0) return null;
+        const isOpen = expanded === category;
+        return (
+          <div className="col" key={category} style={{ gap: 10 }}>
+            <div className="section-head">
+              <h2>{category}</h2>
+              {items.length > 2 ? (
+                <button type="button" onClick={() => setExpanded(isOpen ? null : category)}>
+                  {isOpen ? 'Свернуть' : 'Смотреть все ›'}
+                </button>
+              ) : null}
+            </div>
+            {isOpen ? (
+              <div className="grid2">
+                {items.map((recipe) => (
+                  <RecipeTile
+                    key={recipe.id}
+                    recipe={recipe}
+                    locked={recipe.premium && !state.premium}
+                    onOpen={() => openRecipe(recipe)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="carousel">
+                {items.map((recipe) => (
+                  <RecipeTile
+                    key={recipe.id}
+                    recipe={recipe}
+                    locked={recipe.premium && !state.premium}
+                    onOpen={() => openRecipe(recipe)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      <p className="banner">
+        Рецепты собраны под правила, которые вытащила клиническая разведка: около 1,6 г белка на кг в сутки, клетчатка в
+        каждом приёме, никакого сахара первым блюдом. Это не лечебное питание и не замена назначениям врача.
+      </p>
+
+      {open ? <RecipeSheet recipe={open} onClose={() => setOpen(null)} /> : null}
+    </>
+  );
+}
+
+function RecipeSheet({ recipe, onClose }: { recipe: Recipe; onClose: () => void }): JSX.Element {
+  return (
+    <Sheet title={recipe.title} onClose={onClose}>
+      <ArtTile kind={recipe.art} height={130} label="" />
+      <div className="row wrap" style={{ gap: 6 }}>
+        <span className="pill accent">{recipe.minutes} мин</span>
+        <span className="pill">{recipe.servings === 1 ? '1 порция' : `${recipe.servings} порции`}</span>
+        {recipe.tags.map((name) => (
+          <span key={name} className="pill">{name}</span>
+        ))}
+      </div>
+      <p className="tiny">{recipe.why}</p>
+      <MacroRow macros={recipe.macros} />
+
+      <div className="col" style={{ gap: 7 }}>
+        <span className="eyebrow">Продукты</span>
+        <ul className="col" style={{ gap: 5, listStyle: 'none', padding: 0, margin: 0 }}>
+          {recipe.ingredients.map((item) => (
+            <li key={item} className="tiny row" style={{ gap: 8, alignItems: 'flex-start' }}>
+              <span aria-hidden="true" style={{ color: 'var(--accent)' }}>•</span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="col" style={{ gap: 7 }}>
+        <span className="eyebrow">Приготовление</span>
+        <ol className="col" style={{ gap: 7, listStyle: 'none', padding: 0, margin: 0 }}>
+          {recipe.steps.map((step, index) => (
+            <li key={step} className="tiny row" style={{ gap: 9, alignItems: 'flex-start' }}>
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 19, height: 19, flex: 'none', borderRadius: '50%', display: 'grid', placeItems: 'center',
+                  fontSize: 11, fontWeight: 700, background: 'var(--accent-soft)', color: 'var(--accent)', marginTop: 1,
+                }}
+              >
+                {index + 1}
+              </span>
+              <span>{step}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </Sheet>
+  );
+}
+
+function PlanList({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
+  const state = useAppState();
+  const [open, setOpen] = useState<MealPlan | null>(null);
+
+  const openPlan = (plan: MealPlan) => {
+    if (plan.premium && !state.premium) onRequestPro('Этот план питания входит в PRO.');
+    else setOpen(plan);
+  };
+
+  const first = MEAL_PLANS[0];
+
+  return (
+    <>
+      <button type="button" className="hero" onClick={() => openPlan(first)}>
+        <ArtTile kind={first.art} height={150} rounded={18} label="" variant="hero" />
+        <span className="hero-text">
+          <strong>{first.title}</strong>
+          <span>{first.lede}</span>
+        </span>
+      </button>
+
+      <div className="col" style={{ gap: 10 }}>
+        <div className="section-head">
+          <h2>Все планы</h2>
+        </div>
+        <div className="col" style={{ gap: 12 }}>
+          {MEAL_PLANS.map((plan) => {
+            const locked = plan.premium && !state.premium;
+            const avg = planAverage(plan);
+            return (
+              <button key={plan.id} type="button" className="lockbtn" onClick={() => openPlan(plan)}>
+                <Card>
+                  <span className="art" style={{ position: 'relative' }}>
+                    <ArtTile kind={plan.art} height={92} label="" />
+                    {locked ? <span className="badge-pro">PRO</span> : null}
+                  </span>
+                  <div className="row between" style={{ gap: 10, alignItems: 'flex-start' }}>
+                    <span className="col grow" style={{ gap: 3 }}>
+                      <strong style={{ fontFamily: 'var(--display)', fontSize: 16 }}>{plan.title}</strong>
+                      <span className="tiny muted">{plan.lede}</span>
+                    </span>
+                    <span className="pill accent">{plan.goal}</span>
+                  </div>
+                  <span className="tiny muted num">
+                    7 дней · ≈ {avg.kcal} ккал и {avg.protein} г белка в день, базовые порции
+                  </span>
+                </Card>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {open ? <PlanSheet plan={open} onClose={() => setOpen(null)} /> : null}
+    </>
+  );
+}
+
+function PlanSheet({ plan, onClose }: { plan: MealPlan; onClose: () => void }): JSX.Element {
+  const [day, setDay] = useState(0);
+  const current = plan.days[day];
+  const macros = dayMacros(current);
+  const names = (id?: string) => (id ? recipeById(id)?.title ?? '' : '');
+
+  return (
+    <Sheet title={plan.title} onClose={onClose}>
+      <ArtTile kind={plan.art} height={110} label="" />
+      <p className="tiny">{plan.about}</p>
+
+      <div className="carousel" style={{ marginInline: 0, paddingInline: 0 }}>
+        {plan.days.map((item, index) => (
+          <button
+            key={item.label}
+            type="button"
+            className="chip"
+            aria-pressed={index === day}
+            onClick={() => setDay(index)}
+          >
+            {item.label.slice(0, 2)}
+          </button>
+        ))}
+      </div>
+
+      <div className="col" style={{ gap: 9 }}>
+        <span className="eyebrow">{current.label}</span>
+        {([
+          ['Завтрак', current.breakfast],
+          ['Обед', current.lunch],
+          ['Ужин', current.dinner],
+          ['Перекус', current.snack],
+        ] as const).map(([slot, id]) =>
+          id ? (
+            <div className="row between" key={slot} style={{ gap: 10 }}>
+              <span className="tiny muted" style={{ minWidth: 62 }}>{slot}</span>
+              <span className="tiny grow" style={{ fontWeight: 600, textAlign: 'right' }}>{names(id)}</span>
+            </div>
+          ) : null,
+        )}
+      </div>
+
+      <MacroRow macros={macros} per="день" />
+
+      <p className="banner tiny">
+        Это базовые порции, а не ваша норма. Большинству взрослых нужно больше: добавьте перекус или увеличьте порцию
+        белка и гарнира под свой расход. Разумный коридор снижения веса — 0,5–1 кг в неделю, быстрее не стоит.
+      </p>
+
+      {current.note ? <p className="banner tiny">{current.note}</p> : null}
+
+      <p className="tiny muted">
+        За неделю план использует {planRecipes(plan).length} рецептов — их можно открыть во вкладке «Рецепты».
+      </p>
+    </Sheet>
+  );
+}

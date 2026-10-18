@@ -128,7 +128,7 @@ public class MainActivity extends Activity {
 
     @JavascriptInterface
     public String appVersion() {
-      return "0.6.0";
+      return "0.7.0";
     }
 
     /** Plain-text state for the diagnostics block in the steps sheet. */

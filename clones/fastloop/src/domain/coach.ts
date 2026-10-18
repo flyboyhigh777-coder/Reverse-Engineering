@@ -132,7 +132,7 @@ export function coachInsights(state: AppState, now: number): readonly Insight[] 
 
   // ── Water
   const days = state.days.filter((d) => d.date >= isoDate(startOfDay(now) - 6 * DAY_MS));
-  const target = waterTargetMl(state.profile.startKg);
+  const target = waterTargetMl(state.profile.sex, state.profile.activity);
   const dry = days.filter((d) => d.waterMl < target * 0.7).length;
   if (days.length >= 4 && dry >= 3) {
     out.push({
@@ -165,12 +165,20 @@ export function coachInsights(state: AppState, now: number): readonly Insight[] 
     const spanDays = (new Date(last.date).getTime() - new Date(first.date).getTime()) / DAY_MS;
     if (spanDays >= 14) {
       const perWeek = ((last.kg - first.kg) / spanDays) * 7;
-      if (perWeek <= -1.2) {
+      if (perWeek <= -1.5) {
+        out.push({
+          id: 'too-fast-loss',
+          tone: 'warn',
+          title: `Темп ${Math.abs(perWeek).toFixed(1)} кг в неделю — слишком быстро`,
+          body: 'Скорость выше 1,5 кг в неделю названа фактором риска образования камней в жёлчном пузыре. Стоит ослабить дефицит и показаться врачу.',
+          weight: 95,
+        });
+      } else if (perWeek <= -1.0) {
         out.push({
           id: 'fast-loss',
           tone: 'warn',
-          title: `Темп ${Math.abs(perWeek).toFixed(1)} кг в неделю — быстро`,
-          body: 'Больше килограмма в неделю обычно означает потерю мышц и воды, а не только жира. Стоит добавить белка и силовых.',
+          title: `Темп ${Math.abs(perWeek).toFixed(1)} кг в неделю — выше коридора`,
+          body: 'Рекомендуемый диапазон — 0,5–1 кг в неделю. Выше обычно означает потерю мышц и воды, а не только жира: добавьте белок и силовые.',
           weight: 85,
         });
       } else if (perWeek <= -0.2) {

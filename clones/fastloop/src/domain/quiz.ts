@@ -147,6 +147,7 @@ export const QUIZ: readonly QuizStep[] = [
       { value: 'gallstones', label: 'Камни в жёлчном' },
       { value: 'thyroid', label: 'Заболевание щитовидной железы' },
       { value: 'pressure', label: 'Гипертония' },
+      { value: 'adrenal', label: 'Надпочечниковая недостаточность', sub: 'Или длительный приём гормональных препаратов' },
       { value: 'none', label: 'Ничего из перечисленного' },
     ],
   },

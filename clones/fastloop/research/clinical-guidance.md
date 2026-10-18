@@ -898,3 +898,339 @@ default_window_if_unspecified = early (напр. 10:00–18:00)
 
 Набор упражнений: одно толкающее, одно тянущее, одно на ноги (присед или его вариант), одно на тазобедренный сустав (ягодичный мостик / румынская тяга), одно на корпус. Это покрывает требование «все основные мышечные группы».
 
+---
+
+## 7. ТЕСТОСТЕРОН И ВЕС
+
+### 7.1 Почему этот раздел нужен
+
+Тема тестостерона — один из самых коммерциализированных сегментов мужского YouTube. Пользователи придут с готовыми убеждениями. Задача — не высмеять их, а дать точную картину, в которой **правда оказывается полезнее мифа**: связь между весом и тестостероном реальна, и она работает в пользу того, что мы и так рекомендуем.
+
+### 7.2 Главный факт: ожирение снижает тестостерон, и снижение веса это обращает вспять
+
+**УСТАНОВЛЕНО.**
+
+- Клинический обзор в *JCEM* (2024/2025, «Approach to the Patient: Low Testosterone Concentrations in Men With Obesity») использует термин **«псевдогипогонадизм ожирения»** и прямо указывает: **снижение веса, независимо от того, каким способом оно достигнуто, высокоэффективно в обращении вспять функционального снижения уровня тестостерона** у мужчин с этим состоянием.
+- **Мета-анализ Corona и соавт.** (*European Journal of Endocrinology*, 2013; 168(6):829): и низкокалорийная диета, и бариатрическая хирургия **достоверно повышают общий тестостерон**; хирургия эффективнее. **Степень снижения массы тела — наилучший детерминант прироста тестостерона** (множественный регрессионный анализ).
+- По данным вторичного источника [коммерческий сайт клиники — требует проверки по первоисточнику]: низкокалорийная диета повышала общий тестостерон в среднем примерно на **2,9 нмоль/л**, бариатрическая хирургия — примерно на **8,7 нмоль/л**.
+- Сопутствующие изменения: снижение эстрадиола и повышение гонадотропинов. Авторы предполагают, что нормализация половых гормонов — один из механизмов благоприятного эффекта бариатрической хирургии.
+- Оговорка: в отдельных ранних исследованиях с одной только диетой результаты расходились (где-то прирост, где-то без изменений) — именно поэтому мета-анализ и важен.
+
+**Это и есть главное сообщение раздела.** Оно сильное, оно верное, и оно ведёт пользователя ровно туда, куда нужно: **самый доказанный способ повысить тестостерон для мужчины с избыточным весом — это снизить вес.** Не добавка, не протокол, не голодание само по себе — а снижение веса, величина которого и определяет величину прироста.
+
+### 7.3 Что говорят эндокринологические организации о тестировании и терапии
+
+**Клиническое практическое руководство Общества эндокринологов (Endocrine Society), 2018** (Bhasin и соавт., *JCEM* 103(5):1715):
+
+- **Диагноз гипогонадизма ставится только у мужчин с симптомами и признаками, соответствующими дефициту тестостерона, И с однозначно и устойчиво низкими концентрациями тестостерона в сыворотке.** Один низкий анализ сам по себе диагнозом не является.
+- **Техническое примечание руководства:** уровень тестостерона колеблется день ото дня и может подавляться приёмом пищи или глюкозой, поэтому общий тестостерон следует измерять **в два отдельных утра, натощак**.
+- **Против рутинного популяционного скрининга.** *[Эта формулировка получена из вторичного источника; точное положение руководства следует сверить с полным текстом.]*
+- Заявление Общества от июля 2026 года, по имеющимся данным, **подтверждает существующие рекомендации**, а не вводит новое руководство.
+
+**Практическое следствие для пользователя:** «Низкий тестостерон» по одному анализу, сданному днём, после еды — это не диагноз. Это крайне распространённая схема в коммерческих клиниках, которая приводит к назначению пожизненной терапии людям, у которых её показаний нет.
+
+### 7.4 Популярные онлайн-утверждения — разбор
+
+#### 7.4.1 «Голодание повышает тестостерон» — СЛАБО, данные скорее противоречат
+
+Это утверждение не просто не подтверждено — имеющиеся данные указывают в **противоположную** сторону у худых тренированных мужчин.
+
+- **Moro и соавт., 2016** (*Journal of Translational Medicine*): 8 недель режима 16/8 у 34 силовых атлетов-мужчин. **Тестостерон и ИФР-1 достоверно снизились** в группе ограниченного по времени питания; в контрольной группе изменений не было. При этом жировая масса снизилась, а обезжиренная масса, площадь мышц плеча и бедра и максимальная сила **сохранились в обеих группах**.
+- **Обзор исследований у людей** (*Nutrients*, 2022, «Effect of Intermittent Fasting on Reproductive Hormone Levels in Females and Males»): ограничение времени приёма пищи, как отдельно, так и в сочетании с силовыми тренировками, **последовательно снижало общий тестостерон**. При этом авторы отмечают: **мышечная масса и сила от этого снижения не страдали**.
+- **Но у мужчин с ожирением картина иная:** исследование 2026 года (*Journal of Obesity*) — у мужчин с ожирением уровень тестостерона и сила **улучшились на фоне силовых тренировок**, без разницы между группами с интервальным голоданием и без него. Расхождение с данными у худых атлетов, вероятнее всего, объясняется различием популяций: у мужчин с ожирением работает механизм из §7.2 (снижение веса → рост тестостерона), и он перевешивает.
+- **Рамадан:** данные старые и непоследовательные. В одном исследовании концентрация тестостерона была достоверно ниже к 9-му дню голодания (P < 0,025); в другой сводке — без изменений при измерении перед разговением.
+
+**Как это подавать:**
+
+> «Утверждение "голодание повышает тестостерон" данными не подтверждается. В исследованиях у худых тренированных мужчин режим 16/8 скорее **снижал** общий тестостерон — правда, без ущерба для мышечной массы и силы. У мужчин с избыточным весом тестостерон обычно растёт, но причина этого — **снижение веса**, а не окно питания. Если ваша цель — тестостерон, работает не голодание, а потеря жира любым способом, который вы сможете выдержать.»
+
+Обратите внимание, насколько это сообщение удобно: оно опровергает миф и **одновременно усиливает мотивацию** к тому, что приложение и так предлагает.
+
+**Частая подмена, которую стоит назвать:** популярный контент нередко смешивает тестостерон с **гормоном роста**, уровень которого при голодании действительно меняется. Это разные гормоны с разными эффектами. *[Конкретные данные по гормону роста при ИГ в рамках этого исследования не проверялись — не подтверждено.]*
+
+#### 7.4.2 Добавки-«бустеры тестостерона» — СЛАБО
+
+**Важная оговорка по качеству источников:** практически все страницы по этому запросу — продавцы добавок, клиники мужского здоровья и потребительские медиа с коммерческим интересом. Независимого лабораторного анализа розничных продуктов найти не удалось. Тем не менее картина между источниками согласованная.
+
+| Компонент | Что показывают данные |
+|---|---|
+| **Tribulus terrestris** (якорцы) | Самый слабый. Систематический обзор 2014 года (*Journal of Dietary Supplements*) — **нет достоверного влияния** на тестостерон у здоровых мужчин. Систематический обзор 2020 года — аналогичный вывод. Многочисленные исследования не находят эффекта ни у здоровых мужчин, ни у спортсменов. |
+| **D-аспарагиновая кислота (DAA)** | Раннее исследование 2009 года показало прирост; **РКИ 2015 года у силовых атлетов прироста не обнаружило**, и множественные исследования у мужчин с нормальным тестостероном не воспроизвели исходный результат. Один источник предупреждает, что при длительном применении она может **подавлять** тестостерон. |
+| **Ашваганда** | Наиболее подкреплённый вариант, но эффект скромный: прирост порядка **10–20%**, предполагаемый механизм — снижение кортизола, то есть польза главным образом у мужчин, чей тестостерон подавлен хроническим стрессом. Один источник прямо отмечает: **величина эффекта вряд ли клинически значима у мужчин с истинным гипогонадизмом**. |
+| **Пажитник (фенугрек)** | Смешанные результаты: умеренно благоприятные мета-анализы при значительной межисследовательской вариабельности. |
+| **Цинк, витамин D, магний** | Помогают главным образом тогда, когда человек **действительно в дефиците**. Приём сверх достаточного уровня даёт «от небольшого до нулевого» эффекта. |
+
+**Формулировка для приложения:** «Из популярных "бустеров тестостерона" ни один не показал клинически значимого повышения у мужчин с нормальным уровнем. Трибулус в систематических обзорах эффекта не даёт. D-аспарагиновая кислота не воспроизвелась в повторных исследованиях. Ашваганда — лучший из набора, но прирост скромный и, по-видимому, связан со снижением стресса. Цинк и витамин D работают, только если у вас дефицит, — а это проверяется анализом, а не предположением.»
+
+#### 7.4.3 «Натуральные протоколы ТЗТ» и назначение терапии без показаний — РИСК
+
+**Данные по безопасности терапии тестостероном — исследование TRAVERSE** (2023, *NEJM*):
+- 5 246 мужчин 45–80 лет с гипогонадизмом и имеющимся или высоким сердечно-сосудистым риском; среднее наблюдение около **33 месяцев**.
+- Первичная комбинированная конечная точка (MACE): **7,0% на тестостероне против 7,3% на плацебо; отношение рисков 0,96** — критерий **неменьшей эффективности (non-inferiority) достигнут**.
+- **Но в группе тестостерона достоверно чаще отмечались:** нефатальные аритмии, требовавшие вмешательства; **фибрилляция предсердий**; острое повреждение почек; **венозная тромбоэмболия (1,7% против 1,2%)**; **переломы**.
+- Событий со стороны предстательной железы больше не было.
+- Гематокрит умеренно повышался. Позиционное заявление Европейской экспертной панели по исследованию тестостерона (*Andrology*, 2026) подчёркивает: даже умеренное повышение гематокрита **выше 52%** может повышать сердечно-сосудистый риск, если его не мониторить.
+
+**Критическое ограничение, которое обязательно нужно передать:** один из экспертов прямо предупредил, что **результаты применимы только к мужчинам с симптомами гипогонадизма и измеренным низким уровнем тестостерона**. Это **не** данные о безопасности терапии у мужчины с нормальным тестостероном, который хочет «оптимизироваться». Кроме того, один обзор отмечает, что ~33 месяца может быть недостаточно для надёжной оценки сердечно-сосудистых исходов при более длительной терапии.
+
+**Подавление сперматогенеза.** Экзогенный тестостерон подавляет выработку собственного тестостерона и сперматогенез, что ведёт к снижению фертильности, — это стандартное положение эндокринологии и ключевой пункт информированного согласия. **Однако в рамках данного исследования источник с этим положением получить не удалось — не подтверждено.** Перед включением в контент обязательно сверьтесь с руководством Endocrine Society 2018 или другим первоисточником.
+
+### 7.5 Готовый ответственный блок для приложения
+
+> **Тестостерон и вес: что известно**
+>
+> **Правда.** Избыточный вес действительно снижает тестостерон у мужчин. Это называют функциональным, или «псевдогипогонадизмом ожирения», и ключевое слово здесь — **функциональный**: состояние обратимо. Мета-анализ показал, что и диета, и бариатрическая хирургия достоверно повышают тестостерон, причём **чем больше снижение веса, тем больше прирост**.
+>
+> **Чего не стоит ждать от голодания.** Утверждение «голодание повышает тестостерон» не подтверждено. У худых тренированных мужчин режим 16/8 в исследованиях скорее снижал тестостерон — без потери силы и мышц. Если тестостерон вырос на фоне голодания у человека с лишним весом, причина в потере жира, а не в окне питания.
+>
+> **Об анализах.** Один низкий результат — не диагноз. Руководство Общества эндокринологов требует сочетания симптомов и **устойчиво** низкого уровня, измеренного **дважды, утром, натощак**: уровень колеблется день ото дня и снижается после еды. Рутинный скрининг всех подряд не рекомендуется.
+>
+> **О добавках.** Ни один популярный «бустер» не показал клинически значимого эффекта у мужчин с нормальным уровнем. Цинк и витамин D работают только при доказанном дефиците.
+>
+> **О терапии.** Терапия тестостероном — настоящее лечение с настоящими показаниями и настоящими рисками. В крупном исследовании TRAVERSE частота больших сердечно-сосудистых событий не превысила плацебо, но чаще встречались фибрилляция предсердий, нарушения ритма, тромбоэмболия и переломы. Эти данные относятся **только** к мужчинам с подтверждённым гипогонадизмом — не к тем, кто хочет «поднять уровень повыше».
+>
+> **Что делать, если вас это беспокоит.** Снизить вес, наладить сон, добавить силовые тренировки — и обсудить симптомы с эндокринологом, а не с видеоблогером.
+
+---
+
+## 8. КРАСНЫЕ ФЛАГИ В ПОПУЛЯРНОМ ОНЛАЙН-КОНТЕНТЕ О ЗДОРОВЬЕ
+
+### 8.1 Чек-лист для оценки видео или блогера
+
+Составлен по материалам Mayo Clinic Press («8 red flags»), Scripps Health, Healthline и смежным источникам.
+
+| # | Красный флаг | Почему это сигнал |
+|---|---|---|
+| 1 | **Автор продаёт то, что рекомендует** | Прямой конфликт интересов. Практическое правило от врача: если **на любую проблему со здоровьем даётся один и тот же ответ, и этот ответ — то, что продаётся**, это красный флаг. |
+| 2 | **Ссылка на одно-единственное исследование** | Отдельное небольшое исследование, тем более профинансированное производителем, — не доказательство. Малая выборка не порочна сама по себе: добросовестные исследователи объясняют, почему она такая. |
+| 3 | **Нет указания источников или «клинически доказано» без ссылки** | Формулировки вроде «доказано исследованиями» без конкретной ссылки проверить невозможно — а значит, их нельзя принимать. |
+| 4 | **Исследование финансировал продавец** | Компании, продающие добавки, иногда финансируют собственные исследования, что искажает результаты. Хороший тест: проведено ли исследование **на людях**, **независимо** от продавца, и на **разумном числе участников**. |
+| 5 | **Обещание «чудесного» результата** | Средства «от всего» и обещания излечения от множества несвязанных проблем — классический признак. |
+| 6 | **«Врачи не хотят, чтобы вы это знали»** | Конспирологическая рамка подменяет доказательства: вместо данных предлагается объяснение, почему данных нет. |
+| 7 | **Нет проверяемых квалификаций** | Должно быть понятно, кто этот человек и есть ли у него медицинское образование, связанное с признанным учреждением. |
+| 8 | **Советует отказаться от назначенного лечения** | Призывы прекратить приём препаратов, отказаться от вакцин или игнорировать врача — серьёзный сигнал опасности. |
+| 9 | **«Проприетарная смесь» в составе** | Этикетка, скрывающая дозировки отдельных компонентов, не позволяет оценить, содержится ли в продукте действующее количество. |
+| 10 | **Экстраполяция с грызунов и клеточных культур** | «Исследование показало, что это продлевает жизнь» — а потом выясняется, что речь о мышах или дрожжах. Классический пример — утверждения про аутофагию (§2.5.1) и долголетие (§2.5.3). |
+| 11 | **Псевдоточность** | Конкретные цифры там, где их не может быть: «аутофагия включается на 16-м часу», «кетоз на 14-м». Точность числа создаёт впечатление точности знания. |
+| 12 | **Тезисы конференции и пресс-релизы как «новое исследование»** | См. кейс AHA 2024 (§2.6): непрорецензированные тезисы, цифры которых не совпадали с пресс-релизом, стали мировым заголовком. |
+| 13 | **Результат исследования переносится на другую популяцию** | Данные TRAVERSE получены у мужчин с подтверждённым гипогонадизмом; переносить их на здоровых мужчин, «оптимизирующих» уровень, нельзя. |
+| 14 | **Суррогатный маркёр выдаётся за исход** | Изменился анализ ≠ человек стал здоровее и прожил дольше. Пример: споры вокруг ЛПНП на кето при полном отсутствии данных по инфарктам (§5.4). |
+
+**Главный практический тест (Mayo Clinic Press):** сверить утверждение с рекомендациями профильного медицинского общества.
+
+### 8.2 Как это реализовать в продукте
+
+Если пользователь присылает ссылку на видео, продуктивнее не выносить вердикт «правда/ложь», а **вернуть пользователю структуру для самостоятельной оценки**:
+
+1. **Кто говорит?** Есть ли квалификация, и видна ли она?
+2. **Что продаётся?** Есть ли ссылка на магазин, промокод, партнёрская программа?
+3. **На чём основано?** Названо ли конкретное исследование? На людях или на животных? Сколько участников?
+4. **Насколько категорично?** Есть ли слова «может», «по-видимому», «у части людей» — или только абсолютные утверждения?
+5. **Что говорят об этом профильные организации?**
+6. **Призывают ли отказаться от врача или лечения?**
+
+Разумное дополнение: приложение может показывать **собственную оценку спорности** темы по шкале из §0.1 — и тем самым демонстрировать, что мы применяем эти критерии к себе. Контент, который честно пишет «СПОРНО» о собственной нише, вызывает больше доверия, чем контент, уверенный во всём.
+
+---
+
+## 9. ФОРМУЛИРОВКИ И ГРАНИЦЫ ДЛЯ ПРОДУКТА
+
+### 9.1 Что приложение может и чего не может говорить
+
+| Можно | Нельзя |
+|---|---|
+| «Этот режим не подходит для нашего приложения в вашей ситуации» | «Вам нельзя голодать» |
+| «Ваши ответы — повод обсудить это с врачом» | «У вас, вероятно, апноэ сна» |
+| «Исследования показывают…» с указанием уровня достоверности | «Доказано, что…» без оговорок |
+| «Прекратите голодание и поешьте, если появились эти симптомы» | Любые инструкции по дозировке лекарств |
+| «Ориентир для большинства — 1,6 г белка на кг» | «Ваша норма — 112 г белка» как предписание |
+| Показать обе позиции по спорному вопросу | Усреднять противоположные позиции в одну |
+
+### 9.2 Обязательные дисклеймеры
+
+1. **При входе в режим голодания:** приложение не является медицинской услугой; при наличии хронических заболеваний или приёме лекарств — консультация врача.
+2. **На экране скрининга:** вопросы нужны для безопасности, ответы не формируют диагноз.
+3. **В любом материале о лекарствах:** не менять терапию самостоятельно.
+4. **На экране тревожных признаков:** при тяжёлых симптомах — 103 или 112.
+
+### 9.3 Приоритеты по силе доказательств для онбординга
+
+Если нужно расставить приоритеты в том, чему учить пользователя в первую очередь, порядок по силе доказательств и величине эффекта такой:
+
+1. **Дефицит калорий** — единственный доказанный механизм снижения веса. Голодание — инструмент его достижения, а не альтернатива ему.
+2. **Сон ≥ 7 часов** — РКИ с объективным измерением, ≈270 ккал/день у недосыпающих, без каких-либо ограничений в еде.
+3. **Белок ≥ 1,6 г/кг** — прямые данные о сохранении мышц.
+4. **Силовые 2 раза в неделю** — мета-анализы: сохранение до ~93% тощей массы.
+5. **Клетчатка 25–30 г** — крупная серия мета-анализов, заказанная ВОЗ.
+6. **Скорость снижения веса 0,5–1 кг/нед** — безопасность (желчные камни) + официальная российская рекомендация 5–10% за 3 месяца.
+7. **Раннее окно питания** — слабее предыдущих, но правдоподобно и ничего не стоит.
+8. Всё остальное — персонализация и приверженность, а не физиология.
+
+---
+
+## 10. ИСТОЧНИКИ
+
+**Общее предупреждение: ни один из этих URL не был открыт напрямую** (прокси-политика среды возвращала 403 для всех хостов). Все данные извлечены из сниппетов и аннотаций поисковой выдачи. Перед публикацией в продукте каждую конкретную цифру следует сверить с первоисточником.
+
+### Противопоказания и скрининг
+- Cleveland Clinic. Intermittent Fasting: What It Is, Benefits and Schedules — https://health.clevelandclinic.org/intermittent-fasting-4-different-types-explained
+- Cleveland Clinic. What is Intermittent Fasting? (подкаст) — https://my.clevelandclinic.org/podcasts/love-your-heart/what-is-intermittent-fasting
+- Mayo Clinic Q&A: Is intermittent fasting a helpful practice or health risk? — https://newsnetwork.mayoclinic.org/discussion/mayo-clinic-q-and-a-is-intermittent-fasting-a-helpful-practice-or-health-risk/
+- Harvard Health. 4 intermittent fasting side effects to watch out for — https://www.health.harvard.edu/healthy-aging-and-longevity/4-intermittent-fasting-side-effects-to-watch-out-for
+- Harvard Health. Can intermittent fasting improve heart health? — https://www.health.harvard.edu/heart-health/can-intermittent-fasting-improve-heart-health
+- Harvard T.H. Chan. Diet Review: Intermittent Fasting for Weight Loss — https://nutritionsource.hsph.harvard.edu/healthy-weight/diet-reviews/intermittent-fasting/
+
+### Диабет и голодание
+- IDF-DAR risk stratification score, валидация (Saudi cross-sectional) — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11929123/
+- Risk Stratification in People with Diabetes for Fasting During Ramadan: AASD consensus — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11041120/
+- Recommendations for Management of Diabetes During Ramadan (ADA, Diabetes Care 28(9):2305) — https://care.diabetesjournals.org/content/28/9/2305
+- Role of oral hypoglycemic agents during Ramadan — https://pubmed.ncbi.nlm.nih.gov/22837904/
+- Diabetes UK. Diabetes and Ramadan — https://www.diabetes.org.uk/about-diabetes/looking-after-diabetes/ramadan
+- Hypoglycemic Events in Diabetic Patients under Non-insulin Regimens During Ramadan (network meta-analysis) — https://www.medrxiv.org/content/10.1101/2022.05.28.22275730.full.pdf
+- ADA Standards of Care in Diabetes—2026, раздел 3 — https://diabetesjournals.org/care/article/49/Supplement_1/S50/163924/3-Prevention-or-Delay-of-Diabetes-and-Associated
+- Intermittent fasting to treat diabetes: time to update clinical practice guidelines (2026) — https://pmc.ncbi.nlm.nih.gov/articles/PMC13469085/
+
+### Расстройства пищевого поведения
+- Ganson и соавт. Intermittent fasting and eating disorder behaviours (освещение) — https://www.medscape.com/viewarticle/984410 и https://psychiatryonline.org/doi/10.1176/appi.pn.2023.02.2.3
+- Intermittent fasting: consider the risks of disordered eating for your patient — https://www.researchgate.net/publication/374909008
+- Intermittent Fasting in Youth: A Scoping Review — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11247931/
+- SCOFF Questionnaire (NHS Scotland, PDF) — https://www.rightdecisions.scot.nhs.uk/media/go5jp0zr/scoff-questionnaire.pdf
+
+### Гипогликемия и тревожные признаки
+- Mayo Clinic. Hypoglycemia — https://www.mayoclinic.org/diseases-conditions/hypoglycemia/symptoms-causes/syc-20373685
+- Cleveland Clinic. Hypoglycemia (Low Blood Sugar) — https://my.clevelandclinic.org/health/diseases/11647-hypoglycemia-low-blood-sugar
+- Cedars-Sinai. Hypoglycemia — https://www.cedars-sinai.org/health-library/diseases-and-conditions/h/hypoglycemia.html
+
+### Желчные камни, щитовидная железа, надпочечники, ГЭРБ
+- Risk of symptomatic gallstones and cholecystectomy after a VLCD or LCD (matched cohort, 2013) — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3921672/
+- Gallstones in obesity and weight loss (обзор) — https://www.researchgate.net/publication/12139388
+- Ursodeoxycholic Acid and Diets Higher in Fat Prevent Gallbladder Stones During Weight Loss (мета-анализ РКИ) — https://www.sciencedirect.com/science/article/pii/S1542356513018375
+- American Thyroid Association. Levothyroxine timing — https://www.thyroid.org/patient-thyroid-information/ct-for-patients/vol-6-issue-11/vol-6-issue-11-p-4/
+- Hussain и соавт. Fasting with adrenal insufficiency (Clin Endocrinol, 2020) — https://onlinelibrary.wiley.com/doi/10.1111/cen.14250
+- NICE NG243. Adrenal insufficiency: identification and management — https://www.nice.org.uk/guidance/ng243/chapter/recommendations
+- Society for Endocrinology. Adrenal insufficiency and stress: we need evidence for sick day rules — https://www.endocrinology.org/endocrinologist/153-autumn-24/features/adrenal-insufficiency-and-stress-we-need-evidence-for-sick-day-rules/
+- Nocturnal Reflux Episodes Following the Administration of a Standardized Meal: Does Timing Matter? (Am J Gastroenterol, 2007) — https://www.ovid.com/jnls/ajg/abstract/00000434-200710000-00004
+
+### Доказательная база по интервальному голоданию
+- **Garegnani L.I. и соавт. Intermittent fasting for adults with overweight or obesity. Cochrane Database Syst Rev, 2026, CD015610.pub2** — https://www.cochranelibrary.com/cdsr/doi/10.1002/14651858.CD015610.pub2/full
+- Cochrane news release. Evidence behind intermittent fasting for weight loss fails to match hype — https://www.cochrane.org/about-us/news/evidence-behind-intermittent-fasting-weight-loss-fails-match-hype
+- **Liu D. и соавт. Calorie Restriction with or without Time-Restricted Eating in Weight Loss. N Engl J Med 2022;386:1495-1504** — https://www.nejm.org/doi/full/10.1056/NEJMoa2114833
+- **Lowe D.A. и соавт. TREAT Randomized Clinical Trial. JAMA Intern Med, 2020** — https://jamanetwork.com/journals/jamainternalmedicine/fullarticle/2771095
+- **Jamshed H. и соавт. Effectiveness of Early Time-Restricted Eating. JAMA Intern Med, 2022** — https://jamanetwork.com/journals/jamainternalmedicine/fullarticle/2794819
+- Intermittent versus continuous energy restriction (мета-анализ) — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6304782/
+- Evaluation of the effectiveness of intermittent fasting versus caloric restriction (мета-анализ, 2025) — https://pmc.ncbi.nlm.nih.gov/articles/PMC11930668/
+- The Effects of Isocaloric Intermittent Fasting vs Daily Caloric Restriction (J Acad Nutr Diet) — https://www.jandonline.org/article/S2212-2672(22)00992-3/abstract
+- DRIFT 52-week RCT protocol — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9421629/
+
+### Аутофагия
+- Increasing autophagy with fasting and diet: separating fact from fiction (Biochem Soc Trans) — https://portlandpress.com/biochemsoctrans/article/54/10/1497/238169/
+- Dawn-to-dusk intermittent fasting and autophagy genes — https://www.sciencedirect.com/science/article/abs/pii/S2405457724015109
+- Early Time-Restricted Feeding and markers of circadian clock, aging, autophagy — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6627766/
+
+### Кейс AHA 2024
+- TCTMD. Intermittent Fasting Study Sparks Debate Over Increases in CV Mortality — https://www.tctmd.com/news/intermittent-fasting-study-sparks-debate-over-increases-cv-mortality
+- Medscape. No, Intermittent Fasting Won't Kill You — https://www.medscape.com/viewarticle/1000544
+- British Heart Foundation. Can intermittent fasting double your risk of cardiovascular death? — https://www.bhf.org.uk/informationsupport/heart-matters-magazine/news/behind-the-headlines/intermittent-fasting
+- McGill OSS. Intermittent Fasting and the Perils of Fast Facts — https://www.mcgill.ca/oss/article/medical-health-and-nutrition/intermittent-fasting-and-perils-fast-facts
+
+### Сон и циркадные ритмы
+- **AASM/SRS. Recommended Amount of Sleep for a Healthy Adult (2015)** — https://aasm.org/resources/pdf/pressroom/adult-sleep-duration-consensus.pdf и https://aasm.org/advocacy/position-statements/adult-sleep-duration-health-advisory/
+- **Tasali E. и соавт. Effect of Sleep Extension on Objectively Assessed Energy Intake. JAMA Intern Med 2022;182(4):365-374** — https://jamanetwork.com/journals/jamainternalmedicine/fullarticle/2788694
+- NIH Research Matters. Getting sufficient sleep reduces calorie intake — https://www.nih.gov/news-events/nih-research-matters/getting-sufficient-sleep-reduces-calorie-intake
+- Spiegel и соавт. Short Sleep Duration Is Associated with Reduced Leptin, Elevated Ghrelin (PLoS Med 2004) — https://journals.plos.org/plosmedicine/article?id=10.1371%2Fjournal.pmed.0010062
+- The Impact of Sleep Deprivation on Hunger-Related Hormones: A Meta-Analysis (отрицательный результат) — https://www.mdpi.com/2673-4168/5/2/48
+- Rogers и соавт. The effects of sleep disruption on metabolism, hunger, and satiety (2024) — https://onlinelibrary.wiley.com/doi/10.1002/dmrr.3667
+- Van Egmond и соавт. Effects of acute sleep loss on leptin, ghrelin, adiponectin (Obesity, 2023) — https://onlinelibrary.wiley.com/doi/full/10.1002/oby.23616
+- **Late isocaloric eating increases hunger, decreases energy expenditure (Cell Metabolism, 2022)** — https://www.cell.com/cell-metabolism/fulltext/S1550-4131(22)00397-7
+- The Impact of Meal Timing on Risk of Weight Gain and Development of Obesity — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9010393/
+- Endocrine Society. People who eat a late dinner may gain weight — https://www.endocrine.org/news-and-advocacy/news-room/2020/people-who-eat-a-late-dinner-may-gain-weight
+- Метаболические параметры, вечерний хронотип и социальный джетлаг (мета-анализ, 2022) — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9720311/
+- Elevated cardiometabolic risk markers in evening chronotype shift workers (Br J Nutr) — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12797073/
+- Shift work and metabolic risk factors in health care workers (PLOS ONE, отрицательный результат) — https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0211557
+- Meta-analysis on shift work and risks of specific obesity types — https://www.researchgate.net/publication/320196256
+
+### Инструменты оценки сна
+- MEQ (American Thoracic Society, описание) — https://site.thoracic.org/assemblies/srn/sleep-related-questionnaires/meq
+- What are we measuring with the MEQ? Exploratory factor analysis (2020) — https://www.tandfonline.com/doi/full/10.1080/07420528.2020.1815758
+- PSQI (American Thoracic Society) — https://site.thoracic.org/assemblies/srn/sleep-related-questionnaires/psqi
+- PSQI overview — https://www.sciencedirect.com/topics/medicine-and-dentistry/pittsburgh-sleep-quality-index
+- **STOP-Bang Questionnaire: A Practical Approach to Screen for OSA (CHEST)** — https://journal.chestnet.org/article/S0012-3692(15)00018-5/fulltext
+- STOP-Bang (FPNotebook, критерии) — https://mobile.fpnotebook.com/Lung/Exam/StpBngQstnr.htm
+- STOP-Bang в сомнологической лаборатории (операционные характеристики) — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6491588/
+
+### Питание
+- ISSN Position Stand: protein and exercise (2017) — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5477153/
+- Mettler и соавт. Increased protein intake reduces lean body mass loss during weight loss in athletes (2010) — https://pubmed.ncbi.nlm.nih.gov/19927027/
+- PROT-AGE Study Group position paper (2013) — https://pubmed.ncbi.nlm.nih.gov/23867520/
+- ESPEN endorsed recommendation (protein, older adults) — https://www.espen.org/files/PIIS0261561414001113.pdf
+- ESPEN practical guideline: Clinical nutrition and hydration in geriatrics — https://www.clinicalnutritionjournal.com/article/S0261-5614(22)00034-6/fulltext
+- **Reynolds A. и соавт. Carbohydrate quality and human health. The Lancet, 2019** — https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(18)31809-9/fulltext
+- Does my patient need maintenance fluids? (CCJM; цитирует NICE 25–30 мл/кг) — https://www.ccjm.org/content/86/10/653
+- OMAD: Health benefits and risks (Medical News Today) — https://www.medicalnewstoday.com/articles/320125
+- **NICE CG32. Nutrition support for adults (критерии рефидинг-синдрома)** — https://www.nice.org.uk/guidance/cg32/resources/nutrition-support-for-adults-oral-nutrition-support-enteral-tube-feeding-and-parenteral-nutrition-pdf-975383198917
+- Refeeding syndrome (обзор) — https://pmc.ncbi.nlm.nih.gov/articles/PMC2654033/
+
+### Российские источники
+- **Клинические рекомендации «Ожирение у взрослых», РФ 2024 (одобрены Минздравом России)** — https://diseases.medelement.com/disease/ожирение-у-взрослых-кр-рф-2024/18475 и https://legalacts.ru/doc/klinicheskie-rekomendatsii-ozhirenie-odobreny-minzdravom-rossii/
+- ФГБУ «НМИЦ эндокринологии». Клинические рекомендации «Ожирение» (PDF) — https://www.endocrincentr.ru/sites/default/files/specialists/science/clinic-recomendations/ozhirenie_vzroslye.pdf
+- Диетотерапия ожирения (ключевые рекомендации), КонсультантПлюс — https://www.consultant.ru/document/cons_doc_LAW_129795/8d414a915649c074e1d88e573cf8c1a33fc69659/
+
+### Кетогенная диета
+- **The ketogenic diet is not for everyone: contraindications, side effects, and drug interactions (2025)** — https://www.tandfonline.com/doi/full/10.1080/07853890.2025.2603016 и https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12777878/
+- Risks of the ketogenic diet in CKD (Clin Kidney J) — https://academic.oup.com/ckj/article/17/1/sfad274/7379589
+- Ketogenic metabolic therapy for chronic kidney disease — https://pmc.ncbi.nlm.nih.gov/articles/PMC10768757/
+- From clinical practice to mechanistic insights in ketogenic diets for epilepsy — https://pmc.ncbi.nlm.nih.gov/articles/PMC13186085/
+- Clinical Efficacy and Safety of the Ketogenic Diet in Genetic Drug-Resistant Epilepsy — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11945077/
+- Effects of the Ketogenic Diet on Muscle Hypertrophy in Resistance-Trained Men and Women (мета-анализ) — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9564904/
+
+### Физическая активность
+- **Physical Activity Guidelines for Americans, 2nd edition** — https://odphp.health.gov/sites/default/files/2019-09/Physical_Activity_Guidelines_2nd_edition.pdf
+- CDC. Adult Activity: An Overview — https://www.cdc.gov/physical-activity-basics/guidelines/adults.html
+- ACSM. Resistance Training for Health and Fitness (PDF) — https://www.prescriptiontogetactive.com/static/pdfs/resistance-training-ACSM.pdf
+- Resistance Training Prevents Muscle Loss Induced by Caloric Restriction in Obese Elderly (мета-анализ, 2018) — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5946208/
+- Lopez и соавт. Resistance training effectiveness on body composition (Obesity Reviews, 2022) — https://onlinelibrary.wiley.com/doi/10.1111/obr.13428
+- Comparing exercise modalities during caloric restriction: network meta-analysis — https://www.frontiersin.org/journals/endocrinology/articles/10.3389/fendo.2025.1725500/full
+- Effect of Overnight Fasted Exercise on Weight Loss and Body Composition (мета-анализ, 2017) — https://www.mdpi.com/2411-5142/2/4/43
+- Aird и соавт. Effects of aerobic exercise performed in fasted v. fed state (Br J Nutr) — https://www.cambridge.org/core/journals/british-journal-of-nutrition/article/effects-of-aerobic-exercise-performed-in-fasted-v-fed-state-on-fat-and-carbohydrate-metabolism-in-adults-a-systematic-review-and-metaanalysis/0EA2328A0FF91703C95FD39A38716811
+- Resistance training performed in the fasted state compared to the fed state (мета-анализ) — https://www.sciencedirect.com/science/article/abs/pii/S1360859225003043
+- **IOC consensus statement on Relative Energy Deficiency in Sport (RED-S), 2018** — https://stillmed.olympics.com/media/Documents/Athletes/Medical-Scientific/Consensus-Statements/REDs/IOC-consensus-statement-Relative-Energy-Deficiency-in-Sport-2018.pdf
+
+### Тестостерон
+- **Bhasin S. и соавт. Testosterone Therapy in Men With Hypogonadism: An Endocrine Society Clinical Practice Guideline. JCEM 2018;103(5):1715** — https://academic.oup.com/jcem/article/103/5/1715/4939465 и https://pubmed.ncbi.nlm.nih.gov/29562364/
+- Endocrine Society. Testosterone Therapy for Hypogonadism Guideline Resources — https://www.endocrine.org/clinical-practice-guidelines/testosterone-therapy
+- **Corona G. и соавт. Body weight loss reverts obesity-associated hypogonadotropic hypogonadism: systematic review and meta-analysis. Eur J Endocrinol 2013;168(6):829** — https://academic.oup.com/ejendo/article-abstract/168/6/829/6659681
+- Approach to the Patient: Low Testosterone Concentrations in Men With Obesity (JCEM) — https://academic.oup.com/jcem/article/110/9/e3125/8058933
+- Impact of Weight Loss on Testosterone Levels: A Review of BMI and Testosterone — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11745839/
+- **Moro T. и соавт. Effects of eight weeks of time-restricted feeding (16/8)… J Transl Med 2016** — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5064803/
+- Effect of Intermittent Fasting on Reproductive Hormone Levels in Females and Males: A Review of Human Trials (Nutrients, 2022) — https://www.mdpi.com/2072-6643/14/11/2343
+- Intermittent Fasting May Enhance Resistance Training Effects on Body Composition of Obese Males (J Obesity, 2026) — https://onlinelibrary.wiley.com/doi/10.1155/jobe/6409069
+- **TRAVERSE: Cardiovascular safety of testosterone therapy — позиционное заявление European Expert Panel (Andrology, 2026)** — https://onlinelibrary.wiley.com/doi/10.1111/andr.70062
+- Healio. TRAVERSE: Men using testosterone replacement do not have increased risk for CV events — https://www.healio.com/news/endocrinology/20230616/traverse-men-using-testosterone-replacement-do-not-have-increased-risk-for-cv-events
+- Cleveland Clinic. TRAVERSE Study Supports Cardiovascular Safety of Testosterone Therapy When Used as Indicated — https://consultqd.clevelandclinic.org/traverse-study-supports-cardiovascular-safety-of-testosterone-therapy-when-used-as-indicated
+
+### Оценка онлайн-контента
+- **Mayo Clinic Press. Fact-checking nutrition influencers: 8 red flags** — https://mcpress.mayoclinic.org/nutrition-fitness/fact-checking-nutrition-influencers-8-red-flags-to-help-you-spot-nutrition-misinformation/
+- Mayo Clinic Press. How to spot health misinformation — https://mcpress.mayoclinic.org/living-well/how-to-spot-health-misinformation/
+- Scripps Health. Health Misinformation on Social Media: Red Flags — https://www.scripps.org/news_items/8196-how-to-spot-health-misinformation-on-social-media
+- Healthline. How to Spot Health Misinformation on Social Media — https://www.healthline.com/health/medical-misinformation-social-media
+
+---
+
+## 11. ЧТО НЕ УДАЛОСЬ ПРОВЕРИТЬ (сводка)
+
+Перечень для последующей доработки. Это **не факты**, а пробелы:
+
+1. Точные формулировки и позиция **NHS** по интервальному голоданию — страница не открывалась, вторичные источники ссылаются на неё недостоверно.
+2. Цифра **ВОЗ** по клетчатке — найдена только серия Lancet, заказанная ВОЗ, но не сам документ ВОЗ.
+3. Точная формулировка Endocrine Society **против рутинного скрининга** тестостерона — только через вторичный источник.
+4. **Подавление сперматогенеза** при терапии тестостероном — источник не получен.
+5. Атрибуция диапазона **1,6–2,4 г/кг белка** работе Morton и соавт. (2018) — первоисточник не открыт.
+6. Числовые значения **г/кг из новой позиционной работы ISSN** по снижению веса.
+7. Конкретные **часы входа в кетоз** — валидированных порогов не найдено.
+8. Порог **«25–30 г белка за приём»** (лейциновый порог) в первичных документах PROT-AGE/ESPEN.
+9. Документ **ESPEN** как источник правила «30 мл/кг».
+10. Первичные **позиционные стенды ACSM** (2002/2009 и актуальный по силовым) — только вторичные сводки.
+11. Детали исследования **Stote 2007** (OMAD).
+12. Данные по **гормону роста** при интервальном голодании.
+13. Независимый **лабораторный анализ** розничных «бустеров тестостерона».
+14. Актуальность **NICE CG32** (найдена редакция 2006 года).

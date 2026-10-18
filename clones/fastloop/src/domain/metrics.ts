@@ -1,6 +1,6 @@
 import { isoDate, reachedGoal, startOfDay, elapsedMs } from './fasting';
 import { planById } from './plans';
-import type { Activity, FastSession, PlanId, Units, WeightEntry } from './types';
+import type { Activity, FastSession, PlanId, Profile, Units, WeightEntry } from './types';
 
 const DAY_MS = 86_400_000;
 
@@ -17,11 +17,30 @@ export function bmiBand(value: number): { label: string; tone: 'low' | 'ok' | 'w
   return { label: 'Ожирение', tone: 'high' };
 }
 
-/** 30 ml per kg, clamped to a range most guidance stays inside. */
-export function waterTargetMl(kg: number | null): number {
-  if (!kg || kg <= 0) return 2000;
-  return Math.round(Math.min(4000, Math.max(1500, kg * 30)) / 50) * 50;
+/**
+ * A reference for drinks, not a medical norm — and the app says so.
+ *
+ * The "30 ml per kg" figure these apps all use comes from maintenance
+ * intravenous fluid prescribing (NICE; originally Holliday–Segar, derived for
+ * children), not from research on how much a healthy person should drink.
+ * This uses the EFSA adequate intake for total water — 2.5 l for men, 2.0 l
+ * for women — of which roughly 70–80% is normally expected from drinks, with
+ * the rest coming from food. A short eating window shifts some of that food
+ * water onto drinks, which is the one real reason to pay attention while
+ * fasting.
+ */
+export function waterTargetMl(sex: Profile['sex'], activity: Activity | null): number {
+  const total = sex === 'male' ? 2500 : 2000;
+  const fromDrinks = total * 0.75;
+  const exercise = activity === 'high' ? 400 : activity === 'moderate' ? 250 : 0;
+  return Math.round((fromDrinks + exercise) / 50) * 50;
 }
+
+export const WATER_NOTE =
+  'Единой доказанной нормы в миллилитрах нет. Правило «30 мл на кг», которое показывают почти все трекеры, пришло из расчёта ' +
+  'внутривенных растворов для пациентов, а не из исследований о питье. Здесь — ориентир EFSA по общей воде за вычетом той, ' +
+  'что приходит с едой. Надёжнее смотреть на жажду и цвет мочи, а в окне голодания пить осознаннее: часть воды обычно ' +
+  'поступает с пищей, и при коротком окне этой части меньше.';
 
 export function stepsTarget(activity: Activity | null): number {
   switch (activity) {

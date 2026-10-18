@@ -91,7 +91,7 @@ export function Profile({ onRequestPro }: { onRequestPro: (reason: string) => vo
           <Row label="Возраст" value={profile.age ? `${profile.age}` : '—'} />
           <Row label="Старт" value={profile.startKg ? formatWeight(profile.startKg, profile.units) : '—'} />
           <Row label="Цель" value={profile.goalKg ? formatWeight(profile.goalKg, profile.units) : '—'} />
-          <Row label="Норма воды" value={`${waterTargetMl(profile.startKg)} мл`} />
+          <Row label="Норма воды" value={`${waterTargetMl(profile.sex, profile.activity)} мл`} />
         </dl>
       </Card>
 

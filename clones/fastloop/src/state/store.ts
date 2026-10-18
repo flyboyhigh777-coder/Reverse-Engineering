@@ -332,7 +332,7 @@ export const actions = {
   addWater(ml: number): void {
     const date = isoDate(Date.now());
     const today = state.days.find((d) => d.date === date);
-    const target = waterTargetMl(state.profile.startKg);
+    const target = waterTargetMl(state.profile.sex, state.profile.activity);
     const next = Math.max(0, Math.min(target * 2, (today?.waterMl ?? 0) + ml));
     set(upsertDay(state, date, { waterMl: next }));
   },

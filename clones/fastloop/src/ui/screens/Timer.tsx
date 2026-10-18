@@ -13,12 +13,13 @@ import { nextPhaseAfter, phaseAtHours } from '../../domain/phases';
 import { CUSTOM_MAX_HOURS, CUSTOM_MIN_HOURS, LEVEL_HINT, LEVEL_ORDER, PLANS, WEEKDAYS, resolvePlan } from '../../domain/plans';
 import { activePlan } from '../../domain/schedule';
 import { readDiagnostics, useStepCounter } from '../../state/steps';
-import { fastStats, stepsTarget, waterTargetMl, formatWeight, displayToKg, weightUnit } from '../../domain/metrics';
+import { WATER_NOTE, fastStats, stepsTarget, waterTargetMl, formatWeight, displayToKg, weightUnit } from '../../domain/metrics';
 import type { PlanId } from '../../domain/types';
 import { actions, useAppState } from '../../state/store';
 import { useNow } from '../useNow';
 import { CoachCard } from '../components/CoachCard';
 import { Ring, PhaseRail } from '../components/Ring';
+import { SafetySheet } from '../components/SafetySheet';
 import { WellbeingSheet } from '../components/WellbeingSheet';
 import { Ruler } from '../components/Ruler';
 import { Card, DropIcon, LockPill, ScaleIcon, Sheet, StepIcon } from '../components/common';
@@ -26,7 +27,7 @@ import { Card, DropIcon, LockPill, ScaleIcon, Sheet, StepIcon } from '../compone
 export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
   const state = useAppState();
   const now = useNow(state.current !== null);
-  const [sheet, setSheet] = useState<'plan' | 'start' | 'weight' | 'steps' | 'phase' | null>(null);
+  const [sheet, setSheet] = useState<'plan' | 'start' | 'weight' | 'steps' | 'phase' | 'safety' | null>(null);
 
   const plan = activePlan(state, now);
   const counter = useStepCounter();
@@ -37,7 +38,7 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
   const next = nextPhaseAfter(hours);
   const stats = fastStats(state.history, now);
   const today = state.days.find((d) => d.date === isoDate(now));
-  const waterGoal = waterTargetMl(state.profile.startKg);
+  const waterGoal = waterTargetMl(state.profile.sex, state.profile.activity);
   const stepGoal = stepsTarget(state.profile.activity);
   const lastWeight = [...state.weights].sort((a, b) => a.date.localeCompare(b.date)).at(-1);
   const ratio = session ? progress(session, now) : 0;
@@ -123,10 +124,13 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
             Начать голодание
           </button>
         )}
+        <button type="button" className="btn quiet tiny" onClick={() => setSheet('safety')}>
+          Стало плохо — что делать
+        </button>
       </Card>
       )}
 
-      <CoachCard now={now} />
+      <CoachCard now={now} onRequestPro={onRequestPro} />
 
       {state.observationMode ? null : (
       <Card>
@@ -182,6 +186,9 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
             <button type="button" className="chip" onClick={() => actions.addWater(250)}>+250</button>
             <button type="button" className="chip" onClick={() => actions.addWater(500)}>+500</button>
           </div>
+          <span className="tiny muted" title={WATER_NOTE}>
+            ориентир, не норма
+          </span>
         </Card>
 
         <Card>
@@ -219,6 +226,8 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
       </Card>
 
       <WellbeingSheet />
+
+      {sheet === 'safety' ? <SafetySheet onClose={() => setSheet(null)} /> : null}
 
       {sheet === 'plan' ? (
         <PlanSheet

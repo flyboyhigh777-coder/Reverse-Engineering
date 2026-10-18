@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { coachInsights } from '../../domain/coach';
 import type { Insight, Tone } from '../../domain/coach';
 import { useAppState } from '../../state/store';
-import { Card } from './common';
+import { Card, LockPill } from './common';
 
 const TONE_COLOR: Record<Tone, string> = {
   good: 'var(--good)',
@@ -12,13 +12,16 @@ const TONE_COLOR: Record<Tone, string> = {
 
 const TONE_MARK: Record<Tone, string> = { good: '✓', info: '·', warn: '!' };
 
-export function CoachCard({ now }: { now: number }): JSX.Element | null {
+export function CoachCard({ now, onRequestPro }: { now: number; onRequestPro: (reason: string) => void }): JSX.Element | null {
   const state = useAppState();
   const [expanded, setExpanded] = useState(false);
   const insights = coachInsights(state, now);
   if (insights.length === 0) return null;
 
-  const shown = expanded ? insights : insights.slice(0, 2);
+  // Free keeps the headline read; the rest of the analysis is the paid part.
+  const freeLimit = 1;
+  const shown = state.premium ? (expanded ? insights : insights.slice(0, 2)) : insights.slice(0, freeLimit);
+  const hidden = state.premium ? 0 : insights.length - shown.length;
 
   return (
     <Card>
@@ -31,9 +34,16 @@ export function CoachCard({ now }: { now: number }): JSX.Element | null {
           <Line key={insight.id} insight={insight} />
         ))}
       </div>
-      {insights.length > 2 ? (
+      {state.premium && insights.length > 2 ? (
         <button type="button" className="btn ghost sm" onClick={() => setExpanded(!expanded)}>
           {expanded ? 'Свернуть' : `Ещё ${insights.length - 2}`}
+        </button>
+      ) : null}
+      {hidden > 0 ? (
+        <button type="button" className="btn ghost sm" onClick={() => onRequestPro(`Ещё ${hidden} выводов по вашим данным — в PRO.`)}>
+          <span className="row" style={{ gap: 6 }}>
+            Ещё {hidden} <LockPill />
+          </span>
         </button>
       ) : null}
     </Card>

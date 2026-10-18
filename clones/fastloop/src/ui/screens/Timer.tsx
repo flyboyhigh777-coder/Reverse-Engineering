@@ -1,0 +1,392 @@
+import { useState } from 'react';
+import {
+  HOUR_MS,
+  elapsedMs,
+  formatClock,
+  formatDuration,
+  formatHoursShort,
+  isoDate,
+  progress,
+  remainingMs,
+} from '../../domain/fasting';
+import { nextPhaseAfter, phaseAtHours } from '../../domain/phases';
+import { PLANS, planById } from '../../domain/plans';
+import { fastStats, stepsTarget, waterTargetMl, formatWeight, displayToKg, weightUnit } from '../../domain/metrics';
+import type { PlanId } from '../../domain/types';
+import { actions, useAppState } from '../../state/store';
+import { useNow } from '../useNow';
+import { Ring, PhaseRail } from '../components/Ring';
+import { Card, DropIcon, LockPill, ScaleIcon, Sheet, StepIcon } from '../components/common';
+
+export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
+  const state = useAppState();
+  const now = useNow(state.current !== null);
+  const [sheet, setSheet] = useState<'plan' | 'start' | 'weight' | 'steps' | 'phase' | null>(null);
+
+  const plan = planById(state.planId);
+  const session = state.current;
+  const elapsed = session ? elapsedMs(session, now) : 0;
+  const hours = elapsed / HOUR_MS;
+  const phase = phaseAtHours(hours);
+  const next = nextPhaseAfter(hours);
+  const stats = fastStats(state.history, now);
+  const today = state.days.find((d) => d.date === isoDate(now));
+  const waterGoal = waterTargetMl(state.profile.startKg);
+  const stepGoal = stepsTarget(state.profile.activity);
+  const lastWeight = [...state.weights].sort((a, b) => a.date.localeCompare(b.date)).at(-1);
+  const ratio = session ? progress(session, now) : 0;
+
+  const greeting = state.profile.name.trim() ? `Привет, ${state.profile.name.trim()}` : 'Привет';
+
+  return (
+    <>
+      <div className="row between">
+        <h1 style={{ fontSize: 21 }}>{greeting}</h1>
+        {stats.streak > 0 ? <span className="pill accent num">🔥 {stats.streak} дн. подряд</span> : null}
+      </div>
+
+      <div className="row wrap" style={{ gap: 8 }}>
+        <button type="button" className="chip" aria-pressed={false} onClick={() => setSheet('plan')}>
+          Схема {plan.title} ▾
+        </button>
+        <span className="pill">{plan.fastHours} ч без еды</span>
+      </div>
+
+      <Card className="raised">
+        <Ring progress={ratio} goalHours={plan.fastHours} running={session !== null}>
+          {session ? (
+            <>
+              <span className="ring-time">{formatDuration(elapsed)}</span>
+              <span className="ring-sub">
+                {ratio >= 1 ? `цель пройдена на ${formatHoursShort(elapsed - plan.fastHours * HOUR_MS)}` : `осталось ${formatHoursShort(remainingMs(session, now))}`}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="ring-time">{plan.fastHours}:00</span>
+              <span className="ring-sub">готовы начать</span>
+            </>
+          )}
+        </Ring>
+
+        {session ? (
+          <div className="row between" style={{ alignItems: 'flex-start' }}>
+            <button
+              type="button"
+              className="col lockbtn"
+              style={{ gap: 2, width: 'auto', alignItems: 'flex-start' }}
+              onClick={() => (state.premium ? setSheet('start') : onRequestPro('Сдвигать время старта и финиша можно в PRO.'))}
+            >
+              <span className="eyebrow">Начало</span>
+              <span className="row" style={{ gap: 7 }}>
+                <span className="num" style={{ fontWeight: 600 }}>{formatClock(session.startedAt)}</span>
+                {state.premium ? <span className="tiny muted">изменить</span> : <LockPill />}
+              </span>
+            </button>
+            <div className="col" style={{ gap: 2, alignItems: 'flex-end' }}>
+              <span className="eyebrow">Цель</span>
+              <span className="num" style={{ fontWeight: 600 }}>{formatClock(session.targetEndAt)}</span>
+            </div>
+          </div>
+        ) : null}
+
+        {session ? (
+          <button type="button" className="btn warm block" onClick={() => actions.endFast()}>
+            Завершить голодание
+          </button>
+        ) : (
+          <button type="button" className="btn block" onClick={() => actions.startFast()}>
+            Начать голодание
+          </button>
+        )}
+      </Card>
+
+      <Card>
+        <div className="row between">
+          <span className="eyebrow">Сейчас</span>
+          {!state.premium ? <LockPill /> : null}
+        </div>
+        <PhaseRail activeId={session ? phase.id : 'digest'} />
+        <div className="col" style={{ gap: 3 }}>
+          <strong style={{ fontFamily: 'var(--display)', fontSize: 17 }}>
+            {session ? phase.title : 'Голодание не запущено'}
+          </strong>
+          <p className="tiny muted">{session ? phase.short : 'Запустите таймер, чтобы отслеживать фазы.'}</p>
+        </div>
+        {session ? (
+          state.premium ? (
+            <>
+              <p className="tiny">{phase.body}</p>
+              {next ? (
+                <p className="tiny muted">
+                  Дальше: {next.title} — примерно через {formatHoursShort((next.fromHour - hours) * HOUR_MS)}.
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <button
+              type="button"
+              className="btn ghost sm"
+              onClick={() => onRequestPro('Подробный разбор фаз и прогноз следующей фазы доступны в PRO.')}
+            >
+              Что происходит в организме
+            </button>
+          )
+        ) : null}
+      </Card>
+
+      <div className="grid2">
+        <Card>
+          <div className="row between">
+            <span className="eyebrow">
+              <DropIcon /> Вода
+            </span>
+          </div>
+          <span className="num" style={{ fontFamily: 'var(--display)', fontSize: 20, fontWeight: 700 }}>
+            {today?.waterMl ?? 0}
+            <span style={{ fontSize: 12, color: 'var(--ink-3)' }}> / {waterGoal} мл</span>
+          </span>
+          <div className="progressbar">
+            <div style={{ width: `${Math.min(100, ((today?.waterMl ?? 0) / waterGoal) * 100)}%` }} />
+          </div>
+          <div className="row" style={{ gap: 6 }}>
+            <button type="button" className="chip" onClick={() => actions.addWater(250)}>+250</button>
+            <button type="button" className="chip" onClick={() => actions.addWater(500)}>+500</button>
+          </div>
+        </Card>
+
+        <Card>
+          <span className="eyebrow">
+            <StepIcon /> Шаги
+          </span>
+          <span className="num" style={{ fontFamily: 'var(--display)', fontSize: 20, fontWeight: 700 }}>
+            {(today?.steps ?? 0).toLocaleString('ru-RU')}
+            <span style={{ fontSize: 12, color: 'var(--ink-3)' }}> / {stepGoal.toLocaleString('ru-RU')}</span>
+          </span>
+          <div className="progressbar">
+            <div style={{ width: `${Math.min(100, ((today?.steps ?? 0) / stepGoal) * 100)}%` }} />
+          </div>
+          <button type="button" className="chip" onClick={() => setSheet('steps')}>
+            Записать
+          </button>
+        </Card>
+      </div>
+
+      <Card>
+        <div className="row between">
+          <span className="eyebrow">
+            <ScaleIcon /> Вес
+          </span>
+          <button type="button" className="btn ghost sm" onClick={() => setSheet('weight')}>
+            Записать
+          </button>
+        </div>
+        <span className="num" style={{ fontFamily: 'var(--display)', fontSize: 22, fontWeight: 700 }}>
+          {lastWeight ? formatWeight(lastWeight.kg, state.profile.units) : '—'}
+        </span>
+        {state.profile.goalKg && lastWeight ? (
+          <p className="tiny muted">
+            До цели {formatWeight(Math.max(0, lastWeight.kg - state.profile.goalKg), state.profile.units)}
+          </p>
+        ) : null}
+      </Card>
+
+      {sheet === 'plan' ? (
+        <PlanSheet
+          current={state.planId}
+          premium={state.premium}
+          onPick={(id) => {
+            actions.setPlan(id);
+            setSheet(null);
+          }}
+          onLocked={() => {
+            setSheet(null);
+            onRequestPro('Схемы 18:6, 20:4, 21:3 и OMAD открываются в PRO.');
+          }}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
+
+      {sheet === 'start' && session ? (
+        <StartSheet
+          startedAt={session.startedAt}
+          onSave={(ts) => {
+            actions.moveStart(ts);
+            setSheet(null);
+          }}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
+
+      {sheet === 'weight' ? (
+        <WeightSheet
+          initial={lastWeight?.kg ?? state.profile.startKg ?? 70}
+          units={state.profile.units}
+          onSave={(kg) => {
+            actions.addWeight(kg);
+            setSheet(null);
+          }}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
+
+      {sheet === 'steps' ? (
+        <StepsSheet
+          initial={today?.steps ?? 0}
+          onSave={(count) => {
+            actions.setSteps(count);
+            setSheet(null);
+          }}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function PlanSheet({
+  current,
+  premium,
+  onPick,
+  onLocked,
+  onClose,
+}: {
+  current: PlanId;
+  premium: boolean;
+  onPick: (id: PlanId) => void;
+  onLocked: () => void;
+  onClose: () => void;
+}): JSX.Element {
+  return (
+    <Sheet title="Схема голодания" onClose={onClose}>
+      <div className="col" style={{ gap: 9 }}>
+        {PLANS.map((plan) => {
+          const locked = plan.premium && !premium;
+          return (
+            <button
+              key={plan.id}
+              type="button"
+              className="option"
+              aria-pressed={plan.id === current}
+              onClick={() => (locked ? onLocked() : onPick(plan.id))}
+            >
+              <span className="mark" />
+              <span className="col grow" style={{ gap: 1 }}>
+                <span className="row" style={{ gap: 7 }}>
+                  <strong>{plan.title}</strong>
+                  <span className="pill">{plan.level}</span>
+                  {locked ? <LockPill /> : null}
+                </span>
+                <span className="tiny muted">{plan.blurb}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </Sheet>
+  );
+}
+
+function StartSheet({
+  startedAt,
+  onSave,
+  onClose,
+}: {
+  startedAt: number;
+  onSave: (ts: number) => void;
+  onClose: () => void;
+}): JSX.Element {
+  const [value, setValue] = useState(() => {
+    const d = new Date(startedAt);
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  });
+  return (
+    <Sheet title="Когда вы начали?" onClose={onClose}>
+      <input id="start-time" type="time" value={value} onChange={(event) => setValue(event.target.value)} />
+      <p className="tiny muted">Если время позже текущего, оно отнесётся ко вчерашнему дню.</p>
+      <button
+        type="button"
+        className="btn block"
+        onClick={() => {
+          const [h, m] = value.split(':').map(Number);
+          if (!Number.isFinite(h) || !Number.isFinite(m)) return;
+          const next = new Date();
+          next.setHours(h, m, 0, 0);
+          const ts = next.getTime() > Date.now() ? next.getTime() - 86_400_000 : next.getTime();
+          onSave(ts);
+        }}
+      >
+        Сохранить
+      </button>
+    </Sheet>
+  );
+}
+
+function WeightSheet({
+  initial,
+  units,
+  onSave,
+  onClose,
+}: {
+  initial: number;
+  units: 'metric' | 'imperial';
+  onSave: (kg: number) => void;
+  onClose: () => void;
+}): JSX.Element {
+  const [value, setValue] = useState(() => (units === 'metric' ? initial : initial * 2.2046226218).toFixed(1));
+  return (
+    <Sheet title="Записать вес" onClose={onClose}>
+      <div className="row" style={{ gap: 10 }}>
+        <input
+          id="weight-input"
+          type="number"
+          inputMode="decimal"
+          step="0.1"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+        />
+        <span className="muted">{weightUnit(units)}</span>
+      </div>
+      <button
+        type="button"
+        className="btn block"
+        onClick={() => {
+          const parsed = Number.parseFloat(value.replace(',', '.'));
+          if (Number.isFinite(parsed) && parsed > 0) onSave(displayToKg(parsed, units));
+        }}
+      >
+        Сохранить
+      </button>
+    </Sheet>
+  );
+}
+
+function StepsSheet({
+  initial,
+  onSave,
+  onClose,
+}: {
+  initial: number;
+  onSave: (count: number) => void;
+  onClose: () => void;
+}): JSX.Element {
+  const [value, setValue] = useState(String(initial));
+  return (
+    <Sheet title="Шаги за сегодня" onClose={onClose}>
+      <p className="tiny muted">
+        В веб-версии нет доступа к шагомеру телефона, поэтому значение вводится вручную.
+      </p>
+      <input id="steps-input" type="number" inputMode="numeric" value={value} onChange={(event) => setValue(event.target.value)} />
+      <button
+        type="button"
+        className="btn block"
+        onClick={() => {
+          const parsed = Number.parseInt(value, 10);
+          if (Number.isFinite(parsed)) onSave(parsed);
+        }}
+      >
+        Сохранить
+      </button>
+    </Sheet>
+  );
+}

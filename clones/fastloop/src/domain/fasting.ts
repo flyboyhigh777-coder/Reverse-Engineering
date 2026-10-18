@@ -1,4 +1,3 @@
-import { planById } from './plans';
 import type { FastSession, PlanId } from './types';
 
 export const HOUR_MS = 3_600_000;
@@ -10,23 +9,18 @@ function newId(): string {
   return `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function startFast(planId: PlanId, now: number, startedAt = now): FastSession {
-  return {
-    id: newId(),
-    startedAt,
-    targetEndAt: startedAt + planById(planId).fastHours * HOUR_MS,
-    endedAt: null,
-    planId,
-  };
+export function startFast(planId: PlanId, fastHours: number, startedAt: number): FastSession {
+  return { id: newId(), startedAt, targetEndAt: startedAt + fastHours * HOUR_MS, endedAt: null, planId };
 }
 
-/** Re-anchors a running fast to a new start time, keeping the plan length. */
+/** Re-anchors a running fast, keeping the length the session was created with. */
 export function moveStart(session: FastSession, startedAt: number): FastSession {
-  return {
-    ...session,
-    startedAt,
-    targetEndAt: startedAt + planById(session.planId).fastHours * HOUR_MS,
-  };
+  return { ...session, startedAt, targetEndAt: startedAt + goalMs(session) };
+}
+
+/** Switches a running fast to a different window without moving its start. */
+export function retarget(session: FastSession, planId: PlanId, fastHours: number): FastSession {
+  return { ...session, planId, targetEndAt: session.startedAt + fastHours * HOUR_MS };
 }
 
 export function elapsedMs(session: FastSession, now: number): number {

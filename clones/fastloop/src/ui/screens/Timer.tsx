@@ -10,7 +10,9 @@ import {
   remainingMs,
 } from '../../domain/fasting';
 import { nextPhaseAfter, phaseAtHours } from '../../domain/phases';
-import { PLANS, planById } from '../../domain/plans';
+import { CUSTOM_MAX_HOURS, CUSTOM_MIN_HOURS, PLANS, WEEKDAYS, resolvePlan } from '../../domain/plans';
+import { activePlan } from '../../domain/schedule';
+import { useStepCounter } from '../../state/steps';
 import { fastStats, stepsTarget, waterTargetMl, formatWeight, displayToKg, weightUnit } from '../../domain/metrics';
 import type { PlanId } from '../../domain/types';
 import { actions, useAppState } from '../../state/store';
@@ -23,7 +25,8 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
   const now = useNow(state.current !== null);
   const [sheet, setSheet] = useState<'plan' | 'start' | 'weight' | 'steps' | 'phase' | null>(null);
 
-  const plan = planById(state.planId);
+  const plan = activePlan(state, now);
+  const counter = useStepCounter();
   const session = state.current;
   const elapsed = session ? elapsedMs(session, now) : 0;
   const hours = elapsed / HOUR_MS;
@@ -50,6 +53,9 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
           Схема {plan.title} ▾
         </button>
         <span className="pill">{plan.fastHours} ч без еды</span>
+        {state.scheduleEnabled && state.premium && state.schedule[String(new Date(now).getDay())] ? (
+          <span className="pill accent">по расписанию</span>
+        ) : null}
       </div>
 
       <Card className="raised">
@@ -166,9 +172,7 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
           <div className="progressbar">
             <div style={{ width: `${Math.min(100, ((today?.steps ?? 0) / stepGoal) * 100)}%` }} />
           </div>
-          <button type="button" className="chip" onClick={() => setSheet('steps')}>
-            Записать
-          </button>
+          <StepsControl state={counter.state} onEnable={counter.enable} onManual={() => setSheet('steps')} />
         </Card>
       </div>
 
@@ -193,15 +197,9 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
 
       {sheet === 'plan' ? (
         <PlanSheet
-          current={state.planId}
-          premium={state.premium}
-          onPick={(id) => {
-            actions.setPlan(id);
+          onLocked={(reason) => {
             setSheet(null);
-          }}
-          onLocked={() => {
-            setSheet(null);
-            onRequestPro('Схемы 18:6, 20:4, 21:3 и OMAD открываются в PRO.');
+            onRequestPro(reason);
           }}
           onClose={() => setSheet(null)}
         />
@@ -232,6 +230,7 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
 
       {sheet === 'steps' ? (
         <StepsSheet
+          counterState={counter.state}
           initial={today?.steps ?? 0}
           onSave={(count) => {
             actions.setSteps(count);
@@ -244,37 +243,88 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
   );
 }
 
-function PlanSheet({
-  current,
-  premium,
-  onPick,
-  onLocked,
-  onClose,
+function StepsControl({
+  state,
+  onEnable,
+  onManual,
 }: {
-  current: PlanId;
-  premium: boolean;
-  onPick: (id: PlanId) => void;
-  onLocked: () => void;
-  onClose: () => void;
+  state: ReturnType<typeof useStepCounter>['state'];
+  onEnable: () => void;
+  onManual: () => void;
 }): JSX.Element {
+  if (state === 'native') {
+    return (
+      <div className="col" style={{ gap: 5 }}>
+        <span className="pill accent">датчик телефона</span>
+        <button type="button" className="chip" onClick={onManual}>
+          Поправить
+        </button>
+      </div>
+    );
+  }
+  if (state === 'native-denied') {
+    return (
+      <div className="col" style={{ gap: 5 }}>
+        <button type="button" className="chip" onClick={onEnable}>
+          Разрешить доступ
+        </button>
+        <span className="tiny muted">Нужно разрешение на распознавание активности.</span>
+      </div>
+    );
+  }
+  if (state === 'motion') {
+    return (
+      <div className="col" style={{ gap: 5 }}>
+        <span className="pill">считаем, пока открыто</span>
+        <button type="button" className="chip" onClick={onManual}>
+          Поправить
+        </button>
+      </div>
+    );
+  }
+  if (state === 'motion-off') {
+    return (
+      <div className="col" style={{ gap: 5 }}>
+        <button type="button" className="chip" onClick={onEnable}>
+          Считать автоматически
+        </button>
+        <button type="button" className="chip" onClick={onManual}>
+          Ввести вручную
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button type="button" className="chip" onClick={onManual}>
+      Записать
+    </button>
+  );
+}
+
+function PlanSheet({ onLocked, onClose }: { onLocked: (reason: string) => void; onClose: () => void }): JSX.Element {
+  const state = useAppState();
+  const { premium, planId, customFastHours } = state;
+  const custom = resolvePlan('custom', customFastHours);
+
   return (
     <Sheet title="Схема голодания" onClose={onClose}>
       <div className="col" style={{ gap: 9 }}>
         {PLANS.map((plan) => {
           const locked = plan.premium && !premium;
+          const isCustom = plan.id === 'custom';
           return (
             <button
               key={plan.id}
               type="button"
               className="option"
-              aria-pressed={plan.id === current}
-              onClick={() => (locked ? onLocked() : onPick(plan.id))}
+              aria-pressed={plan.id === planId}
+              onClick={() => (locked ? onLocked('Длинные окна и своё окно открываются в PRO.') : actions.setPlan(plan.id))}
             >
               <span className="mark" />
               <span className="col grow" style={{ gap: 1 }}>
-                <span className="row" style={{ gap: 7 }}>
+                <span className="row wrap" style={{ gap: 7 }}>
                   <strong>{plan.title}</strong>
-                  <span className="pill">{plan.level}</span>
+                  {isCustom ? <span className="pill accent num">{custom.title}</span> : <span className="pill">{plan.level}</span>}
                   {locked ? <LockPill /> : null}
                 </span>
                 <span className="tiny muted">{plan.blurb}</span>
@@ -282,6 +332,86 @@ function PlanSheet({
             </button>
           );
         })}
+      </div>
+
+      {planId === 'custom' && premium ? (
+        <div className="col" style={{ gap: 10 }}>
+          <div className="row between">
+            <span className="eyebrow">Длина окна</span>
+            <span className="num" style={{ fontWeight: 700 }}>
+              {custom.fastHours} ч голодания / {custom.eatHours} ч еды
+            </span>
+          </div>
+          <input
+            id="custom-hours"
+            type="range"
+            min={CUSTOM_MIN_HOURS}
+            max={CUSTOM_MAX_HOURS}
+            step={0.5}
+            value={customFastHours}
+            onChange={(event) => actions.setCustomHours(Number(event.target.value))}
+            aria-label="Часы голодания"
+          />
+        </div>
+      ) : null}
+
+      <hr className="divider" />
+
+      <div className="col" style={{ gap: 10 }}>
+        <div className="row between">
+          <span className="eyebrow">Расписание по дням</span>
+          {premium ? null : <LockPill />}
+        </div>
+        <p className="tiny muted">
+          Разные окна в будни и выходные. Короткая схема в субботу лучше пропущенного дня — серия не рвётся.
+        </p>
+        {premium ? (
+          <>
+            <div className="row" style={{ gap: 8 }}>
+              <button
+                type="button"
+                className="chip"
+                aria-pressed={state.scheduleEnabled}
+                onClick={() => actions.setScheduleEnabled(!state.scheduleEnabled)}
+              >
+                {state.scheduleEnabled ? 'Включено' : 'Выключено'}
+              </button>
+            </div>
+            {state.scheduleEnabled ? (
+              <div className="col" style={{ gap: 7 }}>
+                {WEEKDAYS.map((day) => {
+                  const picked = state.schedule[day.key] ?? null;
+                  return (
+                    <div key={day.key} className="row" style={{ gap: 8 }}>
+                      <span className="tiny" style={{ width: 28, fontWeight: 600 }}>
+                        {day.short}
+                      </span>
+                      <select
+                        id={`sched-${day.key}`}
+                        aria-label={`Схема на ${day.short}`}
+                        value={picked ?? ''}
+                        onChange={(event) =>
+                          actions.setScheduleDay(day.key, event.target.value === '' ? null : (event.target.value as PlanId))
+                        }
+                      >
+                        <option value="">как обычно ({resolvePlan(planId, customFastHours).title})</option>
+                        {PLANS.map((plan) => (
+                          <option key={plan.id} value={plan.id}>
+                            {plan.id === 'custom' ? custom.title : plan.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <button type="button" className="btn ghost sm" onClick={() => onLocked('Расписание по дням недели входит в PRO.')}>
+            Посмотреть PRO
+          </button>
+        )}
       </div>
     </Sheet>
   );
@@ -362,20 +492,26 @@ function WeightSheet({
 }
 
 function StepsSheet({
+  counterState,
   initial,
   onSave,
   onClose,
 }: {
+  counterState: ReturnType<typeof useStepCounter>['state'];
   initial: number;
   onSave: (count: number) => void;
   onClose: () => void;
 }): JSX.Element {
   const [value, setValue] = useState(String(initial));
+  const note =
+    counterState === 'native'
+      ? 'Считает аппаратный датчик телефона — он работает и когда приложение закрыто. Ручная правка перезапишет значение до следующего показания датчика.'
+      : counterState === 'motion'
+        ? 'Считаем по акселерометру, пока это окно открыто и экран не погашен. Это приблизительно: за день через браузер точного счёта не выйдет.'
+        : 'Автоматический счёт недоступен в этом браузере, поэтому значение вводится вручную.';
   return (
     <Sheet title="Шаги за сегодня" onClose={onClose}>
-      <p className="tiny muted">
-        В веб-версии нет доступа к шагомеру телефона, поэтому значение вводится вручную.
-      </p>
+      <p className="tiny muted">{note}</p>
       <input id="steps-input" type="number" inputMode="numeric" value={value} onChange={(event) => setValue(event.target.value)} />
       <button
         type="button"

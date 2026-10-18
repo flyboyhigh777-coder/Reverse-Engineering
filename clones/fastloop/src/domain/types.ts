@@ -1,6 +1,9 @@
 /** Core vocabulary shared by every layer. UI never invents these shapes. */
 
-export type PlanId = '12:12' | '14:10' | '16:8' | '18:6' | '20:4' | '21:3' | '23:1';
+export type PlanId = '12:12' | '14:10' | '16:8' | '18:6' | '20:4' | '21:3' | '23:1' | 'custom';
+
+/** Where a day's step count came from. The UI never presents one as another. */
+export type StepSource = 'native' | 'motion' | 'manual';
 
 export type Units = 'metric' | 'imperial';
 
@@ -27,6 +30,7 @@ export interface DayLog {
   readonly date: string;
   readonly waterMl: number;
   readonly steps: number;
+  readonly stepSource: StepSource;
 }
 
 export type Goal = 'lose' | 'maintain' | 'energy' | 'health' | 'clarity';
@@ -62,6 +66,11 @@ export interface AppState {
   readonly proGranted: boolean;
   readonly profile: Profile;
   readonly planId: PlanId;
+  /** Hours for the 'custom' plan. PRO. */
+  readonly customFastHours: number;
+  /** Per-weekday override, 0 = Sunday. PRO; empty object when unused. */
+  readonly schedule: Readonly<Record<string, PlanId>>;
+  readonly scheduleEnabled: boolean;
   readonly current: FastSession | null;
   readonly history: readonly FastSession[];
   readonly weights: readonly WeightEntry[];

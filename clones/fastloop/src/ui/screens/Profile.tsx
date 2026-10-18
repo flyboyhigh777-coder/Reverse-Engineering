@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { buildCsv, csvFileName } from '../../domain/exportCsv';
 import { DISCLAIMER } from '../../domain/phases';
-import { planById } from '../../domain/plans';
+import { resolvePlan } from '../../domain/plans';
 import { formatWeight, waterTargetMl } from '../../domain/metrics';
 import { actions, useAppState } from '../../state/store';
-import { Card, Sheet } from '../components/common';
+import { Card, LockPill, Sheet } from '../components/common';
 
 export function Profile({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
   const state = useAppState();
   const [confirmReset, setConfirmReset] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const { profile } = state;
+  const plan = resolvePlan(state.planId, state.customFastHours);
 
   return (
     <>
@@ -82,7 +85,7 @@ export function Profile({ onRequestPro }: { onRequestPro: (reason: string) => vo
       <Card>
         <span className="eyebrow">Ваши данные</span>
         <dl className="col" style={{ gap: 8, margin: 0 }}>
-          <Row label="Схема" value={`${planById(state.planId).title} · ${planById(state.planId).fastHours} ч`} />
+          <Row label="Схема" value={`${plan.title} · ${plan.fastHours} ч`} />
           <Row label="Рост" value={profile.heightCm ? `${profile.heightCm} см` : '—'} />
           <Row label="Возраст" value={profile.age ? `${profile.age}` : '—'} />
           <Row label="Старт" value={profile.startKg ? formatWeight(profile.startKg, profile.units) : '—'} />
@@ -97,6 +100,15 @@ export function Profile({ onRequestPro }: { onRequestPro: (reason: string) => vo
           Всё хранится только в этом браузере — ни аккаунта, ни отправки на сервер. Очистка истории браузера удалит данные.
         </p>
         <div className="row wrap" style={{ gap: 8 }}>
+          <button
+            type="button"
+            className="btn ghost sm"
+            onClick={() => (state.premium ? setShowExport(true) : onRequestPro('Экспорт записей в CSV входит в PRO.'))}
+          >
+            <span className="row" style={{ gap: 6 }}>
+              Экспорт в CSV {state.premium ? null : <LockPill />}
+            </span>
+          </button>
           <button type="button" className="btn ghost sm" onClick={() => actions.loadDemo()}>
             Загрузить демо-данные
           </button>
@@ -112,6 +124,8 @@ export function Profile({ onRequestPro }: { onRequestPro: (reason: string) => vo
         FastLoop — независимая учебная реализация трекера интервального голодания. Не связана с GoFasting и его разработчиком,
         не содержит их кода, ресурсов и товарных знаков.
       </p>
+
+      {showExport ? <ExportSheet onClose={() => setShowExport(false)} /> : null}
 
       {confirmReset ? (
         <Sheet title="Стереть все данные?" onClose={() => setConfirmReset(false)}>
@@ -137,6 +151,58 @@ export function Profile({ onRequestPro }: { onRequestPro: (reason: string) => vo
         </Sheet>
       ) : null}
     </>
+  );
+}
+
+function ExportSheet({ onClose }: { onClose: () => void }): JSX.Element {
+  const state = useAppState();
+  const now = Date.now();
+  const csv = useMemo(() => buildCsv(state, now), [state, now]);
+  const [copied, setCopied] = useState<'idle' | 'ok' | 'fail'>('idle');
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(csv);
+      setCopied('ok');
+    } catch {
+      setCopied('fail');
+    }
+  };
+
+  return (
+    <Sheet title={csvFileName(now)} onClose={onClose}>
+      <p className="tiny muted">
+        Все голодания, записи веса, воды и шагов. Разделитель — точка с запятой: Excel с русской локалью откроет файл
+        по столбцам без импорта.
+      </p>
+      <textarea
+        id="export-csv"
+        readOnly
+        value={csv}
+        rows={8}
+        onFocus={(event) => event.currentTarget.select()}
+        style={{
+          width: '100%',
+          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+          fontSize: 11,
+          lineHeight: 1.45,
+          padding: 10,
+          borderRadius: 12,
+          border: '1px solid var(--line)',
+          background: 'var(--surface-2)',
+          color: 'var(--ink)',
+          resize: 'vertical',
+        }}
+      />
+      <button type="button" className="btn block" onClick={copy}>
+        {copied === 'ok' ? 'Скопировано' : 'Скопировать'}
+      </button>
+      {copied === 'fail' ? (
+        <p className="tiny muted" style={{ textAlign: 'center' }}>
+          Браузер не дал доступ к буферу. Выделите текст выше и скопируйте вручную.
+        </p>
+      ) : null}
+    </Sheet>
   );
 }
 

@@ -1,7 +1,9 @@
 import { useSyncExternalStore } from 'react';
-import { isoDate, startFast, moveStart, HOUR_MS } from '../domain/fasting';
+import { isoDate, startFast, moveStart, retarget, HOUR_MS } from '../domain/fasting';
 import { waterTargetMl } from '../domain/metrics';
-import type { Activity, AppState, Experience, Goal, PlanId, Profile, Units } from '../domain/types';
+import { resolvePlan } from '../domain/plans';
+import { planIdForDay } from '../domain/schedule';
+import type { Activity, AppState, Experience, Goal, PlanId, Profile, StepSource, Units } from '../domain/types';
 import * as storage from './storage';
 
 const DAY_MS = 86_400_000;
@@ -30,6 +32,9 @@ function initialState(): AppState {
     proGranted: true,
     profile: EMPTY_PROFILE,
     planId: '16:8',
+    customFastHours: 16,
+    schedule: {},
+    scheduleEnabled: false,
     current: null,
     history: [],
     weights: [],
@@ -65,8 +70,8 @@ export function demoState(now: number): AppState {
     history,
     weights,
     days: [
-      { date: isoDate(now - DAY_MS), waterMl: 1750, steps: 7420 },
-      { date: isoDate(now), waterMl: 750, steps: 3180 },
+      { date: isoDate(now - DAY_MS), waterMl: 1750, steps: 7420, stepSource: 'manual' },
+      { date: isoDate(now), waterMl: 750, steps: 3180, stepSource: 'manual' },
     ],
     profile: { ...base.profile, name: '', startKg: 79.4, goalKg: 70, heightCm: 172, age: 34, sex: 'female', goal: 'lose', activity: 'light', experience: 'tried' },
   };
@@ -77,7 +82,21 @@ function grantPro(loaded: AppState): AppState {
   return loaded.proGranted ? loaded : { ...loaded, premium: true, proGranted: true };
 }
 
-let state: AppState = grantPro(storage.load() ?? initialState());
+/** Fills fields added after a save was written, so older state keeps working. */
+function normalize(loaded: AppState): AppState {
+  const base = initialState();
+  return {
+    ...base,
+    ...loaded,
+    profile: { ...base.profile, ...loaded.profile },
+    customFastHours: loaded.customFastHours ?? base.customFastHours,
+    schedule: loaded.schedule ?? base.schedule,
+    scheduleEnabled: loaded.scheduleEnabled ?? base.scheduleEnabled,
+    days: (loaded.days ?? []).map((day) => ({ ...day, stepSource: day.stepSource ?? 'manual' })),
+  };
+}
+
+let state: AppState = grantPro(normalize(storage.load() ?? initialState()));
 storage.save(state);
 const listeners = new Set<() => void>();
 
@@ -100,8 +119,17 @@ export function getState(): AppState {
   return state;
 }
 
-function upsertDay(current: AppState, date: string, patch: { waterMl?: number; steps?: number }): AppState {
-  const existing = current.days.find((d) => d.date === date) ?? { date, waterMl: 0, steps: 0 };
+function upsertDay(
+  current: AppState,
+  date: string,
+  patch: { waterMl?: number; steps?: number; stepSource?: StepSource },
+): AppState {
+  const existing = current.days.find((d) => d.date === date) ?? {
+    date,
+    waterMl: 0,
+    steps: 0,
+    stepSource: 'manual' as StepSource,
+  };
   const merged = { ...existing, ...patch };
   return { ...current, days: [...current.days.filter((d) => d.date !== date), merged] };
 }
@@ -159,14 +187,37 @@ export const actions = {
   },
 
   setPlan(planId: PlanId): void {
-    const current = state.current ? { ...state.current, planId } : null;
-    const retimed = current ? moveStart({ ...current, planId }, current.startedAt) : null;
-    set({ ...state, planId, current: retimed });
+    const hours = resolvePlan(planId, state.customFastHours).fastHours;
+    const current = state.current ? retarget(state.current, planId, hours) : null;
+    set({ ...state, planId, current });
+  },
+
+  setCustomHours(hours: number): void {
+    const customFastHours = Math.round(hours * 2) / 2;
+    const next = { ...state, customFastHours };
+    const current =
+      state.current && state.current.planId === 'custom'
+        ? retarget(state.current, 'custom', resolvePlan('custom', customFastHours).fastHours)
+        : state.current;
+    set({ ...next, current });
+  },
+
+  setScheduleDay(dayKey: string, planId: PlanId | null): void {
+    const schedule = { ...state.schedule };
+    if (planId === null) delete schedule[dayKey];
+    else schedule[dayKey] = planId;
+    set({ ...state, schedule });
+  },
+
+  setScheduleEnabled(scheduleEnabled: boolean): void {
+    set({ ...state, scheduleEnabled });
   },
 
   startFast(at = Date.now()): void {
     if (state.current) return;
-    set({ ...state, current: startFast(state.planId, Date.now(), at) });
+    const planId = planIdForDay(state, at);
+    const hours = resolvePlan(planId, state.customFastHours).fastHours;
+    set({ ...state, current: startFast(planId, hours, at) });
   },
 
   moveStart(startedAt: number): void {
@@ -204,14 +255,21 @@ export const actions = {
     set(upsertDay(state, date, { waterMl: next }));
   },
 
-  addSteps(count: number): void {
-    const date = isoDate(Date.now());
-    const today = state.days.find((d) => d.date === date);
-    set(upsertDay(state, date, { steps: Math.max(0, (today?.steps ?? 0) + count) }));
+  setSteps(count: number, stepSource: StepSource = 'manual'): void {
+    set(upsertDay(state, isoDate(Date.now()), { steps: Math.max(0, Math.round(count)), stepSource }));
   },
 
-  setSteps(count: number): void {
-    set(upsertDay(state, isoDate(Date.now()), { steps: Math.max(0, Math.round(count)) }));
+  /**
+   * Counts from a sensor. A manual figure for today is never overwritten by a
+   * smaller automatic one — the sensor usually starts counting mid-day.
+   */
+  reportSensorSteps(count: number, stepSource: StepSource): void {
+    const date = isoDate(Date.now());
+    const today = state.days.find((d) => d.date === date);
+    const steps = Math.max(0, Math.round(count));
+    if (today && today.stepSource === 'manual' && today.steps > steps) return;
+    if (today && today.stepSource === stepSource && today.steps === steps) return;
+    set(upsertDay(state, date, { steps, stepSource }));
   },
 
   setUnits(units: Units): void {

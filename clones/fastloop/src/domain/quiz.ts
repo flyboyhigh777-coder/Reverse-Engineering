@@ -37,6 +37,8 @@ export type QuizStep = Common &
         readonly initial: number;
         readonly step?: number;
         readonly labelEvery?: number;
+        /** Second scale along the other edge of the tape. */
+        readonly secondary?: 'height' | 'weight';
       }
     | { readonly kind: 'time'; readonly question: string; readonly hint?: string; readonly initial: string }
     | { readonly kind: 'scale'; readonly question: string; readonly low: string; readonly high: string }
@@ -108,9 +110,9 @@ export const QUIZ: readonly QuizStep[] = [
     ],
   },
   { kind: 'number', section: 'О себе', id: 'age', question: 'Сколько вам лет?', unit: 'лет', min: 14, max: 99, initial: 32, labelEvery: 5 },
-  { kind: 'number', section: 'О себе', id: 'height', question: 'Ваш рост', unit: 'см', min: 120, max: 220, initial: 170, labelEvery: 10 },
-  { kind: 'number', section: 'О себе', id: 'weight', question: 'Текущий вес', unit: 'кг', min: 35, max: 250, initial: 78, step: 0.5, labelEvery: 5 },
-  { kind: 'number', section: 'О себе', id: 'goalWeight', question: 'Какой вес вы хотите?', unit: 'кг', min: 35, max: 250, initial: 68, step: 0.5, labelEvery: 5 },
+  { kind: 'number', section: 'О себе', id: 'height', question: 'Ваш рост', unit: 'см', min: 120, max: 220, initial: 170, labelEvery: 10, secondary: 'height' },
+  { kind: 'number', section: 'О себе', id: 'weight', question: 'Текущий вес', unit: 'кг', min: 35, max: 250, initial: 78, step: 0.5, labelEvery: 5, secondary: 'weight' },
+  { kind: 'number', section: 'О себе', id: 'goalWeight', question: 'Какой вес вы хотите?', unit: 'кг', min: 35, max: 250, initial: 68, step: 0.5, labelEvery: 5, secondary: 'weight' },
   {
     kind: 'single',
     section: 'О себе',

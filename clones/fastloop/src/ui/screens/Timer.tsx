@@ -21,7 +21,7 @@ import { CoachCard } from '../components/CoachCard';
 import { Ring, PhaseRail } from '../components/Ring';
 import { SafetySheet } from '../components/SafetySheet';
 import { WellbeingSheet } from '../components/WellbeingSheet';
-import { Ruler } from '../components/Ruler';
+import { Ruler, WEIGHT_SCALE } from '../components/Ruler';
 import { Card, DropIcon, LockPill, ScaleIcon, Sheet, StepIcon } from '../components/common';
 
 export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
@@ -520,6 +520,7 @@ function WeightSheet({
         step={metric ? 0.1 : 0.2}
         unit={weightUnit(units)}
         labelEvery={metric ? 1 : 2}
+        secondary={metric ? WEIGHT_SCALE : undefined}
         onChange={setShown}
       />
       <button type="button" className="btn block" onClick={() => onSave(displayToKg(shown, units))}>

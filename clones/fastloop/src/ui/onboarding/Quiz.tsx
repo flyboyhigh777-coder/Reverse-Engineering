@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { SECTIONS, visibleSteps } from '../../domain/quiz';
 import type { QuizStep } from '../../domain/quiz';
 import { actions, useAppState } from '../../state/store';
-import { Ruler } from '../components/Ruler';
+import { HEIGHT_SCALE, Ruler, WEIGHT_SCALE } from '../components/Ruler';
 
 const DAY_MS = 86_400_000;
 
@@ -104,16 +104,19 @@ export function Quiz(): JSX.Element {
           </div>
         </div>
 
-        <div className="col" style={{ gap: 14, flex: 1, minHeight: 0, overflowY: 'auto' }}>
-          {step.kind === 'info' ? (
-            <InfoStep step={step} />
-          ) : (
-            <>
-              <h1 style={{ fontSize: 24 }}>{step.question}</h1>
-              {'hint' in step && step.hint ? <p className="tiny muted">{step.hint}</p> : null}
-              <StepBody step={step} value={value} onChoose={chooseAndAdvance} onSet={set} onToggle={toggle} />
-            </>
-          )}
+        <div className="col" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          {/* marginBlock:auto centres a short step without clipping a long one */}
+          <div className="col" style={{ gap: 14, marginBlock: 'auto' }}>
+            {step.kind === 'info' ? (
+              <InfoStep step={step} />
+            ) : (
+              <>
+                <h1 style={{ fontSize: 24 }}>{step.question}</h1>
+                {'hint' in step && step.hint ? <p className="tiny muted">{step.hint}</p> : null}
+                <StepBody step={step} value={value} onChoose={chooseAndAdvance} onSet={set} onToggle={toggle} />
+              </>
+            )}
+          </div>
         </div>
 
         {step.kind === 'single' ? null : (
@@ -217,10 +220,13 @@ function StepBody({
             step={step.step ?? 1}
             unit={step.unit}
             labelEvery={step.labelEvery ?? 10}
+            secondary={step.secondary === 'height' ? HEIGHT_SCALE : step.secondary === 'weight' ? WEIGHT_SCALE : undefined}
             onChange={(next) => onSet(String(next))}
           />
           <p className="tiny muted" style={{ textAlign: 'center' }}>
-            Потяните шкалу или нажмите на число, чтобы ввести вручную.
+            {step.secondary
+              ? 'Потяните ленту или нажмите на число. Снизу — та же величина в дюймах и фунтах.'
+              : 'Потяните шкалу или нажмите на число, чтобы ввести вручную.'}
           </p>
         </div>
       );

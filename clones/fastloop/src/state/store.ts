@@ -1,9 +1,14 @@
 import { useSyncExternalStore } from 'react';
 import { isoDate, startFast, moveStart, retarget, HOUR_MS } from '../domain/fasting';
 import { waterTargetMl } from '../domain/metrics';
+import { bmi } from '../domain/metrics';
 import { resolvePlan } from '../domain/plans';
+import { buildProfile } from '../domain/profile';
+import { recommend } from '../domain/recommendation';
 import { planIdForDay } from '../domain/schedule';
-import type { Activity, AppState, Experience, Goal, PlanId, Profile, StepSource, Units } from '../domain/types';
+import { screen } from '../domain/screening';
+import type { Activity, AppState, Experience, FastSession, Goal, PlanId, Profile, StepSource, Units } from '../domain/types';
+import type { Wellbeing } from '../domain/wellbeing';
 import * as storage from './storage';
 
 const DAY_MS = 86_400_000;
@@ -32,6 +37,11 @@ function initialState(): AppState {
     proGranted: true,
     profile: EMPTY_PROFILE,
     planId: '16:8',
+    person: null,
+    screening: null,
+    recommendation: null,
+    observationMode: false,
+    pendingRatingId: null,
     customFastHours: 16,
     schedule: {},
     scheduleEnabled: false,
@@ -152,11 +162,12 @@ export const actions = {
 
     const units: Units = str('units') === 'imperial' ? 'imperial' : 'metric';
     const startKg = num('weight', null);
+    const heightCm = num('height', null);
     const profile: Profile = {
       name: (str('name') ?? '').trim(),
       sex: (str('sex') as Profile['sex']) ?? null,
       age: num('age', null),
-      heightCm: num('height', null),
+      heightCm,
       startKg,
       goalKg: num('goalWeight', null),
       goal: (str('goal') as Goal | null) ?? null,
@@ -167,9 +178,26 @@ export const actions = {
       eventDate: str('eventDate'),
       reminders: str('reminders') !== 'no',
     };
-    const planId: PlanId = profile.experience === 'regular' ? '16:8' : profile.experience === 'tried' ? '14:10' : '12:12';
+
+    const person = buildProfile(a);
+    const screening = screen(a, startKg && heightCm ? bmi(startKg, heightCm) : null);
+    const recommendation = recommend(a, person, screening);
+    const planId: PlanId = recommendation?.planId ?? '12:12';
+    const customFastHours = recommendation?.target.fastHours ?? state.customFastHours;
     const weights = startKg ? [{ date: isoDate(Date.now()), kg: startKg }] : [];
-    set({ ...state, stage: 'analyzing', profile, planId, weights });
+
+    set({
+      ...state,
+      stage: 'analyzing',
+      profile,
+      person,
+      screening,
+      recommendation,
+      observationMode: screening.blocked,
+      planId,
+      customFastHours,
+      weights,
+    });
   },
 
   setStage(stage: AppState['stage']): void {
@@ -228,7 +256,61 @@ export const actions = {
   endFast(at = Date.now()): void {
     const current = state.current;
     if (!current) return;
-    set({ ...state, current: null, history: [...state.history, { ...current, endedAt: at }] });
+    set({
+      ...state,
+      current: null,
+      pendingRatingId: current.id,
+      history: [...state.history, { ...current, endedAt: at }],
+    });
+  },
+
+  rateFast(id: string, wellbeing: Wellbeing): void {
+    set({
+      ...state,
+      pendingRatingId: state.pendingRatingId === id ? null : state.pendingRatingId,
+      history: state.history.map((session) => (session.id === id ? { ...session, wellbeing } : session)),
+    });
+  },
+
+  dismissRating(): void {
+    set({ ...state, pendingRatingId: null });
+  },
+
+  /**
+   * Record a fast that was never started in the app — the complaint users
+   * raise most often about trackers in this category after billing.
+   */
+  addPastFast(startedAt: number, endedAt: number, planId: PlanId): void {
+    if (!(endedAt > startedAt)) return;
+    const session: FastSession = {
+      id: `m_${startedAt.toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+      startedAt,
+      targetEndAt: startedAt + resolvePlan(planId, state.customFastHours).fastHours * 3_600_000,
+      endedAt,
+      planId,
+      edited: true,
+    };
+    set({ ...state, history: [...state.history, session] });
+  },
+
+  updateFast(id: string, startedAt: number, endedAt: number): void {
+    if (!(endedAt > startedAt)) return;
+    set({
+      ...state,
+      history: state.history.map((session) =>
+        session.id === id
+          ? { ...session, startedAt, endedAt, targetEndAt: startedAt + (session.targetEndAt - session.startedAt), edited: true }
+          : session,
+      ),
+    });
+  },
+
+  deleteFast(id: string): void {
+    set({
+      ...state,
+      pendingRatingId: state.pendingRatingId === id ? null : state.pendingRatingId,
+      history: state.history.filter((session) => session.id !== id),
+    });
   },
 
   cancelFast(): void {

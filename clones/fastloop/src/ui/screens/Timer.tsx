@@ -17,7 +17,9 @@ import { fastStats, stepsTarget, waterTargetMl, formatWeight, displayToKg, weigh
 import type { PlanId } from '../../domain/types';
 import { actions, useAppState } from '../../state/store';
 import { useNow } from '../useNow';
+import { CoachCard } from '../components/CoachCard';
 import { Ring, PhaseRail } from '../components/Ring';
+import { WellbeingSheet } from '../components/WellbeingSheet';
 import { Ruler } from '../components/Ruler';
 import { Card, DropIcon, LockPill, ScaleIcon, Sheet, StepIcon } from '../components/common';
 
@@ -49,6 +51,19 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
         {stats.streak > 0 ? <span className="pill accent num">🔥 {stats.streak} дн. подряд</span> : null}
       </div>
 
+      {state.observationMode ? (
+        <Card>
+          <span className="eyebrow">Режим наблюдения</span>
+          <p className="tiny">
+            По вашим ответам схема голодания не предлагается. Дневник веса, вода, шаги и статьи работают как обычно.
+          </p>
+          <p className="tiny muted">
+            Если врач скажет, что можно, таймер включается в профиле.
+          </p>
+        </Card>
+      ) : null}
+
+      {state.observationMode ? null : (
       <div className="row wrap" style={{ gap: 8 }}>
         <button type="button" className="chip" aria-pressed={false} onClick={() => setSheet('plan')}>
           Схема {plan.title} ▾
@@ -58,7 +73,9 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
           <span className="pill accent">по расписанию</span>
         ) : null}
       </div>
+      )}
 
+      {state.observationMode ? null : (
       <Card className="raised">
         <Ring progress={ratio} goalHours={plan.fastHours} running={session !== null}>
           {session ? (
@@ -107,7 +124,11 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
           </button>
         )}
       </Card>
+      )}
 
+      <CoachCard now={now} />
+
+      {state.observationMode ? null : (
       <Card>
         <div className="row between">
           <span className="eyebrow">Сейчас</span>
@@ -141,6 +162,7 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
           )
         ) : null}
       </Card>
+      )}
 
       <div className="grid2">
         <Card>
@@ -195,6 +217,8 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
           </p>
         ) : null}
       </Card>
+
+      <WellbeingSheet />
 
       {sheet === 'plan' ? (
         <PlanSheet

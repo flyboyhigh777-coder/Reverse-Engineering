@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { QUIZ } from '../../domain/quiz';
+import { SECTIONS, visibleSteps } from '../../domain/quiz';
 import type { QuizStep } from '../../domain/quiz';
 import { actions, useAppState } from '../../state/store';
 import { Ruler } from '../components/Ruler';
@@ -10,6 +10,8 @@ function defaultAnswer(step: QuizStep): string | string[] {
   switch (step.kind) {
     case 'number':
       return String(step.initial);
+    case 'time':
+      return step.initial;
     case 'scale':
       return '3';
     case 'date':
@@ -24,30 +26,29 @@ function defaultAnswer(step: QuizStep): string | string[] {
 export function Quiz(): JSX.Element {
   const state = useAppState();
   const [index, setIndex] = useState(0);
-  const step = QUIZ[index];
+  const steps = useMemo(() => visibleSteps(state.answers), [state.answers]);
+  const position = Math.min(index, steps.length - 1);
+  const step = steps[position];
   const stored = state.answers[step.id];
   const value = stored ?? defaultAnswer(step);
 
-  // Seed defaults so a user can press Continue without touching the control.
+  // Seed a default so Continue works without touching the control first.
   useEffect(() => {
-    if (state.answers[step.id] === undefined && step.kind !== 'info' && step.kind !== 'single' && step.kind !== 'multi') {
-      actions.answer(step.id, defaultAnswer(step));
-    }
+    const seedable = step.kind === 'number' || step.kind === 'time' || step.kind === 'scale' || step.kind === 'date';
+    if (seedable && state.answers[step.id] === undefined) actions.answer(step.id, defaultAnswer(step));
   }, [step, state.answers]);
 
   const canContinue = useMemo(() => {
-    if (step.kind === 'info') return true;
-    if (step.kind === 'text') return true;
+    if (step.kind === 'info' || step.kind === 'text') return true;
     if (step.kind === 'multi') return Array.isArray(value) && value.length > 0;
     return typeof value === 'string' && value !== '';
   }, [step, value]);
 
   const advance = () => {
-    if (index + 1 >= QUIZ.length) actions.finishQuiz();
-    else setIndex(index + 1);
+    if (position + 1 >= steps.length) actions.finishQuiz();
+    else setIndex(position + 1);
   };
 
-  /** Single-choice steps commit and move on; everything else waits for Continue. */
   const chooseAndAdvance = (next: string) => {
     actions.answer(step.id, next);
     window.setTimeout(advance, 160);
@@ -56,12 +57,22 @@ export function Quiz(): JSX.Element {
   const set = (next: string) => actions.answer(step.id, next);
 
   const toggle = (option: string) => {
-    const list = Array.isArray(value) ? [...value] : [];
-    const at = list.indexOf(option);
-    if (at >= 0) list.splice(at, 1);
-    else list.push(option);
-    actions.answer(step.id, list);
+    if (step.kind !== 'multi') return;
+    const current = Array.isArray(value) ? [...value] : [];
+    const exclusive = step.exclusive;
+    if (exclusive && option === exclusive) {
+      actions.answer(step.id, current.includes(exclusive) ? [] : [exclusive]);
+      return;
+    }
+    const without = exclusive ? current.filter((item) => item !== exclusive) : current;
+    const at = without.indexOf(option);
+    if (at >= 0) without.splice(at, 1);
+    else without.push(option);
+    actions.answer(step.id, without);
   };
+
+  const sectionIndex = SECTIONS.indexOf(step.section);
+  const percent = Math.round(((position + 1) / steps.length) * 100);
 
   return (
     <div className="shell">
@@ -70,18 +81,27 @@ export function Quiz(): JSX.Element {
           <button
             type="button"
             className="btn quiet"
-            onClick={() => setIndex(Math.max(0, index - 1))}
-            disabled={index === 0}
+            onClick={() => setIndex(Math.max(0, position - 1))}
+            disabled={position === 0}
             aria-label="Назад"
           >
             ←
           </button>
           <span className="tiny muted num">
-            {index + 1} / {QUIZ.length}
+            {position + 1} / {steps.length}
           </span>
         </div>
-        <div className="progressbar" style={{ flex: 'none' }}>
-          <div style={{ width: `${((index + 1) / QUIZ.length) * 100}%` }} />
+
+        <div className="col" style={{ gap: 6, flex: 'none' }}>
+          <div className="progressbar">
+            <div style={{ width: `${percent}%` }} />
+          </div>
+          <div className="row between tiny muted">
+            <span style={{ fontWeight: 600, color: 'var(--accent)' }}>{step.section}</span>
+            <span>
+              раздел {sectionIndex + 1} из {SECTIONS.length}
+            </span>
+          </div>
         </div>
 
         <div className="col" style={{ gap: 14, flex: 1, minHeight: 0, overflowY: 'auto' }}>
@@ -98,11 +118,11 @@ export function Quiz(): JSX.Element {
 
         {step.kind === 'single' ? null : (
           <button type="button" className="btn block" style={{ flex: 'none' }} onClick={advance} disabled={!canContinue}>
-            {index + 1 >= QUIZ.length ? 'Собрать план' : 'Дальше'}
+            {position + 1 >= steps.length ? 'Собрать план' : 'Дальше'}
           </button>
         )}
 
-        {index === 0 ? (
+        {position === 0 ? (
           <button type="button" className="btn quiet tiny" style={{ flex: 'none' }} onClick={() => actions.loadDemo()}>
             Пропустить и сразу открыть приложение
           </button>
@@ -178,18 +198,20 @@ function StepBody({
               onClick={() => onToggle(option.value)}
             >
               <span className="mark" />
-              <span style={{ fontWeight: 500 }}>{option.label}</span>
+              <span className="col" style={{ gap: 1 }}>
+                <span style={{ fontWeight: 500 }}>{option.label}</span>
+                {option.sub ? <span className="tiny muted">{option.sub}</span> : null}
+              </span>
             </button>
           ))}
         </div>
       );
 
-    case 'number': {
-      const current = Number(value) || step.initial;
+    case 'number':
       return (
         <div className="col" style={{ gap: 14, paddingBlock: 10 }}>
           <Ruler
-            value={current}
+            value={Number(value) || step.initial}
             min={step.min}
             max={step.max}
             step={step.step ?? 1}
@@ -202,7 +224,21 @@ function StepBody({
           </p>
         </div>
       );
-    }
+
+    case 'time':
+      return (
+        <div className="col" style={{ gap: 10, alignItems: 'center', paddingBlock: 12 }}>
+          <input
+            id={`q-${step.id}`}
+            type="time"
+            value={typeof value === 'string' ? value : step.initial}
+            onChange={(event) => onSet(event.target.value)}
+            aria-label={step.question}
+            style={{ maxWidth: 200, textAlign: 'center', fontSize: 26, fontWeight: 700, fontFamily: 'var(--display)' }}
+          />
+          <p className="tiny muted">Примерно — точность до получаса достаточна.</p>
+        </div>
+      );
 
     case 'scale': {
       const current = Number(value) || 3;
@@ -257,3 +293,4 @@ function StepBody({
       return null;
   }
 }
+

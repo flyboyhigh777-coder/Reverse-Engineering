@@ -17,6 +17,10 @@ export interface FastSession {
   /** Epoch ms when it was actually ended; null while running. */
   readonly endedAt: number | null;
   readonly planId: PlanId;
+  /** Filled in after the fast, when the person rates it. */
+  readonly wellbeing?: import('./wellbeing').Wellbeing;
+  /** Set when the record was added or corrected by hand. */
+  readonly edited?: boolean;
 }
 
 export interface WeightEntry {
@@ -72,6 +76,14 @@ export interface AppState {
   readonly schedule: Readonly<Record<string, PlanId>>;
   readonly scheduleEnabled: boolean;
   readonly current: FastSession | null;
+  /** Derived from the interview; null until the quiz is finished. */
+  readonly person: import('./profile').PersonProfile | null;
+  readonly screening: import('./screening').Screening | null;
+  readonly recommendation: import('./recommendation').Recommendation | null;
+  /** Screening said no plan: tracking stays, the fasting timer is put away. */
+  readonly observationMode: boolean;
+  /** The fast just finished, waiting to be rated. */
+  readonly pendingRatingId: string | null;
   readonly history: readonly FastSession[];
   readonly weights: readonly WeightEntry[];
   readonly days: readonly DayLog[];

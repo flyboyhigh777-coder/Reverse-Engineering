@@ -9,6 +9,7 @@ import { planIdForDay } from '../domain/schedule';
 import { screen } from '../domain/screening';
 import type { Activity, AppState, Experience, FastSession, Goal, PlanId, Profile, StepSource, Units } from '../domain/types';
 import type { Wellbeing } from '../domain/wellbeing';
+import type { ThemePreference } from './theme';
 import * as storage from './storage';
 
 const DAY_MS = 86_400_000;
@@ -27,6 +28,7 @@ const EMPTY_PROFILE: Profile = {
   event: null,
   eventDate: null,
   reminders: true,
+  theme: 'auto',
 };
 
 function initialState(): AppState {
@@ -177,6 +179,7 @@ export const actions = {
       event: str('event'),
       eventDate: str('eventDate'),
       reminders: str('reminders') !== 'no',
+      theme: state.profile.theme,
     };
 
     const person = buildProfile(a);
@@ -364,6 +367,10 @@ export const actions = {
 
   setReminders(reminders: boolean): void {
     set({ ...state, profile: { ...state.profile, reminders } });
+  },
+
+  setTheme(theme: ThemePreference): void {
+    set({ ...state, profile: { ...state.profile, theme } });
   },
 
   loadDemo(): void {

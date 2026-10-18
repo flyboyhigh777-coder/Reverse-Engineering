@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="tools.fastloop"
-    android:versionCode="8"
-    android:versionName="0.9.0">
+    android:versionCode="9"
+    android:versionName="0.10.0">
 
   <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
   <!-- Detents on the tape picker. Not a dangerous permission: no prompt. -->
@@ -12,7 +12,7 @@
   <application
       android:label="@string/app_name"
       android:icon="@mipmap/ic_launcher"
-      android:theme="@android:style/Theme.Material.Light.NoActionBar"
+      android:theme="@style/FastLoopTheme"
       android:hardwareAccelerated="true"
       android:allowBackup="false">
     <activity

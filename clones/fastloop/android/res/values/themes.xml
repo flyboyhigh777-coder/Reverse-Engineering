@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- Day theme. The matching values-night/ file is picked up by the system
+       when night mode is on, which is also what makes the WebView report
+       prefers-color-scheme: dark to the page. -->
+  <style name="FastLoopTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
+    <item name="android:windowBackground">@color/window_bg</item>
+  </style>
+</resources>

@@ -3,6 +3,7 @@ package tools.fastloop;
 import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.ViewGroup;
@@ -44,7 +45,13 @@ public class MainActivity extends Activity {
       settings.setAlgorithmicDarkeningAllowed(true);
     }
 
-    web.setWebViewClient(new WebViewClient());
+    web.setWebViewClient(new WebViewClient() {
+      @Override
+      public void onPageFinished(WebView view, String url) {
+        super.onPageFinished(view, url);
+        syncTheme();
+      }
+    });
     web.addJavascriptInterface(new Bridge(), "FastLoopNative");
     setContentView(web);
     web.loadUrl("file:///android_asset/index.html");
@@ -58,6 +65,32 @@ public class MainActivity extends Activity {
     } else {
       steps.start();
     }
+  }
+
+  /**
+   * Whether the system is in night mode.
+   *
+   * WebView only reports prefers-color-scheme: dark reliably on recent API
+   * levels and recent WebView builds, so the page is told directly instead.
+   * The page applies it through its own data-theme attribute, which works on
+   * every version this app supports.
+   */
+  private boolean isNightMode() {
+    int mode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+    return mode == Configuration.UI_MODE_NIGHT_YES;
+  }
+
+  private void syncTheme() {
+    if (web == null) return;
+    web.evaluateJavascript("window.__fastloopSystemTheme && window.__fastloopSystemTheme()", null);
+  }
+
+  @Override
+  public void onConfigurationChanged(Configuration newConfig) {
+    super.onConfigurationChanged(newConfig);
+    // uiMode is in configChanges, so the activity survives the switch and
+    // only has to tell the page about it.
+    syncTheme();
   }
 
   private boolean hasActivityPermission() {
@@ -127,8 +160,13 @@ public class MainActivity extends Activity {
     }
 
     @JavascriptInterface
+    public boolean isNightMode() {
+      return MainActivity.this.isNightMode();
+    }
+
+    @JavascriptInterface
     public String appVersion() {
-      return "0.9.0";
+      return "0.10.0";
     }
 
     /** Plain-text state for the diagnostics block in the steps sheet. */

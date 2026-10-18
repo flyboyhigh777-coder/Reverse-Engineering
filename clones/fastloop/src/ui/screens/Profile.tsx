@@ -4,6 +4,8 @@ import { DISCLAIMER } from '../../domain/phases';
 import { resolvePlan } from '../../domain/plans';
 import { formatWeight, waterTargetMl } from '../../domain/metrics';
 import { actions, useAppState } from '../../state/store';
+import { THEME_LABELS, hasNativeTheme } from '../../state/theme';
+import type { ThemePreference } from '../../state/theme';
 import { Card, LockPill, Sheet } from '../components/common';
 
 export function Profile({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
@@ -67,6 +69,26 @@ export function Profile({ onRequestPro }: { onRequestPro: (reason: string) => vo
             Фунты
           </button>
         </div>
+
+        <span className="eyebrow">Оформление</span>
+        <div className="row wrap" style={{ gap: 8 }}>
+          {(['auto', 'light', 'dark'] as ThemePreference[]).map((value) => (
+            <button
+              key={value}
+              type="button"
+              className="chip"
+              aria-pressed={profile.theme === value}
+              onClick={() => actions.setTheme(value)}
+            >
+              {THEME_LABELS[value]}
+            </button>
+          ))}
+        </div>
+        <p className="tiny muted">
+          {hasNativeTheme()
+            ? 'В режиме «как в телефоне» приложение переключается вместе с системной тёмной темой — сразу, без перезапуска.'
+            : 'В браузере режим «как в телефоне» следует настройке оформления системы.'}
+        </p>
 
         <span className="eyebrow">Напоминания</span>
         <div className="row" style={{ gap: 8 }}>

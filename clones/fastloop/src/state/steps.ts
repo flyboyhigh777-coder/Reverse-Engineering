@@ -12,6 +12,8 @@ export interface NativeBridge {
   appVersion(): string;
   /** Human-readable sensor state; absent in builds before 0.3.0. */
   diagnostics?(): string;
+  /** Android night mode; absent in builds before 0.10.0. */
+  isNightMode?(): boolean;
 }
 
 declare global {

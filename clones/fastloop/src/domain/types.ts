@@ -57,6 +57,7 @@ export interface Profile {
   /** ISO date of that event. */
   readonly eventDate: string | null;
   readonly reminders: boolean;
+  readonly theme: import('../state/theme').ThemePreference;
 }
 
 export type Phase = 'route' | 'quiz' | 'analyzing' | 'plan' | 'paywall' | 'app';

@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { useAppState } from '../state/store';
+import { useEffect, useState } from 'react';
+import { getState, useAppState } from '../state/store';
+import { applyTheme } from '../state/theme';
 import { Analyzing } from './onboarding/Analyzing';
 import { PlanReveal } from './onboarding/PlanReveal';
 import { Quiz } from './onboarding/Quiz';
@@ -26,6 +27,16 @@ export function App(): JSX.Element {
   const state = useAppState();
   const [tab, setTab] = useState<Tab>('timer');
   const [pro, setPro] = useState<string | null>(null);
+  const theme = state.profile.theme;
+
+  useEffect(() => {
+    applyTheme(theme);
+    // The Android wrapper calls this when the system flips to night mode.
+    window.__fastloopSystemTheme = () => applyTheme(getState().profile.theme);
+    return () => {
+      delete window.__fastloopSystemTheme;
+    };
+  }, [theme]);
 
   if (state.stage === 'quiz') return <Quiz />;
   if (state.stage === 'analyzing') return <Analyzing />;

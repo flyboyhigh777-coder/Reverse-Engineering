@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- Same value as the stylesheet's background token, so the window does
+       not flash a different colour before the page paints. -->
+  <color name="window_bg">#EEF2F1</color>
+</resources>

@@ -12,7 +12,7 @@ import {
 import { nextPhaseAfter, phaseAtHours } from '../../domain/phases';
 import { CUSTOM_MAX_HOURS, CUSTOM_MIN_HOURS, PLANS, WEEKDAYS, resolvePlan } from '../../domain/plans';
 import { activePlan } from '../../domain/schedule';
-import { useStepCounter } from '../../state/steps';
+import { readDiagnostics, useStepCounter } from '../../state/steps';
 import { fastStats, stepsTarget, waterTargetMl, formatWeight, displayToKg, weightUnit } from '../../domain/metrics';
 import type { PlanId } from '../../domain/types';
 import { actions, useAppState } from '../../state/store';
@@ -503,6 +503,7 @@ function StepsSheet({
   onClose: () => void;
 }): JSX.Element {
   const [value, setValue] = useState(String(initial));
+  const diagnostics = readDiagnostics();
   const note =
     counterState === 'native'
       ? 'Считает аппаратный датчик телефона — он работает и когда приложение закрыто. Ручная правка перезапишет значение до следующего показания датчика.'
@@ -512,6 +513,11 @@ function StepsSheet({
   return (
     <Sheet title="Шаги за сегодня" onClose={onClose}>
       <p className="tiny muted">{note}</p>
+      {diagnostics ? (
+        <p className="banner tiny" style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>
+          {diagnostics}
+        </p>
+      ) : null}
       <input id="steps-input" type="number" inputMode="numeric" value={value} onChange={(event) => setValue(event.target.value)} />
       <button
         type="button"

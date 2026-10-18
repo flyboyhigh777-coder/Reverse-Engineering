@@ -10,6 +10,8 @@ export interface NativeBridge {
   hasPermission(): boolean;
   requestPermission(): void;
   appVersion(): string;
+  /** Human-readable sensor state; absent in builds before 0.3.0. */
+  diagnostics?(): string;
 }
 
 declare global {
@@ -114,8 +116,18 @@ export function useStepCounter(): {
     const bridge = nativeBridge();
     if (bridge) {
       bridge.requestPermission();
-      // The dialog is modal on the Android side; re-read once it is gone.
-      window.setTimeout(() => setState(bridge.hasPermission() ? 'native' : 'native-denied'), 900);
+      // The dialog is modal and the person may sit on it, so poll for a while
+      // instead of reading the answer once and giving up.
+      let attempts = 0;
+      const id = window.setInterval(() => {
+        attempts += 1;
+        if (bridge.hasPermission()) {
+          setState('native');
+          window.clearInterval(id);
+        } else if (attempts >= 30) {
+          window.clearInterval(id);
+        }
+      }, 600);
       return;
     }
     const ctor = window.DeviceMotionEvent as unknown as DeviceMotionEventConstructor | undefined;
@@ -131,8 +143,33 @@ export function useStepCounter(): {
     if (motionAvailable()) setState('motion');
   }, []);
 
+  useEffect(() => {
+    if (state !== 'native-denied') return;
+    const recheck = () => {
+      const bridge = nativeBridge();
+      if (bridge && bridge.hasPermission()) setState('native');
+    };
+    document.addEventListener('visibilitychange', recheck);
+    window.addEventListener('focus', recheck);
+    return () => {
+      document.removeEventListener('visibilitychange', recheck);
+      window.removeEventListener('focus', recheck);
+    };
+  }, [state]);
+
   const source: StepSource = state === 'native' ? 'native' : state === 'motion' ? 'motion' : 'manual';
   return { state, source, enable };
+}
+
+/** Sensor state straight from the Android side, for the diagnostics block. */
+export function readDiagnostics(): string | null {
+  const bridge = nativeBridge();
+  if (!bridge || typeof bridge.diagnostics !== 'function') return null;
+  try {
+    return bridge.diagnostics();
+  } catch {
+    return null;
+  }
 }
 
 export function isAndroidBuild(): boolean {

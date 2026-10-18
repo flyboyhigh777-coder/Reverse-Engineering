@@ -21,6 +21,11 @@ import java.util.Locale;
  * The limit worth knowing: if the app is not opened at all on a given day,
  * the baseline for that day is first set when it is opened, so steps taken
  * before that are not attributed to it. The UI does not claim otherwise.
+ *
+ * The sensor is resolved lazily rather than in the constructor. On API 29+
+ * the step counter sits behind ACTIVITY_RECOGNITION, so a lookup made before
+ * the permission is granted can come back empty and must not be cached as
+ * "this phone has no pedometer".
  */
 final class StepCounter implements SensorEventListener {
 
@@ -29,32 +34,65 @@ final class StepCounter implements SensorEventListener {
   private static final String KEY_BASELINE = "baseline";
 
   private final SensorManager sensors;
-  private final Sensor stepSensor;
   private final SharedPreferences prefs;
+  private Sensor stepSensor;
   private volatile int stepsToday;
+  private volatile boolean listening;
+  private volatile long lastEventAt;
+  private volatile String lastError = "";
 
   StepCounter(Context context) {
     this.sensors = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
-    this.stepSensor = sensors == null ? null : sensors.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
     this.prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
   }
 
+  private Sensor sensor() {
+    if (stepSensor == null && sensors != null) {
+      stepSensor = sensors.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+    }
+    return stepSensor;
+  }
+
   boolean hasSensor() {
-    return stepSensor != null;
+    return sensor() != null;
   }
 
   int stepsToday() {
     return stepsToday;
   }
 
+  boolean listening() {
+    return listening;
+  }
+
+  long lastEventAt() {
+    return lastEventAt;
+  }
+
+  String lastError() {
+    return lastError;
+  }
+
   void start() {
-    if (stepSensor == null) return;
-    sensors.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_NORMAL);
+    Sensor target = sensor();
+    if (target == null) {
+      lastError = "датчик не найден";
+      return;
+    }
+    if (listening) return;
+    try {
+      listening = sensors.registerListener(this, target, SensorManager.SENSOR_DELAY_NORMAL);
+      lastError = listening ? "" : "система отклонила подписку";
+    } catch (SecurityException denied) {
+      listening = false;
+      lastError = "нет разрешения: " + denied.getMessage();
+    }
   }
 
   void stop() {
-    if (stepSensor == null) return;
+    if (!listening || sensors == null) return;
     sensors.unregisterListener(this);
+    listening = false;
   }
 
   private static String today() {
@@ -76,6 +114,7 @@ final class StepCounter implements SensorEventListener {
       prefs.edit().putString(KEY_DAY, day).putFloat(KEY_BASELINE, baseline).apply();
     }
     stepsToday = Math.max(0, Math.round(total - baseline));
+    lastEventAt = System.currentTimeMillis();
   }
 
   @Override

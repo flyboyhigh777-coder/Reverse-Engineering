@@ -49,8 +49,14 @@ public class MainActivity extends Activity {
     setContentView(web);
     web.loadUrl("file:///android_asset/index.html");
 
-    if (steps.hasSensor() && !hasActivityPermission()) {
+    // Ask first, resolve the sensor afterwards: on API 29+ the step counter
+    // is behind ACTIVITY_RECOGNITION, so gating the request on "is there a
+    // sensor" can deadlock — the lookup may come back empty precisely because
+    // the permission has not been granted yet.
+    if (!hasActivityPermission()) {
       requestActivityPermission();
+    } else {
+      steps.start();
     }
   }
 
@@ -122,7 +128,20 @@ public class MainActivity extends Activity {
 
     @JavascriptInterface
     public String appVersion() {
-      return "0.2.0";
+      return "0.3.0";
+    }
+
+    /** Plain-text state for the diagnostics block in the steps sheet. */
+    @JavascriptInterface
+    public String diagnostics() {
+      long since = steps.lastEventAt() == 0 ? -1 : (System.currentTimeMillis() - steps.lastEventAt()) / 1000;
+      return "Android API " + Build.VERSION.SDK_INT
+          + "; датчик: " + (steps.hasSensor() ? "есть" : "нет")
+          + "; разрешение: " + (hasActivityPermission() ? "выдано" : "нет")
+          + "; подписка: " + (steps.listening() ? "активна" : "нет")
+          + "; шагов: " + steps.stepsToday()
+          + "; последнее событие: " + (since < 0 ? "не было" : since + " с назад")
+          + (steps.lastError().isEmpty() ? "" : "; ошибка: " + steps.lastError());
     }
   }
 }

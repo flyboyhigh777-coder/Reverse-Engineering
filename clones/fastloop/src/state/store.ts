@@ -6,6 +6,7 @@ import { resolvePlan } from '../domain/plans';
 import { buildProfile } from '../domain/profile';
 import { recommend } from '../domain/recommendation';
 import { planIdForDay } from '../domain/schedule';
+import type { Records } from '../domain/backup';
 import { screen } from '../domain/screening';
 import type { Activity, AppState, Experience, FastSession, Goal, PlanId, Profile, StepSource, Units } from '../domain/types';
 import type { Wellbeing } from '../domain/wellbeing';
@@ -375,6 +376,37 @@ export const actions = {
 
   loadDemo(): void {
     set(demoState(Date.now()));
+  },
+
+  /** Replaces everything with a full backup, including stage and profile. */
+  restoreBackup(restored: AppState): void {
+    set({ ...restored, current: restored.current ?? null, pendingRatingId: null });
+  },
+
+  /**
+   * Folds records recovered from a CSV export into what is here.
+   *
+   * Existing entries win on a collision: the CSV is older by definition, and
+   * silently overwriting something the person logged after exporting would
+   * lose newer data to recover older data.
+   */
+  mergeRecords(records: Records): void {
+    const startTimes = new Set(state.history.map((session) => session.startedAt));
+    const history = [
+      ...state.history,
+      ...records.history.filter((session) => !startTimes.has(session.startedAt)),
+    ].sort((a, b) => a.startedAt - b.startedAt);
+
+    const weightDates = new Set(state.weights.map((entry) => entry.date));
+    const weights = [
+      ...state.weights,
+      ...records.weights.filter((entry) => !weightDates.has(entry.date)),
+    ].sort((a, b) => a.date.localeCompare(b.date));
+
+    const dayDates = new Set(state.days.map((day) => day.date));
+    const days = [...state.days, ...records.days.filter((day) => !dayDates.has(day.date))];
+
+    set({ ...state, history, weights, days });
   },
 
   reset(): void {

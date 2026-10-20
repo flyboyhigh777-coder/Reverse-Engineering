@@ -6,12 +6,14 @@ import { formatWeight, waterTargetMl } from '../../domain/metrics';
 import { actions, useAppState } from '../../state/store';
 import { THEME_LABELS, hasNativeTheme } from '../../state/theme';
 import type { ThemePreference } from '../../state/theme';
+import { BackupSheet } from '../components/BackupSheet';
 import { Card, LockPill, Sheet } from '../components/common';
 
 export function Profile({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
   const state = useAppState();
   const [confirmReset, setConfirmReset] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showBackup, setShowBackup] = useState(false);
   const { profile } = state;
   const plan = resolvePlan(state.planId, state.customFastHours);
 
@@ -120,8 +122,12 @@ export function Profile({ onRequestPro }: { onRequestPro: (reason: string) => vo
       <Card>
         <span className="eyebrow">Данные приложения</span>
         <p className="tiny muted">
-          Всё хранится только в этом браузере — ни аккаунта, ни отправки на сервер. Очистка истории браузера удалит данные.
+          Всё хранится только на этом устройстве — ни аккаунта, ни отправки на сервер. Удаление приложения или очистка
+          истории браузера стирает записи без следа, поэтому перед переустановкой сделайте копию.
         </p>
+        <button type="button" className="btn block" onClick={() => setShowBackup(true)}>
+          Резервная копия
+        </button>
         <div className="row wrap" style={{ gap: 8 }}>
           <button
             type="button"
@@ -147,6 +153,8 @@ export function Profile({ onRequestPro }: { onRequestPro: (reason: string) => vo
         FastLoop — независимая учебная реализация трекера интервального голодания. Не связана с GoFasting и его разработчиком,
         не содержит их кода, ресурсов и товарных знаков.
       </p>
+
+      {showBackup ? <BackupSheet onClose={() => setShowBackup(false)} /> : null}
 
       {showExport ? <ExportSheet onClose={() => setShowExport(false)} /> : null}
 

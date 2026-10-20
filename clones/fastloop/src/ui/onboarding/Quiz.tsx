@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { SECTIONS, visibleSteps } from '../../domain/quiz';
 import type { QuizStep } from '../../domain/quiz';
 import { actions, useAppState } from '../../state/store';
+import { BackupSheet } from '../components/BackupSheet';
 import { HEIGHT_SCALE, Ruler, WEIGHT_SCALE } from '../components/Ruler';
 
 const DAY_MS = 86_400_000;
@@ -26,6 +27,7 @@ function defaultAnswer(step: QuizStep): string | string[] {
 export function Quiz(): JSX.Element {
   const state = useAppState();
   const [index, setIndex] = useState(0);
+  const [restoring, setRestoring] = useState(false);
   const steps = useMemo(() => visibleSteps(state.answers), [state.answers]);
   const position = Math.min(index, steps.length - 1);
   const step = steps[position];
@@ -126,11 +128,18 @@ export function Quiz(): JSX.Element {
         )}
 
         {position === 0 ? (
-          <button type="button" className="btn quiet tiny" style={{ flex: 'none' }} onClick={() => actions.loadDemo()}>
-            Пропустить и сразу открыть приложение
-          </button>
+          <div className="col" style={{ gap: 2, flex: 'none' }}>
+            <button type="button" className="btn quiet tiny" onClick={() => setRestoring(true)}>
+              У меня есть резервная копия
+            </button>
+            <button type="button" className="btn quiet tiny" onClick={() => actions.loadDemo()}>
+              Пропустить и сразу открыть приложение
+            </button>
+          </div>
         ) : null}
       </div>
+
+      {restoring ? <BackupSheet onClose={() => setRestoring(false)} /> : null}
     </div>
   );
 }

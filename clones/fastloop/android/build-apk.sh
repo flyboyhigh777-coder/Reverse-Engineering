@@ -100,13 +100,33 @@ with zipfile.ZipFile(out, 'a', zipfile.ZIP_DEFLATED) as zf:
 PY
 
 # ------------------------------------------------------------------- signing
-KEYSTORE="$KIT/debug.p12"
-if [ ! -f "$KEYSTORE" ]; then
-  say "Создаю отладочный ключ"
-  keytool -genkeypair -storetype PKCS12 -keystore "$KEYSTORE" \
-    -storepass android -keypass android -alias fastloop \
-    -keyalg RSA -keysize 2048 -validity 10000 \
-    -dname "CN=FastLoop Debug, OU=FastLoop, O=FastLoop, C=RU" >/dev/null 2>&1
+# Android refuses an update whose signing certificate differs from the one
+# already installed. The key is therefore derived from a fixed seed in
+# tools/KeyGen.java rather than generated at random, so every container
+# produces the same certificate and builds keep updating each other. The
+# fingerprint is asserted here: a silent change would produce an APK that
+# cannot be installed over the previous one, which is worse than a failed
+# build.
+EXPECTED_CERT=7A6C9128ABAA5E064D496416605C87853F33553D25D20130EECFF56D22C1BEDE
+KEYSTORE="$WORK/debug.p12"
+
+say "Собираю ключ подписи"
+mkdir -p "$WORK/keygen"
+javac -nowarn --add-exports java.base/sun.security.x509=ALL-UNNAMED \
+  -d "$WORK/keygen" "$HERE/tools/KeyGen.java" 2>/dev/null
+CERT="$(java \
+  --add-exports java.base/sun.security.x509=ALL-UNNAMED \
+  --add-exports java.base/sun.security.util=ALL-UNNAMED \
+  -cp "$WORK/keygen" KeyGen "$KEYSTORE" android fastloop | tail -n 1)"
+
+if [ "$CERT" != "$EXPECTED_CERT" ]; then
+  cat >&2 <<EOF
+Сертификат подписи изменился — такой APK не встанет поверх установленного.
+  ожидался: $EXPECTED_CERT
+  получен:  $CERT
+Проверьте tools/KeyGen.java и версию JDK, прежде чем собирать дальше.
+EOF
+  exit 1
 fi
 
 say "Подписываю"
@@ -122,4 +142,4 @@ java \
   -cp "$WORK/signer:$KIT/libs/apksig.jar" Sign \
   "$KEYSTORE" android fastloop android "$WORK/unsigned.apk" "$OUT" "$MIN_SDK"
 
-say "Готово: $OUT ($(du -h "$OUT" | cut -f1))"
+say "Готово: $OUT ($(du -h "$OUT" | cut -f1)), сертификат $CERT"

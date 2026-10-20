@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { ARTICLES, CATEGORIES, EVIDENCE_LABEL } from '../../domain/articles';
-import type { Article, Evidence } from '../../domain/articles';
+import type { Article } from '../../domain/articles';
 import { DISCLAIMER } from '../../domain/phases';
 import { useAppState } from '../../state/store';
+import { ArticleSheet, EvidenceTag } from '../components/ArticleSheet';
+import { BeginnerCard } from '../components/BeginnerGuide';
 import { ArtTile } from '../components/FoodArt';
 import type { ArtKind } from '../components/FoodArt';
-import { Card, LockPill, Sheet } from '../components/common';
+import { Card, LockPill } from '../components/common';
 
 /** Art for the featured strip — one per category, so it stays recognisable. */
 const CATEGORY_ART: Record<string, ArtKind> = {
@@ -20,21 +22,6 @@ const CATEGORY_ART: Record<string, ArtKind> = {
 
 const FEATURED = ['water-practice', 'breaking', 'protein', 'start-training', 'red-flags'];
 
-const EVIDENCE_COLOR: Record<Evidence, string> = {
-  established: 'var(--good)',
-  likely: 'var(--accent)',
-  contested: 'var(--warn)',
-  weak: 'var(--ink-3)',
-};
-
-function EvidenceTag({ level }: { level: Evidence }): JSX.Element {
-  return (
-    <span className="pill" style={{ color: EVIDENCE_COLOR[level] }}>
-      {EVIDENCE_LABEL[level]}
-    </span>
-  );
-}
-
 export function Learn({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
   const state = useAppState();
   const [open, setOpen] = useState<Article | null>(null);
@@ -48,6 +35,8 @@ export function Learn({ onRequestPro }: { onRequestPro: (reason: string) => void
       <p className="tiny muted">
         У каждой статьи стоит метка того, насколько надёжны данные под ней — включая «спорно» на материалах про саму эту тему.
       </p>
+
+      <BeginnerCard />
 
       <div className="col" style={{ gap: 10 }}>
         <div className="section-head">
@@ -122,20 +111,7 @@ export function Learn({ onRequestPro }: { onRequestPro: (reason: string) => void
 
       <p className="banner">{DISCLAIMER}</p>
 
-      {open ? (
-        <Sheet title={open.title} onClose={() => setOpen(null)}>
-          <div className="row wrap" style={{ gap: 6 }}>
-            <span className="pill">{open.category}</span>
-            <EvidenceTag level={open.evidence} />
-            <span className="pill">{open.minutes} мин</span>
-          </div>
-          <div className="article-body tiny">
-            {open.body.map((paragraph, index) => (
-              <p key={index}>{paragraph}</p>
-            ))}
-          </div>
-        </Sheet>
-      ) : null}
+      {open ? <ArticleSheet article={open} onClose={() => setOpen(null)} /> : null}
     </>
   );
 }

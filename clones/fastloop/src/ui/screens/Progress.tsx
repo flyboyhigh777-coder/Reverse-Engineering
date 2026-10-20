@@ -3,8 +3,22 @@ import { elapsedMs, formatDayClock, formatHoursShort, reachedGoal } from '../../
 import { isRated } from '../../domain/wellbeing';
 import type { FastSession } from '../../domain/types';
 import { bmi, bmiBand, fastStats, formatWeight, weightSeries } from '../../domain/metrics';
+import {
+  RANGES,
+  chartGoals,
+  fastHoursSeries,
+  rangeDays,
+  stepsSeries,
+  summarize,
+  waterSeries,
+  weightPoints,
+} from '../../domain/series';
+import type { Range } from '../../domain/series';
 import { actions, useAppState } from '../../state/store';
 import { useNow } from '../useNow';
+import { AchievementsCard } from '../components/Achievements';
+import { BarChart } from '../components/BarChart';
+import { BmiBar } from '../components/BmiBar';
 import { WeightChart } from '../components/WeightChart';
 import { Card, LockPill, Sheet, Stat } from '../components/common';
 
@@ -24,11 +38,20 @@ function fromLocalInput(value: string): number | null {
 export function Progress({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
   const state = useAppState();
   const [editing, setEditing] = useState<FastSession | 'new' | null>(null);
+  const [range, setRange] = useState<Range>('week');
   const now = useNow(false);
   const stats = fastStats(state.history, now);
   const series = weightSeries(state.weights);
-  const points = series.map((entry) => ({ t: new Date(`${entry.date}T12:00:00`).getTime(), kg: entry.kg }));
   const latest = series.at(-1);
+  const days = rangeDays(range);
+  const goals = chartGoals(state);
+  const fastHours = fastHoursSeries(state, now, days);
+  const water = waterSeries(state, now, days);
+  const steps = stepsSeries(state, now, days);
+  const points = weightPoints(state, now, days);
+  const fastSummary = summarize(fastHours, null);
+  const waterSummary = summarize(water, goals.water);
+  const stepSummary = summarize(steps, goals.steps);
   const bmiValue = latest && state.profile.heightCm ? bmi(latest.kg, state.profile.heightCm) : null;
   const isDemo = state.history.some((s) => s.id.startsWith('demo-'));
   const done = [...state.history].filter((s) => s.endedAt !== null).sort((a, b) => (b.endedAt ?? 0) - (a.endedAt ?? 0));
@@ -45,6 +68,65 @@ export function Progress({ onRequestPro }: { onRequestPro: (reason: string) => v
         </p>
       ) : null}
 
+      <div className="carousel chiprow">
+        {RANGES.map((item) => (
+          <button key={item.id} type="button" className="chip" aria-pressed={range === item.id} onClick={() => setRange(item.id)}>
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      <Card>
+        <div className="row between">
+          <span className="eyebrow">Длительность голоданий</span>
+          {fastSummary.average !== null ? (
+            <span className="pill num">в среднем {fastSummary.average.toFixed(1)} ч</span>
+          ) : null}
+        </div>
+        <BarChart
+          points={fastHours}
+          goal={null}
+          tone="accent"
+          format={(value) => `${value.toFixed(0)} ч`}
+          label={`Длительность голоданий за ${days} дн.`}
+        />
+        <p className="tiny muted">
+          {fastSummary.logged > 0
+            ? `Записей за период: ${fastSummary.logged} из ${fastSummary.total} дней. Дольше всего — ${(fastSummary.best ?? 0).toFixed(1)} ч. Столбец стоит на дне, когда окно закрылось.`
+            : 'Пустые дни — это дни без записи, а не нулевые голодания.'}
+        </p>
+      </Card>
+
+      <div className="grid2">
+        <Card>
+          <span className="eyebrow">Вода</span>
+          <BarChart
+            points={water}
+            goal={goals.water}
+            tone="accent"
+            format={(value) => `${Math.round(value / 100) / 10} л`}
+            label={`Вода за ${days} дн.`}
+          />
+          <p className="tiny muted">
+            Норма набрана в {waterSummary.hit} из {waterSummary.total} дней.
+          </p>
+        </Card>
+
+        <Card>
+          <span className="eyebrow">Шаги</span>
+          <BarChart
+            points={steps}
+            goal={goals.steps}
+            tone="warm"
+            format={(value) => `${Math.round(value / 1000)}к`}
+            label={`Шаги за ${days} дн.`}
+          />
+          <p className="tiny muted">
+            Цель взята в {stepSummary.hit} из {stepSummary.total} дней.
+          </p>
+        </Card>
+      </div>
+
       <Card>
         <div className="row between">
           <span className="eyebrow">Вес</span>
@@ -58,7 +140,7 @@ export function Progress({ onRequestPro }: { onRequestPro: (reason: string) => v
           <WeightChart points={points} goalKg={state.profile.goalKg} units={state.profile.units} />
         ) : (
           <p className="tiny muted">
-            Нужны минимум две записи, чтобы построить линию. Записать вес можно на главном экране.
+            За этот период меньше двух записей. Расширьте период или запишите вес на главном экране.
           </p>
         )}
         {latest && state.profile.startKg ? (
@@ -100,6 +182,15 @@ export function Progress({ onRequestPro }: { onRequestPro: (reason: string) => v
           </p>
         ) : null}
       </Card>
+
+      {bmiValue ? (
+        <Card>
+          <span className="eyebrow">Индекс массы тела</span>
+          <BmiBar value={bmiValue} />
+        </Card>
+      ) : null}
+
+      <AchievementsCard />
 
       <Card>
         <div className="row between">

@@ -404,6 +404,10 @@ input[type='number'], input[type='text'], input[type='date'], input[type='time']
   overflow-y: auto;
 }
 
+/* A scrolling flex column shrinks its children by default; the sheet holds
+   fixed-height rows like the filter carousel, which must not be squashed. */
+.sheet > * { flex: none; }
+
 .article-body p { margin-bottom: 10px; max-width: 65ch; }
 .article-body p:last-child { margin-bottom: 0; }
 
@@ -557,3 +561,67 @@ input[type='number'], input[type='text'], input[type='date'], input[type='time']
 }
 .macro b { display: block; font-family: var(--display); font-size: 15px; font-variant-numeric: tabular-nums; }
 .macro span { font-size: 10.5px; color: var(--ink-3); }
+
+/* Achievements: one row per badge — the medal names the family, the bar says
+   how far the record already is. Locked badges keep their text readable; a
+   greyed-out mystery motivates nobody. */
+.badge {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.badge.on { border-color: var(--accent); background: var(--accent-soft); }
+.badge .medal {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.badge .medal.on { background: var(--accent); border-color: var(--accent); }
+.badge .medal svg { width: 18px; height: 18px; }
+.badge .progressbar { display: block; width: 100%; }
+
+/* Today's checklist on the home screen. Each tile is the only place its
+   measure appears — the tile holds the action, so nothing repeats below. */
+.task {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.task-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.task.done { border-color: var(--accent); background: var(--accent-soft); }
+.task .tick {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 50%;
+  border: 1.6px solid var(--line);
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+}
+.task.done .tick { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.task .tick svg { width: 11px; height: 11px; }

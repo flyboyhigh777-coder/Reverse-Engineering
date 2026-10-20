@@ -1,6 +1,10 @@
 /** Core vocabulary shared by every layer. UI never invents these shapes. */
 
-export type PlanId = '12:12' | '14:10' | '16:8' | '18:6' | '20:4' | '21:3' | '23:1' | 'custom';
+export type PlanId =
+  | '12:12' | '13:11' | '14:10' | '15:9'
+  | '16:8' | '17:7' | '18:6' | '19:5'
+  | '20:4' | '21:3' | '22:2' | '23:1'
+  | '24h' | 'custom';
 
 /** Where a day's step count came from. The UI never presents one as another. */
 export type StepSource = 'native' | 'motion' | 'manual';

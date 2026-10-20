@@ -10,19 +10,21 @@ import {
   remainingMs,
 } from '../../domain/fasting';
 import { nextPhaseAfter, phaseAtHours } from '../../domain/phases';
-import { CUSTOM_MAX_HOURS, CUSTOM_MIN_HOURS, LEVEL_HINT, LEVEL_ORDER, PLANS, WEEKDAYS, resolvePlan } from '../../domain/plans';
+import { CUSTOM_MAX_HOURS, CUSTOM_MIN_HOURS, PLANS, PLAN_TIERS, TIER_HINT, WEEKDAYS, resolvePlan } from '../../domain/plans';
 import { activePlan } from '../../domain/schedule';
 import { readDiagnostics, useStepCounter } from '../../state/steps';
-import { WATER_NOTE, fastStats, stepsTarget, waterTargetMl, formatWeight, displayToKg, weightUnit } from '../../domain/metrics';
+import { WATER_NOTE, fastStats, formatWeight, displayToKg, weightUnit } from '../../domain/metrics';
 import type { PlanId } from '../../domain/types';
 import { actions, useAppState } from '../../state/store';
 import { useNow } from '../useNow';
+import type { TaskId } from '../../domain/daily';
 import { CoachCard } from '../components/CoachCard';
+import { DailyBriefCard, TodayCard } from '../components/Today';
 import { Ring, PhaseRail } from '../components/Ring';
 import { SafetySheet } from '../components/SafetySheet';
 import { WellbeingSheet } from '../components/WellbeingSheet';
 import { Ruler, WEIGHT_SCALE } from '../components/Ruler';
-import { Card, DropIcon, LockPill, ScaleIcon, Sheet, StepIcon } from '../components/common';
+import { Card, LockPill, Sheet } from '../components/common';
 
 export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
   const state = useAppState();
@@ -38,8 +40,6 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
   const next = nextPhaseAfter(hours);
   const stats = fastStats(state.history, now);
   const today = state.days.find((d) => d.date === isoDate(now));
-  const waterGoal = waterTargetMl(state.profile.sex, state.profile.activity);
-  const stepGoal = stepsTarget(state.profile.activity);
   const lastWeight = [...state.weights].sort((a, b) => a.date.localeCompare(b.date)).at(-1);
   const ratio = session ? progress(session, now) : 0;
 
@@ -130,6 +130,44 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
       </Card>
       )}
 
+      <TodayCard
+        onPick={(id: TaskId) => {
+          if (id === 'water') actions.addWater(250);
+          else if (id === 'steps') setSheet('steps');
+          else if (id === 'weight') setSheet('weight');
+          else if (id === 'fast' && state.current === null) actions.startFast();
+        }}
+        controls={{
+          water: (
+            <div className="col" style={{ gap: 5 }}>
+              <div className="row" style={{ gap: 6 }}>
+                <button type="button" className="chip" onClick={() => actions.addWater(250)}>+250</button>
+                <button type="button" className="chip" onClick={() => actions.addWater(500)}>+500</button>
+              </div>
+              <span className="tiny muted" title={WATER_NOTE}>
+                ориентир, не норма
+              </span>
+            </div>
+          ),
+          steps: <StepsControl state={counter.state} onEnable={counter.enable} onManual={() => setSheet('steps')} />,
+          weight: (
+            <div className="col" style={{ gap: 5 }}>
+              <span className="num" style={{ fontFamily: 'var(--display)', fontSize: 17, fontWeight: 700 }}>
+                {lastWeight ? formatWeight(lastWeight.kg, state.profile.units) : '—'}
+              </span>
+              {state.profile.goalKg && lastWeight ? (
+                <span className="tiny muted">
+                  до цели {formatWeight(Math.max(0, lastWeight.kg - state.profile.goalKg), state.profile.units)}
+                </span>
+              ) : null}
+              <button type="button" className="chip" onClick={() => setSheet('weight')}>
+                Записать
+              </button>
+            </div>
+          ),
+        }}
+      />
+
       <CoachCard now={now} onRequestPro={onRequestPro} />
 
       {state.observationMode ? null : (
@@ -168,62 +206,7 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
       </Card>
       )}
 
-      <div className="grid2">
-        <Card>
-          <div className="row between">
-            <span className="eyebrow">
-              <DropIcon /> Вода
-            </span>
-          </div>
-          <span className="num" style={{ fontFamily: 'var(--display)', fontSize: 20, fontWeight: 700 }}>
-            {today?.waterMl ?? 0}
-            <span style={{ fontSize: 12, color: 'var(--ink-3)' }}> / {waterGoal} мл</span>
-          </span>
-          <div className="progressbar">
-            <div style={{ width: `${Math.min(100, ((today?.waterMl ?? 0) / waterGoal) * 100)}%` }} />
-          </div>
-          <div className="row" style={{ gap: 6 }}>
-            <button type="button" className="chip" onClick={() => actions.addWater(250)}>+250</button>
-            <button type="button" className="chip" onClick={() => actions.addWater(500)}>+500</button>
-          </div>
-          <span className="tiny muted" title={WATER_NOTE}>
-            ориентир, не норма
-          </span>
-        </Card>
-
-        <Card>
-          <span className="eyebrow">
-            <StepIcon /> Шаги
-          </span>
-          <span className="num" style={{ fontFamily: 'var(--display)', fontSize: 20, fontWeight: 700 }}>
-            {(today?.steps ?? 0).toLocaleString('ru-RU')}
-            <span style={{ fontSize: 12, color: 'var(--ink-3)' }}> / {stepGoal.toLocaleString('ru-RU')}</span>
-          </span>
-          <div className="progressbar">
-            <div style={{ width: `${Math.min(100, ((today?.steps ?? 0) / stepGoal) * 100)}%` }} />
-          </div>
-          <StepsControl state={counter.state} onEnable={counter.enable} onManual={() => setSheet('steps')} />
-        </Card>
-      </div>
-
-      <Card>
-        <div className="row between">
-          <span className="eyebrow">
-            <ScaleIcon /> Вес
-          </span>
-          <button type="button" className="btn ghost sm" onClick={() => setSheet('weight')}>
-            Записать
-          </button>
-        </div>
-        <span className="num" style={{ fontFamily: 'var(--display)', fontSize: 22, fontWeight: 700 }}>
-          {lastWeight ? formatWeight(lastWeight.kg, state.profile.units) : '—'}
-        </span>
-        {state.profile.goalKg && lastWeight ? (
-          <p className="tiny muted">
-            До цели {formatWeight(Math.max(0, lastWeight.kg - state.profile.goalKg), state.profile.units)}
-          </p>
-        ) : null}
-      </Card>
+      <DailyBriefCard />
 
       <WellbeingSheet />
 
@@ -347,13 +330,13 @@ function PlanSheet({ onLocked, onClose }: { onLocked: (reason: string) => void; 
         самый частый способ бросить на третий день.
       </p>
 
-      {LEVEL_ORDER.map((level) => (
-        <div className="col" key={level} style={{ gap: 9 }}>
+      {PLAN_TIERS.map((tier) => (
+        <div className="col" key={tier} style={{ gap: 9 }}>
           <div className="col" style={{ gap: 1 }}>
-            <span className="eyebrow">{level}</span>
-            <span className="tiny muted">{LEVEL_HINT[level]}</span>
+            <span className="eyebrow">{tier}</span>
+            <span className="tiny muted">{TIER_HINT[tier]}</span>
           </div>
-          {PLANS.filter((plan) => plan.level === level).map((plan) => {
+          {PLANS.filter((plan) => plan.tier === tier).map((plan) => {
             const locked = plan.premium && !premium;
             const isCustom = plan.id === 'custom';
             const selected = plan.id === planId;
@@ -374,6 +357,9 @@ function PlanSheet({ onLocked, onClose }: { onLocked: (reason: string) => void; 
                   </span>
                   <span className="tiny muted">{plan.blurb}</span>
                   {selected ? <span className="tiny">{plan.suits}</span> : null}
+                  {selected && plan.caution ? (
+                    <span className="tiny" style={{ color: 'var(--warn)' }}>{plan.caution}</span>
+                  ) : null}
                 </span>
               </button>
             );

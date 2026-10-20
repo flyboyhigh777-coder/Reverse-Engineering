@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { DEFAULT_SLOTS, MEAL_PLANS, PLAN_SECTIONS, dayMacros, planAverage, planRecipes } from '../../domain/mealPlans';
 import type { MealPlan } from '../../domain/mealPlans';
-import { RECIPES, RECIPE_CATEGORIES, RECIPE_TAGS, recipeById } from '../../domain/recipes';
-import type { Macros, Recipe, RecipeTag } from '../../domain/recipes';
+import { RECIPES, RECIPE_CATEGORIES, RECIPE_TAGS, REGIONS, recipeById, recipesByRegion } from '../../domain/recipes';
+import type { Macros, Recipe, RecipeTag, Region } from '../../domain/recipes';
 import { useAppState } from '../../state/store';
 import { ArtTile } from '../components/FoodArt';
 import { Sheet } from '../components/common';
 
 export function Recipes({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
-  const [tab, setTab] = useState<'recipes' | 'plans'>('recipes');
+  const [tab, setTab] = useState<'recipes' | 'regions' | 'plans'>('recipes');
 
   return (
     <>
@@ -16,12 +16,17 @@ export function Recipes({ onRequestPro }: { onRequestPro: (reason: string) => vo
         <button type="button" role="tab" aria-selected={tab === 'recipes'} onClick={() => setTab('recipes')}>
           Рецепты
         </button>
+        <button type="button" role="tab" aria-selected={tab === 'regions'} onClick={() => setTab('regions')}>
+          Кухни
+        </button>
         <button type="button" role="tab" aria-selected={tab === 'plans'} onClick={() => setTab('plans')}>
           Планы питания
         </button>
       </div>
 
-      {tab === 'recipes' ? <RecipeList onRequestPro={onRequestPro} /> : <PlanList onRequestPro={onRequestPro} />}
+      {tab === 'recipes' ? <RecipeList onRequestPro={onRequestPro} /> : null}
+      {tab === 'regions' ? <RegionList onRequestPro={onRequestPro} /> : null}
+      {tab === 'plans' ? <PlanList onRequestPro={onRequestPro} /> : null}
     </>
   );
 }
@@ -157,6 +162,11 @@ function RecipeSheet({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
         ))}
       </div>
       <p className="tiny">{recipe.why}</p>
+      {recipe.region ? (
+        <p className="banner tiny">
+          <strong>{recipe.region}.</strong> {recipe.adapted}
+        </p>
+      ) : null}
       <MacroRow macros={recipe.macros} />
 
       <div className="col" style={{ gap: 7 }}>
@@ -191,6 +201,61 @@ function RecipeSheet({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
         </ol>
       </div>
     </Sheet>
+  );
+}
+
+/**
+ * Regional cooking.
+ *
+ * The dishes people around them actually cook, with the one change that makes
+ * each fit a short eating window — stated on the card, not hidden. A library
+ * of chicken breast and broccoli gets closed after a week.
+ */
+function RegionList({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
+  const state = useAppState();
+  const [open, setOpen] = useState<Recipe | null>(null);
+  const [region, setRegion] = useState<Region>('Узбекистан');
+
+  const items = recipesByRegion(region);
+
+  const openRecipe = (recipe: Recipe) => {
+    if (recipe.premium && !state.premium) onRequestPro('Этот рецепт входит в PRO.');
+    else setOpen(recipe);
+  };
+
+  return (
+    <>
+      <p className="tiny muted">
+        Традиционные блюда, пересобранные под короткое окно: меньше жира и теста, больше белка и овощей. На каждой
+        карточке написано, что именно изменено против привычного рецепта.
+      </p>
+
+      <div className="carousel chiprow">
+        {REGIONS.map((name) => (
+          <button key={name} type="button" className="chip" aria-pressed={region === name} onClick={() => setRegion(name)}>
+            {name}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid2">
+        {items.map((recipe) => (
+          <RecipeTile
+            key={recipe.id}
+            recipe={recipe}
+            locked={recipe.premium && !state.premium}
+            onOpen={() => openRecipe(recipe)}
+          />
+        ))}
+      </div>
+
+      <p className="banner">
+        Калорийность и белок посчитаны по таблицам состава для указанных граммовок. Домашняя порция почти всегда больше
+        расчётной — это нормально, но учитывайте при подсчёте.
+      </p>
+
+      {open ? <RecipeSheet recipe={open} onClose={() => setOpen(null)} /> : null}
+    </>
   );
 }
 

@@ -1,4 +1,4 @@
-package tools.fastloop;
+package app.fastloop;
 
 import android.content.Context;
 import android.content.SharedPreferences;

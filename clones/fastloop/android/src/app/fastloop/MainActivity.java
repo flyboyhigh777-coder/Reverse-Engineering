@@ -1,4 +1,4 @@
-package tools.fastloop;
+package app.fastloop;
 
 import android.Manifest;
 import android.app.Activity;

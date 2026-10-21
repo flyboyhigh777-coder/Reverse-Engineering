@@ -1,37 +1,55 @@
 /* Layout: one phone-width column — scrolling screen above a fixed tab rail;
    the fasting ring is a 24-hour dial, so the clock is the organising metaphor. */
 :root {
-  --bg: #eef2f1;
+  --bg: #ffffff;
   --surface: #ffffff;
-  --surface-2: #e4ecea;
-  --ink: #0f201e;
-  --ink-2: #42605b;
-  --ink-3: #78918c;
-  --line: #d2dedb;
-  --accent: #0e7c7b;
-  --accent-soft: #d6ebe8;
+  --surface-2: #f3f7f1;
+  --ink: #101d33;
+  --ink-2: #4c5c75;
+  --ink-3: #8795a9;
+  --line: #e6ece8;
+  /* Two greens, two jobs. --brand is the fill: a lime loud enough to carry a
+     button, far too light to carry 12px text. --accent is the readable one,
+     for strokes, labels and the ring. Collapsing them into one token is how
+     bright palettes end up with unreadable captions. */
+  --brand: #a6e24a;
+  --brand-2: #7fc91f;
+  --brand-ink: #14280b;
+  --accent: #2a7d32;
+  --accent-soft: #edfada;
   --accent-ink: #ffffff;
-  --warm: #b85c15;
-  --warm-soft: #fae6d4;
-  --good: #2f7d5c;
-  --warn: #9a5b06;
-  --danger: #a93228;
-  --track: #dbe5e3;
+  --warm: #c75a18;
+  --warm-soft: #ffeedd;
+  --good: #1f9d55;
+  --warn: #a8710f;
+  --danger: #cf3f3f;
+  --track: #eef2ee;
   /* Three macros, three hues — categorical, not a ramp: carbohydrate, protein
-     and fat are different things, not more or less of one thing. */
-  --carb: #c2761a;
-  --carb-soft: #fbead6;
-  --prot: #0e7c7b;
-  --prot-soft: #d6ebe8;
-  --fat: #7656a8;
-  --fat-soft: #e9e2f6;
+     and fat are different things, not more or less of one thing. Orange, blue
+     and violet stay apart under the common colour-vision deficiencies; a
+     second green next to the brand would not. */
+  --carb: #e2831f;
+  --carb-soft: #fff0dc;
+  --prot: #2b86cc;
+  --prot-soft: #e1f0fc;
+  --fat: #7a5af0;
+  --fat-soft: #ebe6fe;
   /* Sequential phase ramp: one hue, early (light) to late (dark). */
-  --p-fed: #bfd9d5;
-  --p-early: #8cc3bc;
-  --p-switch: #4fa49b;
-  --p-burn: #1f857d;
-  --p-deep: #0a5a55;
-  --shadow: 0 1px 2px rgb(15 32 30 / 0.06), 0 8px 24px -16px rgb(15 32 30 / 0.3);
+  --p-fed: #e2f3c8;
+  --p-early: #bfe894;
+  --p-switch: #8ed050;
+  --p-burn: #4d9b2a;
+  --p-deep: #2a6b23;
+  /* Tints for the coloured cards. Each is mixed against the current surface
+     at use, so one value serves day and night. */
+  --t-lime: #7fc91f;
+  --t-mint: #16b89b;
+  --t-sky: #2b86cc;
+  --t-lilac: #7a5af0;
+  --t-peach: #ef8a3c;
+  --t-rose: #e0577b;
+  --t-sand: #cf9a1c;
+  --shadow: 0 1px 2px rgb(16 29 51 / 0.05), 0 10px 26px -18px rgb(16 29 51 / 0.35);
   --radius: 18px;
   --radius-sm: 12px;
   --display: 'Bricolage Grotesque', 'Trebuchet MS', system-ui, sans-serif;
@@ -40,67 +58,87 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #0b1413;
-    --surface: #13201e;
-    --surface-2: #1b2b28;
-    --ink: #e9f1ef;
-    --ink-2: #a4b9b5;
-    --ink-3: #74908b;
-    --line: #253633;
-    --accent: #4fc3b5;
-    --accent-soft: #10332f;
-    --accent-ink: #06201d;
-    --warm: #e8963f;
-    --warm-soft: #33220f;
-    --good: #5cc08d;
-    --warn: #dda33f;
-    --danger: #ef7a70;
-    --track: #223431;
-    --carb: #e8a64f;
+    --bg: #0a1020;
+    --surface: #141c31;
+    --surface-2: #1d2744;
+    --ink: #e9eefa;
+    --ink-2: #a9b5cd;
+    --ink-3: #7b89a5;
+    --line: #27334f;
+    --brand: #a6e24a;
+    --brand-2: #8ed02f;
+    --brand-ink: #10220a;
+    --accent: #b6ea63;
+    --accent-soft: #1d2a17;
+    --accent-ink: #10220a;
+    --warm: #f09a4e;
+    --warm-soft: #33230f;
+    --good: #58cc8b;
+    --warn: #e0ab4a;
+    --danger: #f1756f;
+    --track: #222d49;
+    --carb: #f0a44f;
     --carb-soft: #33240f;
-    --prot: #4fc3b5;
-    --prot-soft: #10332f;
-    --fat: #ab8ee0;
-    --fat-soft: #241c38;
-    --p-fed: #2f544e;
-    --p-early: #35625c;
-    --p-switch: #4a8a82;
-    --p-burn: #63b3a8;
-    --p-deep: #90d6cb;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 28px -18px rgb(0 0 0 / 0.8);
+    --prot: #62b4ec;
+    --prot-soft: #122738;
+    --fat: #a78bfa;
+    --fat-soft: #221c3a;
+    --p-fed: #2b3a2a;
+    --p-early: #3c5a32;
+    --p-switch: #5d8f3a;
+    --p-burn: #86c24a;
+    --p-deep: #b6ea63;
+    --t-lime: #a6e24a;
+    --t-mint: #3fd6b8;
+    --t-sky: #62b4ec;
+    --t-lilac: #a78bfa;
+    --t-peach: #f5a460;
+    --t-rose: #f07a99;
+    --t-sand: #e8bf52;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 12px 30px -20px rgb(0 0 0 / 0.9);
     color-scheme: dark;
   }
 }
 
 :root[data-theme='dark'] {
-  --bg: #0b1413;
-  --surface: #13201e;
-  --surface-2: #1b2b28;
-  --ink: #e9f1ef;
-  --ink-2: #a4b9b5;
-  --ink-3: #74908b;
-  --line: #253633;
-  --accent: #4fc3b5;
-  --accent-soft: #10332f;
-  --accent-ink: #06201d;
-  --warm: #e8963f;
-  --warm-soft: #33220f;
-  --good: #5cc08d;
-  --warn: #dda33f;
-  --danger: #ef7a70;
-  --track: #223431;
-  --carb: #e8a64f;
+  --bg: #0a1020;
+  --surface: #141c31;
+  --surface-2: #1d2744;
+  --ink: #e9eefa;
+  --ink-2: #a9b5cd;
+  --ink-3: #7b89a5;
+  --line: #27334f;
+  --brand: #a6e24a;
+  --brand-2: #8ed02f;
+  --brand-ink: #10220a;
+  --accent: #b6ea63;
+  --accent-soft: #1d2a17;
+  --accent-ink: #10220a;
+  --warm: #f09a4e;
+  --warm-soft: #33230f;
+  --good: #58cc8b;
+  --warn: #e0ab4a;
+  --danger: #f1756f;
+  --track: #222d49;
+  --carb: #f0a44f;
   --carb-soft: #33240f;
-  --prot: #4fc3b5;
-  --prot-soft: #10332f;
-  --fat: #ab8ee0;
-  --fat-soft: #241c38;
-  --p-fed: #2f544e;
-  --p-early: #35625c;
-  --p-switch: #4a8a82;
-  --p-burn: #63b3a8;
-  --p-deep: #90d6cb;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 28px -18px rgb(0 0 0 / 0.8);
+  --prot: #62b4ec;
+  --prot-soft: #122738;
+  --fat: #a78bfa;
+  --fat-soft: #221c3a;
+  --p-fed: #2b3a2a;
+  --p-early: #3c5a32;
+  --p-switch: #5d8f3a;
+  --p-burn: #86c24a;
+  --p-deep: #b6ea63;
+  --t-lime: #a6e24a;
+  --t-mint: #3fd6b8;
+  --t-sky: #62b4ec;
+  --t-lilac: #a78bfa;
+  --t-peach: #f5a460;
+  --t-rose: #f07a99;
+  --t-sand: #e8bf52;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 12px 30px -20px rgb(0 0 0 / 0.9);
   color-scheme: dark;
 }
 
@@ -143,7 +181,28 @@ button { font: inherit; color: inherit; }
   max-width: 480px;
   margin-inline: auto;
   background: var(--bg);
+  position: relative;
+  isolation: isolate;
 }
+
+/* Night is its own place, not the day with the lights off: a slow aurora of
+   lime and indigo sits behind the column so the dark screen has depth. */
+.shell::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 auto 0;
+  height: 340px;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(90% 60% at 18% -10%, color-mix(in oklab, var(--brand) 22%, transparent), transparent 70%),
+    radial-gradient(80% 55% at 95% 6%, color-mix(in oklab, var(--t-lilac) 26%, transparent), transparent 72%);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .shell::before { opacity: 1; }
+}
+:root[data-theme='dark'] .shell::before { opacity: 1; }
 
 .screen {
   flex: 1;
@@ -169,6 +228,7 @@ button { font: inherit; color: inherit; }
   gap: 2px;
   border-top: 1px solid var(--line);
   background: var(--surface);
+  box-shadow: 0 -8px 22px -18px rgb(16 29 51 / 0.6);
   padding-left: max(8px, env(safe-area-inset-left, 0px));
   padding-right: max(8px, env(safe-area-inset-right, 0px));
   padding-block: 6px 8px;
@@ -188,7 +248,8 @@ button { font: inherit; color: inherit; }
   letter-spacing: 0.02em;
   border-radius: 10px;
 }
-.tab[aria-current='true'] { color: var(--accent); }
+.tab[aria-current='true'] { color: var(--accent); font-weight: 600; }
+.tab[aria-current='true'] svg { filter: drop-shadow(0 4px 8px color-mix(in oklab, var(--accent) 45%, transparent)); }
 .tab svg { width: 22px; height: 22px; }
 
 /* ---------- building blocks ---------- */
@@ -201,9 +262,25 @@ button { font: inherit; color: inherit; }
   display: flex;
   flex-direction: column;
   gap: 12px;
+  box-shadow: var(--shadow);
 }
 .card.flat { box-shadow: none; }
-.card.raised { box-shadow: var(--shadow); }
+.card.raised { box-shadow: 0 2px 4px rgb(16 29 51 / 0.06), 0 18px 40px -26px rgb(16 29 51 / 0.5); }
+
+/* Coloured cards. The page is white, so the colour has to live in the cards;
+   each tint is mixed against the current surface, which keeps one declaration
+   honest in both themes instead of a second palette for the night. */
+.card.tint, .tint {
+  background: color-mix(in oklab, var(--tint, var(--t-lime)) 11%, var(--surface));
+  border-color: color-mix(in oklab, var(--tint, var(--t-lime)) 24%, var(--line));
+}
+.t-lime { --tint: var(--t-lime); }
+.t-mint { --tint: var(--t-mint); }
+.t-sky { --tint: var(--t-sky); }
+.t-lilac { --tint: var(--t-lilac); }
+.t-peach { --tint: var(--t-peach); }
+.t-rose { --tint: var(--t-rose); }
+.t-sand { --tint: var(--t-sand); }
 
 .eyebrow {
   font-size: 11px;
@@ -229,15 +306,18 @@ button { font: inherit; color: inherit; }
   padding: 13px 20px;
   font-weight: 600;
   cursor: pointer;
-  background: var(--accent);
-  color: var(--accent-ink);
-  transition: filter 0.15s ease, background 0.15s ease;
+  background: linear-gradient(180deg, var(--brand), var(--brand-2));
+  color: var(--brand-ink);
+  box-shadow: 0 1px 1px rgb(16 29 51 / 0.06), 0 8px 18px -12px color-mix(in oklab, var(--brand-2) 70%, transparent);
+  transition: filter 0.15s ease, transform 0.08s ease;
 }
+.btn:active:not(:disabled) { transform: translateY(1px); }
 .btn:hover:not(:disabled) { filter: brightness(1.06); }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn.ghost { background: transparent; color: var(--ink-2); border-color: var(--line); }
 .btn.quiet { background: transparent; color: var(--ink-2); border-color: transparent; padding: 8px 10px; }
-.btn.warm { background: var(--warm); color: #fff; }
+.btn.warm { background: var(--warm); color: #fff; box-shadow: none; }
+.btn.ghost, .btn.quiet { box-shadow: none; }
 .btn.block { width: 100%; }
 .btn.sm { padding: 8px 14px; font-size: 13px; }
 
@@ -253,7 +333,7 @@ button { font: inherit; color: inherit; }
   align-items: center;
   gap: 6px;
 }
-.chip[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.chip[aria-pressed='true'] { background: var(--brand); border-color: var(--brand-2); color: var(--brand-ink); font-weight: 600; }
 
 .pill {
   display: inline-flex;
@@ -315,7 +395,7 @@ button { font: inherit; color: inherit; }
 
 .quiz { display: flex; flex-direction: column; gap: 18px; flex: 1; min-height: 0; }
 .progressbar { height: 4px; background: var(--track); border-radius: 999px; overflow: hidden; flex: none; }
-.progressbar > div { height: 100%; background: var(--accent); border-radius: 999px; transition: width 0.3s ease; }
+.progressbar > div { height: 100%; background: linear-gradient(90deg, var(--brand-2), var(--brand)); border-radius: 999px; transition: width 0.3s ease; }
 
 .option {
   display: flex;
@@ -336,8 +416,8 @@ button { font: inherit; color: inherit; }
   width: 20px; height: 20px; border-radius: 50%;
   border: 2px solid var(--line); flex: none; display: grid; place-items: center;
 }
-.option[aria-pressed='true'] .mark { border-color: var(--accent); background: var(--accent); }
-.option[aria-pressed='true'] .mark::after { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--accent-ink); }
+.option[aria-pressed='true'] .mark { border-color: var(--brand-2); background: var(--brand); }
+.option[aria-pressed='true'] .mark::after { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--brand-ink); }
 
 .bigvalue {
   font-family: var(--display);
@@ -403,7 +483,7 @@ input[type='number'], input[type='text'], input[type='date'], input[type='time']
 .sheet-backdrop {
   position: fixed;
   inset: 0;
-  background: rgb(6 18 17 / 0.5);
+  background: rgb(8 14 28 / 0.55);
   display: grid;
   place-items: end center;
   z-index: 40;
@@ -620,7 +700,7 @@ input[type='number'], input[type='text'], input[type='date'], input[type='time']
   background: var(--surface);
   border: 1px solid var(--line);
 }
-.badge .medal.on { background: var(--accent); border-color: var(--accent); }
+.badge .medal.on { background: var(--brand); border-color: var(--brand-2); color: var(--brand-ink); }
 .badge .medal svg { width: 18px; height: 18px; }
 .badge .progressbar { display: block; width: 100%; }
 
@@ -658,7 +738,7 @@ input[type='number'], input[type='text'], input[type='date'], input[type='time']
   place-items: center;
   background: var(--surface);
 }
-.task.done .tick { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.task.done .tick { background: var(--brand); border-color: var(--brand-2); color: var(--brand-ink); }
 .task .tick svg { width: 11px; height: 11px; }
 
 
@@ -715,8 +795,8 @@ input[type='number'], input[type='text'], input[type='date'], input[type='time']
   flex: none;
   border-radius: 50%;
   border: 0;
-  background: var(--accent);
-  color: var(--accent-ink);
+  background: var(--brand);
+  color: var(--brand-ink);
   font-size: 19px;
   line-height: 1;
   cursor: pointer;
@@ -763,6 +843,10 @@ input[type='number'], input[type='text'], input[type='date'], input[type='time']
 .quiz-shell {
   position: relative;
   isolation: isolate;
+  /* The second wash below is deliberately wider than the column and hangs off
+     its right edge. Without a clip it becomes 90px of horizontal scroll on a
+     phone, which is how the interview ended up looking shifted after a swipe. */
+  overflow: hidden;
   background:
     radial-gradient(130% 48% at 50% -6%, var(--sec-glow, transparent), transparent 70%),
     var(--bg);
@@ -878,9 +962,10 @@ input[type='number'], input[type='text'], input[type='date'], input[type='time']
 /* The call to action carries the section's colour too, darkened enough that
    white text keeps its contrast on the lighter hues. */
 .quiz-shell .btn:not(.ghost):not(.quiet) {
-  background: color-mix(in oklab, var(--sec, var(--accent)) 82%, #06302e);
+  background: color-mix(in oklab, var(--sec, var(--accent)) 84%, #0b1b2e);
   border-color: transparent;
   color: #fff;
+  box-shadow: 0 8px 18px -12px color-mix(in oklab, var(--sec, var(--accent)) 60%, transparent);
 }
 
 .quiz-hero {
@@ -907,3 +992,290 @@ input[type='number'], input[type='text'], input[type='date'], input[type='time']
   border-radius: 50%;
   background: rgb(255 255 255 / 0.13);
 }
+
+/* ---------- plan detail ----------
+   A window is a decision, not a number, so the page reads like one: what the
+   day looks like, what is actually known to come of it, who it suits, who it
+   does not, and how to get through it. Every claim carries its evidence
+   label — the colour is allowed to be loud, the claims are not. */
+
+.plan-hero {
+  border-radius: 22px;
+  padding: 20px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: linear-gradient(135deg, #2a7d32, #7fc91f 62%, #a6e24a);
+}
+/* The header carries the difficulty: the gentle windows are green, the ones
+   that need experience warm up, and the twenty-four hour day is not green at
+   all. Colour says it before the text does. */
+.plan-hero.tier-base { background: linear-gradient(135deg, #2f9e3f, #8ed02f 58%, #b6ea63); }
+.plan-hero.tier-mid { background: linear-gradient(135deg, #15786c, #4fae3c 58%, #a6e24a); }
+.plan-hero.tier-ext { background: linear-gradient(135deg, #8a4e0c, #cf8a1e 60%, #ecb84a); }
+.plan-hero.tier-long { background: linear-gradient(135deg, #7a2b2b, #bd5330 60%, #e08a4f); }
+.plan-hero::after {
+  content: '';
+  position: absolute;
+  inset: -40px -60px auto auto;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.14);
+  pointer-events: none;
+}
+.plan-hero > * { position: relative; }
+.plan-hero .ttl { font-family: var(--display); font-size: 42px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
+.plan-hero .sub { font-size: 13.5px; opacity: 0.93; max-width: 30ch; }
+.plan-hero .pill { background: rgb(255 255 255 / 0.2); color: #fff; }
+
+/* The day as a single bar: the long dark stretch is the fast, the bright
+   stretch is the window. Two numbers under it, nothing else. */
+.plan-split { display: flex; height: 12px; border-radius: 999px; overflow: hidden; background: rgb(255 255 255 / 0.25); }
+.plan-split i { display: block; height: 100%; }
+.plan-split i.fast { background: rgb(0 0 0 / 0.28); }
+.plan-split i.eat { background: #fff; }
+.plan-legend { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; }
+
+.benefit {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 13px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in oklab, var(--tint, var(--t-lime)) 24%, var(--line));
+  background: color-mix(in oklab, var(--tint, var(--t-lime)) 10%, var(--surface));
+}
+.benefit .ico {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in oklab, var(--tint, var(--t-lime)) 22%, var(--surface));
+  color: color-mix(in oklab, var(--tint, var(--t-lime)) 88%, var(--ink));
+}
+.benefit .ico svg { width: 21px; height: 21px; }
+.benefit b { font-family: var(--display); font-size: 15px; display: block; }
+
+/* How much is actually known. Four words, always visible, never flattering. */
+.evi {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.evi::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.evi.e-strong { background: color-mix(in oklab, var(--good) 16%, var(--surface)); color: var(--good); }
+.evi.e-moderate { background: color-mix(in oklab, var(--t-sky) 16%, var(--surface)); color: color-mix(in oklab, var(--t-sky) 86%, var(--ink)); }
+.evi.e-weak { background: color-mix(in oklab, var(--warn) 16%, var(--surface)); color: var(--warn); }
+.evi.e-mech { background: var(--surface-2); color: var(--ink-3); }
+
+.fitlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.fitlist li { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; line-height: 1.45; }
+.fitlist .m {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin-top: 1px;
+}
+.fitlist .m svg { width: 12px; height: 12px; }
+.fitlist.yes .m { background: color-mix(in oklab, var(--good) 20%, var(--surface)); color: var(--good); }
+.fitlist.no .m { background: color-mix(in oklab, var(--danger) 18%, var(--surface)); color: var(--danger); }
+
+/* Practice steps are numbered because the order matters on the hard windows:
+   water before coffee, salt before the long stretch, food after. */
+.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; display: flex; flex-direction: column; gap: 11px; }
+.steps li { display: flex; gap: 11px; align-items: flex-start; counter-increment: s; }
+.steps li::before {
+  content: counter(s);
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 800;
+}
+.steps b { font-family: var(--display); font-size: 14.5px; display: block; }
+
+/* ---------- calorie day ---------- */
+
+.kcal-hero {
+  border-radius: 22px;
+  padding: 18px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  border: 1px solid color-mix(in oklab, var(--t-lime) 24%, var(--line));
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in oklab, var(--t-lime) 16%, transparent), transparent 70%),
+    var(--surface);
+}
+.statcard {
+  border-radius: 16px;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in oklab, var(--tint, var(--t-lime)) 24%, var(--line));
+  background: color-mix(in oklab, var(--tint, var(--t-lime)) 10%, var(--surface));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.statcard .v { font-family: var(--display); font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.statcard .k { font-size: 11px; color: var(--ink-3); }
+.statcard .ico { width: 26px; height: 26px; border-radius: 9px; display: grid; place-items: center; background: color-mix(in oklab, var(--tint, var(--t-lime)) 22%, var(--surface)); color: color-mix(in oklab, var(--tint, var(--t-lime)) 88%, var(--ink)); margin-bottom: 4px; }
+.statcard .ico svg { width: 15px; height: 15px; }
+
+/* ---------- dish photographs ----------
+   The tile keeps its drawn art underneath; a photograph, when one has been
+   found and cached, is laid over it. If the network is gone or the file moved,
+   the drawing is still there — the card never shows a hole. */
+.art { position: relative; display: block; overflow: hidden; border-radius: 16px; }
+.art > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  animation: artfade 0.35s ease both;
+}
+@keyframes artfade { from { opacity: 0; } to { opacity: 1; } }
+.art .credit {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px 8px 4px;
+  font-size: 9px;
+  line-height: 1.25;
+  color: rgb(255 255 255 / 0.82);
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.45));
+  text-align: right;
+  pointer-events: none;
+}
+/* Overlaid hero text needs the same scrim over a photograph that the drawn
+   art builds into its own gradient. */
+.art > .scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgb(0 0 0 / 0.62), rgb(0 0 0 / 0.22) 62%, rgb(0 0 0 / 0));
+  pointer-events: none;
+}
+
+/* A plan row is two targets, not one: the row switches to the window, the
+   button beside it opens the page about it. Nesting the second inside the
+   first would be invalid and would swallow its taps. */
+.optrow { display: flex; gap: 8px; align-items: stretch; }
+.optrow .option { min-width: 0; }
+.info {
+  flex: none;
+  width: 46px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-3);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.info:hover { border-color: var(--accent); color: var(--accent); }
+.info svg { width: 20px; height: 20px; }
+
+/* The meal cards are defined above with a plain surface, so their tint has to
+   come after them to win on order rather than on specificity tricks. */
+.meal.tint {
+  background: color-mix(in oklab, var(--tint, var(--t-lime)) 10%, var(--surface));
+  border-color: color-mix(in oklab, var(--tint, var(--t-lime)) 24%, var(--line));
+}
+.meal.tint .add {
+  background: color-mix(in oklab, var(--tint, var(--t-lime)) 84%, var(--surface));
+  color: #fff;
+}
+.meal.tint li button { background: color-mix(in oklab, var(--surface) 78%, transparent); }
+
+/* ---------- the personal plan ----------
+   The reveal is the one screen that has to feel like a result, so the goal
+   gets a card of its own: where you are, where you are going, and the date
+   the arithmetic lands on — stated as arithmetic, not as a promise. */
+
+.goalcard {
+  border-radius: 22px;
+  padding: 18px 20px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: linear-gradient(135deg, #16243f, #2a7d32 58%, #8ed02f);
+}
+.goalcard::after {
+  content: '';
+  position: absolute;
+  inset: auto -50px -70px auto;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.12);
+  pointer-events: none;
+}
+.goalcard > * { position: relative; }
+.goalcard .pair { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.goalcard .wnum { font-family: var(--display); font-size: 30px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.goalcard .wcap { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.8; }
+.goalcard .arrow { flex: none; opacity: 0.75; align-self: center; }
+.goalcard .arrow svg { width: 26px; height: 26px; display: block; }
+.goalcard .meter { height: 8px; border-radius: 999px; background: rgb(255 255 255 / 0.25); overflow: hidden; }
+.goalcard .meter i { display: block; height: 100%; border-radius: 999px; background: #fff; }
+
+/* The ramp, drawn as a route rather than a numbered list: each stage knows
+   what it is for, and the line makes it obvious they are consecutive. */
+.timeline { list-style: none; margin: 0; padding: 0; }
+.timeline li { display: flex; gap: 12px; position: relative; padding-bottom: 16px; }
+.timeline li:last-child { padding-bottom: 0; }
+.timeline li::before {
+  content: '';
+  position: absolute;
+  left: 13px;
+  top: 30px;
+  bottom: 2px;
+  width: 2px;
+  background: var(--line);
+}
+.timeline li:last-child::before { display: none; }
+.timeline .dot {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--display);
+  font-size: 12px;
+  font-weight: 800;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border: 2px solid var(--line);
+  position: relative;
+  z-index: 1;
+}
+.timeline li.on .dot { background: var(--brand); color: var(--brand-ink); border-color: var(--brand-2); }
+.timeline .phase { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-3); font-weight: 700; }

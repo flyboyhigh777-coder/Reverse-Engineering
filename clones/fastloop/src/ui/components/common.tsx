@@ -151,3 +151,36 @@ export function ScaleIcon(): JSX.Element {
     </svg>
   );
 }
+
+/** The affordance that opens a window's detail page from the picker. */
+export function InfoIcon(): JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5.5" />
+      <path d="M12 7.6v.2" />
+    </svg>
+  );
+}
+
+const SMALL = {
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.8,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+  'aria-hidden': true,
+};
+
+export function ForkIcon(): JSX.Element {
+  return <svg {...SMALL}><path d="M7 3v5.5M10.4 3v5.5" /><path d="M7 8.5h3.4" /><path d="M8.7 8.5V21" /><path d="M16.6 3c-1.3 1.9-2 3.8-2 5.7 0 1.5.7 2.4 2 2.5V21" /></svg>;
+}
+
+export function TargetIcon(): JSX.Element {
+  return <svg {...SMALL}><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.2" /><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" /></svg>;
+}
+
+export function LeafIcon(): JSX.Element {
+  return <svg {...SMALL}><path d="M5 19C3.8 12 8.3 5 19 5c1 9.2-5 14-12 14z" /><path d="M7 17c3.5-4.5 6.8-7.2 11-9" /></svg>;
+}

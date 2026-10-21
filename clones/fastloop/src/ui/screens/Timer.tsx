@@ -11,6 +11,8 @@ import {
 } from '../../domain/fasting';
 import { nextPhaseAfter, phaseAtHours } from '../../domain/phases';
 import { CUSTOM_MAX_HOURS, CUSTOM_MIN_HOURS, PLANS, PLAN_TIERS, TIER_HINT, WEEKDAYS, resolvePlan } from '../../domain/plans';
+import type { Plan } from '../../domain/plans';
+import { PlanDetailSheet } from '../components/PlanDetailSheet';
 import { activePlan } from '../../domain/schedule';
 import { readDiagnostics, useStepCounter } from '../../state/steps';
 import { WATER_NOTE, fastStats, formatWeight, displayToKg, weightUnit } from '../../domain/metrics';
@@ -25,7 +27,7 @@ import { Ring, PhaseRail } from '../components/Ring';
 import { SafetySheet } from '../components/SafetySheet';
 import { WellbeingSheet } from '../components/WellbeingSheet';
 import { Ruler, WEIGHT_SCALE } from '../components/Ruler';
-import { Card, LockPill, Sheet } from '../components/common';
+import { Card, InfoIcon, LockPill, Sheet } from '../components/common';
 
 export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
   const state = useAppState();
@@ -325,6 +327,7 @@ function PlanSheet({ onLocked, onClose }: { onLocked: (reason: string) => void; 
   const state = useAppState();
   const { premium, planId, customFastHours } = state;
   const custom = resolvePlan('custom', customFastHours);
+  const [detail, setDetail] = useState<Plan | null>(null);
 
   return (
     <Sheet title="Схема голодания" onClose={onClose}>
@@ -344,27 +347,33 @@ function PlanSheet({ onLocked, onClose }: { onLocked: (reason: string) => void; 
             const isCustom = plan.id === 'custom';
             const selected = plan.id === planId;
             return (
-              <button
-                key={plan.id}
-                type="button"
-                className="option"
-                aria-pressed={selected}
-                onClick={() => (locked ? onLocked('Длинные окна и своё окно открываются в PRO.') : actions.setPlan(plan.id))}
-              >
-                <span className="mark" />
-                <span className="col grow" style={{ gap: 3 }}>
-                  <span className="row wrap" style={{ gap: 7 }}>
-                    <strong>{plan.title}</strong>
-                    {isCustom ? <span className="pill accent num">{custom.title}</span> : null}
-                    {locked ? <LockPill /> : null}
+              <div className="optrow" key={plan.id}>
+                <button
+                  type="button"
+                  className="option grow"
+                  aria-pressed={selected}
+                  onClick={() => (locked ? onLocked('Длинные окна и своё окно открываются в PRO.') : actions.setPlan(plan.id))}
+                >
+                  <span className="mark" />
+                  <span className="col grow" style={{ gap: 3 }}>
+                    <span className="row wrap" style={{ gap: 7 }}>
+                      <strong>{plan.title}</strong>
+                      {isCustom ? <span className="pill accent num">{custom.title}</span> : null}
+                      {locked ? <LockPill /> : null}
+                    </span>
+                    <span className="tiny muted">{plan.blurb}</span>
+                    {selected ? <span className="tiny">{plan.suits}</span> : null}
                   </span>
-                  <span className="tiny muted">{plan.blurb}</span>
-                  {selected ? <span className="tiny">{plan.suits}</span> : null}
-                  {selected && plan.caution ? (
-                    <span className="tiny" style={{ color: 'var(--warn)' }}>{plan.caution}</span>
-                  ) : null}
-                </span>
-              </button>
+                </button>
+                <button
+                  type="button"
+                  className="info"
+                  aria-label={`Подробнее о схеме ${plan.title}`}
+                  onClick={() => setDetail(plan)}
+                >
+                  <InfoIcon />
+                </button>
+              </div>
             );
           })}
         </div>
@@ -388,6 +397,20 @@ function PlanSheet({ onLocked, onClose }: { onLocked: (reason: string) => void; 
             onChange={(next) => actions.setCustomHours(next)}
           />
         </div>
+      ) : null}
+
+      {detail ? (
+        <PlanDetailSheet
+          plan={detail.id === 'custom' ? custom : detail}
+          selected={detail.id === planId}
+          locked={detail.premium && !premium}
+          onChoose={() => {
+            if (detail.premium && !premium) onLocked('Длинные окна и своё окно открываются в PRO.');
+            else actions.setPlan(detail.id);
+            setDetail(null);
+          }}
+          onClose={() => setDetail(null)}
+        />
       ) : null}
 
       <hr className="divider" />

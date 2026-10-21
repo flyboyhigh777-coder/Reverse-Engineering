@@ -27,6 +27,31 @@ export function PlanReveal(): JSX.Element {
         <span className="eyebrow">Разбор ваших ответов</span>
         <h1 style={{ fontSize: 27 }}>{greeting}вот что получилось</h1>
 
+        {projection && profile.startKg && profile.goalKg ? (
+          <div className="goalcard">
+            <div className="pair">
+              <span className="col" style={{ gap: 2 }}>
+                <span className="wcap">сейчас</span>
+                <span className="wnum">{formatWeight(profile.startKg, profile.units)}</span>
+              </span>
+              <span className="arrow" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 12h15M13.5 6.5 20 12l-6.5 5.5" />
+                </svg>
+              </span>
+              <span className="col" style={{ gap: 2, textAlign: 'right' }}>
+                <span className="wcap">цель</span>
+                <span className="wnum">{formatWeight(profile.goalKg, profile.units)}</span>
+              </span>
+            </div>
+            <span className="meter" aria-hidden="true"><i style={{ width: '6%' }} /></span>
+            <span className="tiny" style={{ opacity: 0.93 }}>
+              Минус {projection.totalKg.toFixed(1)} кг за ≈ {projection.weeks} нед. — это арифметика по длине окна и
+              активности, а не обещание.
+            </span>
+          </div>
+        ) : null}
+
         {person ? (
           <Card className="raised">
             <span className="eyebrow">Ваш тип</span>
@@ -72,29 +97,14 @@ export function PlanReveal(): JSX.Element {
 
         {recommendation && recommendation.ramp.length > 1 ? (
           <Card>
-            <span className="eyebrow">План по неделям</span>
+            <span className="eyebrow">Путь по неделям</span>
             <p className="tiny muted">Прибавляем постепенно: резкий старт — самая частая причина бросить.</p>
-            <ol className="col" style={{ gap: 11, listStyle: 'none', padding: 0, margin: 0 }}>
-              {recommendation.ramp.map((week) => (
-                <li key={week.week} className="row" style={{ gap: 11, alignItems: 'flex-start' }}>
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      width: 26,
-                      height: 26,
-                      flex: 'none',
-                      borderRadius: '50%',
-                      display: 'grid',
-                      placeItems: 'center',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      background: week.week === 1 ? 'var(--accent)' : 'var(--surface-2)',
-                      color: week.week === 1 ? 'var(--accent-ink)' : 'var(--ink-2)',
-                    }}
-                  >
-                    {week.week}
-                  </span>
-                  <span className="col grow" style={{ gap: 1 }}>
+            <ol className="timeline">
+              {recommendation.ramp.map((week, index) => (
+                <li key={week.week} className={index === 0 ? 'on' : undefined}>
+                  <span className="dot num" aria-hidden="true">{week.week}</span>
+                  <span className="col grow" style={{ gap: 2 }}>
+                    <span className="phase">{rampPhase(index, recommendation.ramp.length)}</span>
                     <span className="row wrap" style={{ gap: 7 }}>
                       <strong className="num">{week.plan.fastHours} ч</strong>
                       <span className="pill num">{describeWindow(week.plan)}</span>
@@ -160,6 +170,18 @@ export function PlanReveal(): JSX.Element {
       </div>
     </div>
   );
+}
+
+/**
+ * Names the stages of the ramp. The weeks already carry their own note; the
+ * name is there so the list reads as a route with an end rather than a
+ * schedule that keeps tightening.
+ */
+function rampPhase(index: number, total: number): string {
+  if (index === 0) return 'Начало';
+  if (index === total - 1) return 'Ваша схема';
+  if (index === 1) return 'Адаптация';
+  return 'Привыкание';
 }
 
 function Mini({ value, label }: { value: string; label: string }): JSX.Element {

@@ -19,7 +19,7 @@ import { ArtTile } from '../components/FoodArt';
 import type { ArtKind } from '../components/FoodArt';
 import { CalorieRing, MacroBar } from '../components/MacroBar';
 import { FoodPicker } from '../components/FoodPicker';
-import { Card, Sheet } from '../components/common';
+import { Card, ForkIcon, LeafIcon, Sheet, TargetIcon } from '../components/common';
 
 const DAY_MS = 86_400_000;
 
@@ -28,6 +28,14 @@ const SLOT_ART: Record<MealSlot, ArtKind> = {
   lunch: 'bowl',
   dinner: 'meat',
   snack: 'nuts',
+};
+
+/** One hue per meal, so the day reads as four blocks rather than one list. */
+const SLOT_TINT: Record<MealSlot, string> = {
+  breakfast: 't-peach',
+  lunch: 't-lime',
+  dinner: 't-lilac',
+  snack: 't-sky',
 };
 
 const SLOT_HINT: Record<MealSlot, string> = {
@@ -96,28 +104,35 @@ export function Diary(): JSX.Element {
         </Card>
       ) : (
         <Card className="raised">
-          <div className="row between" style={{ alignItems: 'flex-start' }}>
-            <div className="col" style={{ gap: 1 }}>
-              <span className="eyebrow">Съедено</span>
-              <span className="num" style={{ fontFamily: 'var(--display)', fontSize: 22, fontWeight: 700 }}>
-                {total.kcal}
-              </span>
-            </div>
-            <button type="button" className="col lockbtn" style={{ gap: 1, width: 'auto', alignItems: 'flex-end' }} onClick={() => setGoalSheet(true)}>
-              <span className="eyebrow">Цель</span>
-              <span className="row" style={{ gap: 6 }}>
-                <span className="num" style={{ fontFamily: 'var(--display)', fontSize: 22, fontWeight: 700 }}>
-                  {target.kcal}
-                </span>
-                <span className="tiny muted">изменить</span>
-              </span>
+          <div className="row between">
+            <span className="eyebrow">Калории за день</span>
+            <button type="button" className="chip" onClick={() => setGoalSheet(true)}>
+              изменить цель
             </button>
           </div>
 
-          <CalorieRing eaten={total.kcal} target={target.kcal} />
+          <CalorieRing eaten={total.kcal} target={target.kcal} macros={total} />
+
+          <div className="grid3">
+            <div className="statcard t-lime">
+              <span className="ico"><ForkIcon /></span>
+              <span className="v num">{total.kcal}</span>
+              <span className="k">съедено</span>
+            </div>
+            <div className="statcard t-sky">
+              <span className="ico"><TargetIcon /></span>
+              <span className="v num">{target.kcal}</span>
+              <span className="k">цель</span>
+            </div>
+            <div className={`statcard ${total.kcal > target.kcal ? 't-rose' : 't-peach'}`}>
+              <span className="ico"><LeafIcon /></span>
+              <span className="v num">{Math.abs(target.kcal - total.kcal)}</span>
+              <span className="k">{total.kcal > target.kcal ? 'перебор' : 'осталось'}</span>
+            </div>
+          </div>
 
           <div className="col" style={{ gap: 9 }}>
-            <MacroBar kind="protein" value={total.protein} target={target.protein} />
+            <MacroBar kind="protein" value={total.protein} target={total.protein > 0 || target.protein > 0 ? target.protein : 0} />
             <MacroBar kind="fat" value={total.fat} target={target.fat} />
             <MacroBar kind="carbs" value={total.carbs} target={target.carbs} />
           </div>
@@ -131,7 +146,7 @@ export function Diary(): JSX.Element {
           const items = bySlot(entries, slot);
           const slotTotal = totalFor(items);
           return (
-            <div key={slot} className="meal">
+            <div key={slot} className={`meal tint ${SLOT_TINT[slot]}`}>
               <div className="top">
                 <span className="thumb">
                   <ArtTile kind={SLOT_ART[slot]} height={42} rounded={11} label="" />

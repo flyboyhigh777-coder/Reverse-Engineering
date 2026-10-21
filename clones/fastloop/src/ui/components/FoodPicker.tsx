@@ -13,7 +13,7 @@ import type { Guess } from '../../domain/vision';
 import { useContent } from '../../state/content';
 import { actions } from '../../state/store';
 import { readVisionKey, writeVisionKey } from '../../state/visionKey';
-import { ArtTile } from './FoodArt';
+import { DishArt } from './DishArt';
 import { Sheet } from './common';
 
 type Tab = 'search' | 'online' | 'ai' | 'manual';
@@ -138,7 +138,7 @@ function SearchTab({
               <button key={`r-${hit.recipe.id}`} type="button" className="foodrow" onClick={() => onPickRecipe(hit.recipe)}>
                 <span className="row" style={{ gap: 9 }}>
                   <span style={{ width: 38, flex: 'none', borderRadius: 9, overflow: 'hidden' }}>
-                    <ArtTile kind={hit.recipe.art} height={38} rounded={9} label="" />
+                    <DishArt id={hit.recipe.id} kind={hit.recipe.art} height={38} rounded={9} label="" credit={false} />
                   </span>
                   <span className="col" style={{ gap: 2 }}>
                     <strong style={{ fontSize: 14 }}>{hit.recipe.title}</strong>
@@ -380,7 +380,7 @@ function RecipeSheet({
 
   return (
     <Sheet title={recipe.title} onClose={onBack}>
-      <ArtTile kind={recipe.art} height={100} label="" />
+      <DishArt id={recipe.id} kind={recipe.art} height={100} label={recipe.title} />
 
       <span className="eyebrow">Состав · {recipe.servings === 1 ? 'на 1 порцию' : `на ${recipe.servings} порции`}</span>
       <div className="col" style={{ gap: 6 }}>

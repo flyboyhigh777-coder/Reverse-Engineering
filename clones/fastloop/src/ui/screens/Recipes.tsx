@@ -7,6 +7,7 @@ import { useAppState } from '../../state/store';
 import { useContent } from '../../state/content';
 import { Diary } from './Diary';
 import { ArtTile } from '../components/FoodArt';
+import { DishArt } from '../components/DishArt';
 import { Sheet } from '../components/common';
 
 export function Recipes({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
@@ -57,7 +58,7 @@ function RecipeTile({ recipe, locked, onOpen }: { recipe: Recipe; locked: boolea
   return (
     <button type="button" className="tile" onClick={onOpen}>
       <span className="art">
-        <ArtTile kind={recipe.art} label={recipe.title} />
+        <DishArt id={recipe.id} kind={recipe.art} label={recipe.title} />
         {locked ? <span className="badge-pro">PRO</span> : null}
       </span>
       <span className="tile-title">{recipe.title}</span>
@@ -87,7 +88,7 @@ function RecipeList({ onRequestPro }: { onRequestPro: (reason: string) => void }
     <>
       {hero ? (
         <button type="button" className="hero" onClick={() => openRecipe(hero)}>
-          <ArtTile kind="fish" height={150} rounded={18} label="" variant="hero" />
+          <DishArt id={hero.id} kind="fish" height={150} rounded={18} label="" variant="hero" credit={false} />
           <span className="hero-text">
             <strong>Нечего готовить?</strong>
             <span>Две банки из шкафа, десять минут и 29 г белка</span>
@@ -160,7 +161,7 @@ function RecipeList({ onRequestPro }: { onRequestPro: (reason: string) => void }
 function RecipeSheet({ recipe, onClose }: { recipe: Recipe; onClose: () => void }): JSX.Element {
   return (
     <Sheet title={recipe.title} onClose={onClose}>
-      <ArtTile kind={recipe.art} height={130} label="" />
+      <DishArt id={recipe.id} kind={recipe.art} height={130} label={recipe.title} />
       <div className="row wrap" style={{ gap: 6 }}>
         <span className="pill accent">{recipe.minutes} мин</span>
         <span className="pill">{recipe.servings === 1 ? '1 порция' : `${recipe.servings} порции`}</span>

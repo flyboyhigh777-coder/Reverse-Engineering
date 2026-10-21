@@ -44,12 +44,38 @@ const SIZE = 190;
 const STROKE = 14;
 const R = (SIZE - STROKE) / 2;
 const C = 2 * Math.PI * R;
+/** The composition ring sits inside the budget ring with a gap between them. */
+const INNER_STROKE = 7;
+const IR = R - STROKE / 2 - 6 - INNER_STROKE / 2;
+const IC = 2 * Math.PI * IR;
 
-/** Calories eaten against the day's target. */
-export function CalorieRing({ eaten, target }: { eaten: number; target: number }): JSX.Element {
+export interface RingMacros {
+  readonly protein: number;
+  readonly fat: number;
+  readonly carbs: number;
+}
+
+/**
+ * Calories eaten against the day's target, with what they were made of.
+ *
+ * The outer ring is the budget. The inner one splits the same calories by
+ * macro — the number in the middle says how much is left, the thin ring says
+ * whether it went on protein or on bread, which is the question the number
+ * alone never answers.
+ */
+export function CalorieRing({ eaten, target, macros }: { eaten: number; target: number; macros?: RingMacros }): JSX.Element {
   const ratio = target > 0 ? eaten / target : 0;
   const left = Math.round(target - eaten);
   const over = left < 0;
+  const parts: readonly { key: MacroKind; kcal: number }[] = macros
+    ? [
+        { key: 'protein', kcal: macros.protein * 4 },
+        { key: 'fat', kcal: macros.fat * 9 },
+        { key: 'carbs', kcal: macros.carbs * 4 },
+      ]
+    : [];
+  const sum = parts.reduce((acc, part) => acc + part.kcal, 0);
+  let offset = 0;
   return (
     <div className="kcal-ring">
       <svg viewBox={`0 0 ${SIZE} ${SIZE}`} width={SIZE} height={SIZE} role="img" aria-label={`Съедено ${Math.round(eaten)} из ${target} ккал`}>
@@ -67,6 +93,28 @@ export function CalorieRing({ eaten, target }: { eaten: number; target: number }
           transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
           style={{ transition: 'stroke-dashoffset 0.4s ease' }}
         />
+        {sum > 0
+          ? parts.map((part) => {
+              const share = part.kcal / sum;
+              const dash = IC * share;
+              const node = (
+                <circle
+                  key={part.key}
+                  cx={SIZE / 2}
+                  cy={SIZE / 2}
+                  r={IR}
+                  fill="none"
+                  stroke={COLOR[part.key]}
+                  strokeWidth={INNER_STROKE}
+                  strokeDasharray={`${Math.max(0, dash - 2)} ${IC}`}
+                  strokeDashoffset={-offset}
+                  transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
+                />
+              );
+              offset += dash;
+              return node;
+            })
+          : null}
       </svg>
       <div className="inner">
         <span className="cap">{over ? 'перебор' : 'осталось'}</span>

@@ -9,6 +9,7 @@ import type { ThemePreference } from '../../state/theme';
 import { VISION_MODEL, VISION_NOTE, checkKey } from '../../domain/vision';
 import { maskKey, readVisionKey, writeVisionKey } from '../../state/visionKey';
 import { DEFAULT_URL, refreshContent, setContentUrl, useContent } from '../../state/content';
+import { setPhotosEnabled, usePhotosEnabled } from '../../state/photos';
 import { BackupSheet } from '../components/BackupSheet';
 import { Card, LockPill, Sheet } from '../components/common';
 
@@ -157,8 +158,7 @@ export function Profile({ onRequestPro }: { onRequestPro: (reason: string) => vo
       <p className="banner">{DISCLAIMER}</p>
 
       <p className="tiny muted">
-        FastLoop — независимая учебная реализация трекера интервального голодания. Не связана с GoFasting и его разработчиком,
-        не содержит их кода, ресурсов и товарных знаков.
+        FastLoop — самостоятельная разработка: весь код написан с нуля и собран вручную, без заимствованных материалов.
       </p>
 
       {showBackup ? <BackupSheet onClose={() => setShowBackup(false)} /> : null}
@@ -203,6 +203,8 @@ function ContentCard(): JSX.Element {
       ? 'ещё не обновлялось'
       : `обновлено ${new Date(content.fetchedAt).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`;
 
+  const photos = usePhotosEnabled();
+
   return (
     <Card>
       <div className="row between">
@@ -219,6 +221,26 @@ function ContentCard(): JSX.Element {
         <span className="tiny muted">{when}</span>
         <button type="button" className="btn sm" disabled={content.status === 'loading'} onClick={() => void refreshContent()}>
           {content.status === 'loading' ? 'Проверяю…' : 'Обновить сейчас'}
+        </button>
+      </div>
+
+      <hr className="divider" />
+
+      <div className="row between" style={{ alignItems: 'flex-start', gap: 12 }}>
+        <span className="col grow" style={{ gap: 2 }}>
+          <strong className="tiny">Фотографии блюд</strong>
+          <span className="tiny muted">
+            Карточки рецептов подтягивают снимок с Wikimedia Commons и подписывают автора. Выключите, если не хотите
+            тратить мобильный трафик — останутся рисованные обложки.
+          </span>
+        </span>
+        <button
+          type="button"
+          className="chip"
+          aria-pressed={photos}
+          onClick={() => setPhotosEnabled(!photos)}
+        >
+          {photos ? 'вкл' : 'выкл'}
         </button>
       </div>
 

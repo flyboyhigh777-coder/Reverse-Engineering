@@ -57,6 +57,12 @@ public class MainActivity extends Activity {
     settings.setAllowFileAccess(true);
     settings.setDatabaseEnabled(true);
     settings.setMediaPlaybackRequiresUserGesture(true);
+    // The page is served from file://, and the recipe photographs come from
+    // https. That is not mixed content, but WebView's default on a non-secure
+    // origin is strict enough that some builds drop the images anyway.
+    settings.setBlockNetworkImage(false);
+    settings.setLoadsImagesAutomatically(true);
+    settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
     // Let the page's own prefers-color-scheme rules follow the system theme
     // instead of having WebView invert the pixels.
     if (Build.VERSION.SDK_INT >= 33) {

@@ -3,7 +3,7 @@ import { google } from './google';
 import type { ProviderId, VisionProvider } from './contract';
 
 export type { Guess, KeyCheck, ProviderId, VisionProvider, VisionResult } from './contract';
-export { VISION_NOTE } from './contract';
+export { VISION_NOTE, scaleGuess } from './contract';
 
 /**
  * Who can read a plate, free one first.

@@ -146,6 +146,35 @@ export function toGuesses(parsed: unknown): readonly Guess[] {
     .filter((guess): guess is Guess => guess !== null);
 }
 
+/**
+ * The same dish at a different weight.
+ *
+ * Portion size is where these estimates go wrong, and they go wrong in one
+ * direction: measurements of this whole category of app find they read low,
+ * and that someone who does not correct the portion eats noticeably more
+ * than the screen says. So the number has to be adjustable before it is
+ * written down, and the macros have to follow it rather than stay put.
+ *
+ * Scaling is always from the model's own figures, never from the previous
+ * edit, so dragging a portion up and back down lands exactly where it began.
+ */
+export function scaleGuess(guess: Guess, grams: number): Guess {
+  const target = Math.max(0, Math.round(grams));
+  if (guess.grams <= 0 || target === guess.grams) return { ...guess, grams: target };
+  const k = target / guess.grams;
+  return {
+    ...guess,
+    grams: target,
+    macros: {
+      kcal: Math.round(guess.macros.kcal * k),
+      protein: Math.round(guess.macros.protein * k),
+      fat: Math.round(guess.macros.fat * k),
+      carbs: Math.round(guess.macros.carbs * k),
+      fiber: Math.round(guess.macros.fiber * k * 10) / 10,
+    },
+  };
+}
+
 export const NO_FOOD_IN_PHOTO =
   'На снимке не удалось разобрать еду. Снимите ближе и при свете или введите вручную.';
 export const NO_FOOD_IN_TEXT =

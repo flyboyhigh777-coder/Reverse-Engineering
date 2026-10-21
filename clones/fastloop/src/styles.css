@@ -1279,3 +1279,18 @@ input[type='number'], input[type='text'], input[type='date'], input[type='time']
 }
 .timeline li.on .dot { background: var(--brand); color: var(--brand-ink); border-color: var(--brand-2); }
 .timeline .phase { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-3); font-weight: 700; }
+
+/* A guess is a draft, not a result: the weight sits in a field next to the
+   numbers it drives, because a portion corrected after the entry is saved is
+   a portion nobody corrects. */
+.guess {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 11px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.guess input[type='number'] { padding: 7px 9px; font-variant-numeric: tabular-nums; }
+.guess .chip { padding: 5px 10px; font-size: 12px; }

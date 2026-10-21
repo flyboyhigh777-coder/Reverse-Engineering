@@ -8,7 +8,7 @@ import { SLOT_LABEL, MEAL_SLOTS, forGrams } from '../../domain/nutrition';
 import { OFF_NOTE, lookupBarcode, searchOnline } from '../../domain/openFoodFacts';
 import type { Macros, Recipe } from '../../domain/recipes';
 import type { MealSlot } from '../../domain/types';
-import { DEFAULT_PROVIDER, VISION_NOTE, VISION_PROVIDERS, providerById } from '../../domain/vision';
+import { DEFAULT_PROVIDER, VISION_NOTE, VISION_PROVIDERS, providerById, scaleGuess } from '../../domain/vision';
 import type { Guess, ProviderId, VisionResult } from '../../domain/vision';
 import { useContent } from '../../state/content';
 import { actions } from '../../state/store';
@@ -640,7 +640,10 @@ function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: (
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The model's own answer is kept apart from the edited one, so scaling a
+  // portion up and back down lands exactly where it started.
   const [guesses, setGuesses] = useState<readonly Guess[] | null>(null);
+  const [items, setItems] = useState<readonly Guess[] | null>(null);
   const [where, setWhere] = useState<MealSlot>(slot);
 
   if (!access) return <KeySetup onReady={setAccess} />;
@@ -650,23 +653,31 @@ function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: (
   const handle = async (task: Promise<VisionResult>) => {
     setError(null);
     setGuesses(null);
+    setItems(null);
     setBusy(true);
     const result = await task;
     setBusy(false);
     if (result.kind === 'error') setError(result.reason);
-    else setGuesses(result.guesses);
+    else {
+      setGuesses(result.guesses);
+      setItems(result.guesses);
+    }
   };
 
   const shoot = async (file: File) => {
     setError(null);
     setGuesses(null);
+    setItems(null);
     setBusy(true);
     try {
       const dataUrl = await toDataUrl(file);
       setPreview(dataUrl);
       const result = await provider.recognise(access.key, model, dataUrl);
       if (result.kind === 'error') setError(result.reason);
-      else setGuesses(result.guesses);
+      else {
+        setGuesses(result.guesses);
+        setItems(result.guesses);
+      }
     } catch {
       setError('Снимок не удалось обработать на телефоне.');
     } finally {
@@ -747,43 +758,99 @@ function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: (
 
       {error ? <p className="banner tiny">{error}</p> : null}
 
-      {guesses ? (
+      {items && guesses ? (
         <>
           <span className="eyebrow">Что получилось</span>
+          <p className="tiny muted">
+            Поправьте вес до записи, а не после. Оценки по фотографии в среднем занижают порцию, и несколько
+            несохранённых граммов здесь превращаются в заметную разницу за неделю.
+          </p>
           <div className="col" style={{ gap: 7 }}>
-            {guesses.map((guess, index) => (
-              <div key={`${guess.name}-${index}`} className="foodrow" style={{ cursor: 'default', alignItems: 'flex-start' }}>
-                <span className="col" style={{ gap: 3 }}>
-                  <span className="row wrap" style={{ gap: 6 }}>
-                    <strong style={{ fontSize: 14 }}>{guess.name}</strong>
-                    <span className="pill num">{guess.grams} г</span>
-                    {guess.confidence === 'low' ? <span className="pill" style={{ color: 'var(--warn)' }}>не уверен</span> : null}
-                  </span>
-                  <MacroLine macros={guess.macros} />
-                  {guess.note ? <span className="tiny muted">{guess.note}</span> : null}
-                </span>
-              </div>
-            ))}
+            {items.map((item, index) => {
+              const origin = guesses[index];
+              const scalable = origin.grams > 0;
+              return (
+                <div key={`${origin.name}-${index}`} className="guess">
+                  <div className="row between" style={{ alignItems: 'flex-start', gap: 8 }}>
+                    <span className="col grow" style={{ gap: 3 }}>
+                      <span className="row wrap" style={{ gap: 6 }}>
+                        <strong style={{ fontSize: 14 }}>{item.name}</strong>
+                        {item.confidence === 'low' ? (
+                          <span className="pill" style={{ color: 'var(--warn)' }}>не уверен</span>
+                        ) : null}
+                      </span>
+                      <MacroLine macros={item.macros} />
+                      {item.note ? <span className="tiny muted">{item.note}</span> : null}
+                    </span>
+                    <button
+                      type="button"
+                      className="closebtn"
+                      aria-label={`Убрать «${item.name}»`}
+                      onClick={() => setItems(items.filter((_, i) => i !== index))}
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="row wrap" style={{ gap: 7, alignItems: 'center' }}>
+                    <label className="tiny muted" htmlFor={`guess-grams-${index}`}>Вес</label>
+                    <input
+                      id={`guess-grams-${index}`}
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      max={5000}
+                      step={10}
+                      value={item.grams}
+                      onChange={(event) => {
+                        const grams = Number(event.target.value);
+                        if (!Number.isFinite(grams)) return;
+                        setItems(items.map((row, i) => (i === index ? scaleGuess(origin, grams) : row)));
+                      }}
+                      style={{ width: 92 }}
+                    />
+                    <span className="tiny muted">г</span>
+                    {scalable
+                      ? [0.5, 1, 1.5, 2].map((factor) => (
+                          <button
+                            key={factor}
+                            type="button"
+                            className="chip"
+                            aria-pressed={item.grams === Math.round(origin.grams * factor)}
+                            onClick={() => setItems(items.map((row, i) => (i === index ? scaleGuess(origin, origin.grams * factor) : row)))}
+                          >
+                            ×{factor}
+                          </button>
+                        ))
+                      : <span className="tiny muted">вес не определён — впишите свой</span>}
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
-          <span className="eyebrow">Куда записать</span>
-          <SlotPicker slot={where} onChange={setWhere} />
+          {items.length === 0 ? (
+            <p className="banner tiny">Вы убрали все записи. Снимите ещё раз или опишите словами.</p>
+          ) : (
+            <>
+              <span className="eyebrow">Куда записать</span>
+              <SlotPicker slot={where} onChange={setWhere} />
 
-          <button
-            type="button"
-            className="btn block"
-            onClick={() => {
-              for (const guess of guesses) {
-                actions.logManual(guess.name, guess.grams, guess.macros, where, 'photo');
-              }
-              onDone();
-            }}
-          >
-            Записать {guesses.length === 1 ? 'запись' : `все ${guesses.length}`}
-          </button>
-          <p className="tiny muted">
-            Если цифра выглядит не так — запишите и поправьте вручную. Любая оценка здесь приблизительная.
-          </p>
+              <button
+                type="button"
+                className="btn block"
+                onClick={() => {
+                  for (const item of items) {
+                    if (item.grams <= 0 && item.macros.kcal <= 0) continue;
+                    actions.logManual(item.name, item.grams, item.macros, where, mode === 'photo' ? 'photo' : 'manual');
+                  }
+                  onDone();
+                }}
+              >
+                Записать {items.length === 1 ? 'запись' : `все ${items.length}`}
+              </button>
+            </>
+          )}
         </>
       ) : null}
 

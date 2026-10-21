@@ -13,8 +13,8 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="app.fastloop"
-    android:versionCode="20"
-    android:versionName="0.15.2">
+    android:versionCode="21"
+    android:versionName="0.15.3">
 
   <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
   <!--

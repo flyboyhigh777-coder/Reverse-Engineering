@@ -15,9 +15,21 @@
  */
 
 export interface DishQuery {
-  /** What to search Commons for, in English — its index is almost entirely English. */
+  /** What to search Commons for: two to four English words naming the dish. */
   readonly q: string;
-  /** At least one of these must appear in the file title, lowercased. */
+  /**
+   * A shorter, broader search, tried once when the first returns nothing.
+   * On Commons a five-word query often matches no file at all while a
+   * two-word one matches hundreds, and that gap was most of the empty cards.
+   */
+  readonly alt?: string;
+  /**
+   * At least one of these must appear in the file's name, caption,
+   * description or categories, lowercased. They are substrings, so they are
+   * written as stems — `lentil`, not `lentils` — and they include the
+   * non-English forms of the dish's name, because a large share of Commons
+   * food photography is catalogued in German, French, Polish or Russian.
+   */
   readonly must: readonly string[];
 }
 
@@ -68,13 +80,23 @@ export const DISH_QUERIES: Readonly<Record<string, DishQuery>> = {
 };
 
 /**
- * File names that look like a dish but are not one. A search for «лобио»
- * returns the restaurant sign as readily as the plate, and a sign makes a
- * poor card.
+ * File names that look like a dish but are not one.
+ *
+ * Split in two because matching matters. A phrase can be found anywhere in
+ * the name; a single word has to be a word, or `plant` rejects the aubergine
+ * stew, `field` rejects anything photographed in Sheffield and `sign`
+ * rejects every file whose author mentioned a design. Words that merely say
+ * where the food was — market, street, farm — are gone entirely: street food
+ * is still food, and a sign in the background is not what the filter is for.
  */
-export const TITLE_REJECT: readonly string[] = [
-  'logo', 'map', 'diagram', 'chart', 'icon', 'sign', 'poster', 'label', 'packaging',
-  'menu', 'coat of arms', 'flag', 'stamp', 'banknote', 'portrait', 'monument',
-  'street', 'building', 'facade', 'interior', 'market', 'field', 'plant', 'farm',
-  'seeds', 'raw ', 'uncooked', 'package', 'box of', 'can of', 'bottle of',
+export const REJECT_WORDS: readonly string[] = [
+  'logo', 'map', 'diagram', 'chart', 'icon', 'sign', 'signs', 'poster', 'label',
+  'menu', 'flag', 'stamp', 'banknote', 'portrait', 'monument', 'facade',
+  'packaging', 'package', 'raw', 'uncooked', 'seeds', 'seedling', 'leaflet',
+  'advertisement', 'billboard', 'infographic', 'screenshot', 'cover',
+];
+
+export const REJECT_PHRASES: readonly string[] = [
+  'coat of arms', 'box of', 'can of', 'bottle of', 'jar of', 'bag of',
+  'nutrition facts', 'recipe card',
 ];

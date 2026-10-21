@@ -11,9 +11,11 @@ import { netFetch } from './net';
  * local storage holding something the WebView's own HTTP cache already has,
  * and it would push the real records closer to the quota for no gain.
  *
- * A dish that has been looked up and found nothing is remembered as a miss,
- * so the same fruitless search is not repeated on every scroll; the miss
- * expires after a day in case Commons gained a better photograph.
+ * Why a dish ended with no photograph is kept too. From the card they look
+ * the same, but a search that returned nothing needs a different query and a
+ * search whose results were all rejected needs different tokens — without the
+ * reason there is no way to tell which, and no way to tell either from a
+ * machine that cannot reach the network.
  */
 
 export interface DishPhoto {
@@ -25,14 +27,19 @@ export interface DishPhoto {
   readonly page: string;
 }
 
+type Reason = 'нет результатов' | 'ничего не подошло' | 'нет связи' | 'база ответила ошибкой' | 'нет запроса';
+
 interface Entry {
   readonly photo: DishPhoto | null;
   readonly at: number;
+  readonly reason?: Reason;
 }
 
-const CACHE = 'fastloop.dishPhotos.v1';
+/** v2: the matching rules changed, so every v1 miss has to be looked up again. */
+const CACHE = 'fastloop.dishPhotos.v2';
 const ENABLED = 'fastloop.dishPhotos.enabled';
-const MISS_TTL = 24 * 60 * 60 * 1000;
+/** Short enough that a tightened query reaches the phone the same day. */
+const MISS_TTL = 6 * 60 * 60 * 1000;
 const API = 'https://commons.wikimedia.org/w/api.php';
 
 /**
@@ -41,10 +48,11 @@ const API = 'https://commons.wikimedia.org/w/api.php';
  * cards silently stay drawn. The policy asks for a name and a way to reach
  * whoever is behind it, so that is what is sent.
  */
+const AGENT = 'FastLoop/0.19 (personal build; https://github.com/flyboyhigh777-coder/Reverse-Engineering)';
 const HEADERS: Readonly<Record<string, string>> = {
   accept: 'application/json',
-  'user-agent': 'FastLoop/0.19 (personal build; https://github.com/flyboyhigh777-coder/Reverse-Engineering)',
-  'api-user-agent': 'FastLoop/0.19 (personal build; https://github.com/flyboyhigh777-coder/Reverse-Engineering)',
+  'user-agent': AGENT,
+  'api-user-agent': AGENT,
 };
 
 type Cache = Record<string, Entry>;
@@ -60,12 +68,16 @@ function readCache(): Cache {
       const entry = value as Partial<Entry> | null;
       if (!entry || typeof entry !== 'object') continue;
       const at = Number(entry.at) || 0;
+      const reason = typeof entry.reason === 'string' ? (entry.reason as Reason) : undefined;
       const photo = entry.photo;
-      if (photo === null) {
-        out[id] = { photo: null, at };
-      } else if (photo && typeof photo === 'object' && typeof (photo as DishPhoto).url === 'string') {
+      if (photo === null || photo === undefined) {
+        out[id] = { photo: null, at, reason };
+      } else if (typeof photo === 'object' && typeof (photo as DishPhoto).url === 'string') {
         const p = photo as DishPhoto;
-        out[id] = { photo: { url: p.url, author: String(p.author ?? ''), license: String(p.license ?? ''), page: String(p.page ?? '') }, at };
+        out[id] = {
+          photo: { url: p.url, author: String(p.author ?? ''), license: String(p.license ?? ''), page: String(p.page ?? '') },
+          at,
+        };
       }
     }
     return out;
@@ -87,8 +99,12 @@ let enabled = readEnabled();
 const listeners = new Set<() => void>();
 const inFlight = new Set<string>();
 const queue: string[] = [];
-/** Two at a time: a scrolled grid would otherwise fire forty searches at once. */
-const MAX_PARALLEL = 2;
+/**
+ * Five at a time. Two was slow enough that a scrolled grid of forty cards
+ * took a minute to fill, which looked exactly like the lookup not working;
+ * Commons serves this rate without complaint.
+ */
+const MAX_PARALLEL = 5;
 
 function emit(): void {
   for (const listener of listeners) listener();
@@ -127,53 +143,126 @@ export function usePhotosEnabled(): boolean {
   return useSyncExternalStore(subscribe, photosEnabled, photosEnabled);
 }
 
+export interface PhotoStats {
+  readonly total: number;
+  readonly found: number;
+  readonly missing: number;
+  readonly pending: number;
+  /** How many misses each reason accounts for, worst first. */
+  readonly reasons: readonly (readonly [string, number])[];
+}
+
+function stats(): PhotoStats {
+  const total = Object.keys(DISH_QUERIES).length;
+  let found = 0;
+  const reasons = new Map<string, number>();
+  for (const id of Object.keys(DISH_QUERIES)) {
+    const entry = cache[id];
+    if (!entry) continue;
+    if (entry.photo !== null) found += 1;
+    else reasons.set(entry.reason ?? 'неизвестно', (reasons.get(entry.reason ?? 'неизвестно') ?? 0) + 1);
+  }
+  const missing = [...reasons.values()].reduce((a, b) => a + b, 0);
+  return {
+    total,
+    found,
+    missing,
+    pending: total - found - missing,
+    reasons: [...reasons.entries()].sort((a, b) => b[1] - a[1]),
+  };
+}
+
+let snapshotStats = stats();
+function refreshStats(): void {
+  snapshotStats = stats();
+}
+const readStats = (): PhotoStats => snapshotStats;
+
+export function usePhotoStats(): PhotoStats {
+  return useSyncExternalStore(subscribe, readStats, readStats);
+}
+
+/** Drops everything known and starts over — the one repair the person has. */
 export function forgetPhotos(): void {
   cache = {};
+  queue.length = 0;
   try {
     globalThis.localStorage?.removeItem(CACHE);
   } catch {
     /* Already gone as far as this session is concerned. */
   }
+  refreshStats();
   emit();
 }
 
-export function photoCount(): number {
-  return Object.values(cache).filter((e) => e.photo !== null).length;
+/** Looks up every dish that has no photograph yet, not only visible ones. */
+export function findAllPhotos(): void {
+  if (!enabled) return;
+  for (const id of Object.keys(DISH_QUERIES)) want(id);
+}
+
+function searchUrl(query: string): string {
+  return (
+    `${API}?action=query&format=json&formatversion=2&generator=search` +
+    `&gsrsearch=${encodeURIComponent(`${query} filetype:bitmap`)}` +
+    '&gsrnamespace=6&gsrlimit=20&prop=imageinfo' +
+    '&iiprop=url%7Cextmetadata%7Cmime%7Csize&iiurlwidth=560' +
+    '&iiextmetadatafilter=Artist%7CLicenseShortName%7CObjectName%7CImageDescription%7CCategories' +
+    '&origin=*'
+  );
+}
+
+async function search(query: string, must: readonly string[]): Promise<
+  { readonly photo: DishPhoto } | { readonly reason: Reason }
+> {
+  let response;
+  try {
+    response = await netFetch(searchUrl(query), { headers: HEADERS });
+  } catch {
+    return { reason: 'нет связи' };
+  }
+  if (!response.ok) return { reason: 'база ответила ошибкой' };
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    return { reason: 'база ответила ошибкой' };
+  }
+  const chosen = chooseCommonsFile(payload, must);
+  if ('failure' in chosen) return { reason: chosen.failure };
+  return {
+    photo: {
+      url: chosen.file.thumb,
+      author: chosen.file.author === '' ? 'Wikimedia Commons' : chosen.file.author,
+      license: chosen.file.license === '' ? 'CC' : chosen.file.license,
+      page: chosen.file.page,
+    },
+  };
 }
 
 async function lookup(id: string): Promise<void> {
   const query = DISH_QUERIES[id];
   if (!query) {
-    cache = { ...cache, [id]: { photo: null, at: Date.now() } };
+    cache = { ...cache, [id]: { photo: null, at: Date.now(), reason: 'нет запроса' } };
+    refreshStats();
     emit();
     return;
   }
-  const url =
-    `${API}?action=query&format=json&formatversion=2&generator=search` +
-    `&gsrsearch=${encodeURIComponent(`${query.q} filetype:bitmap`)}` +
-    '&gsrnamespace=6&gsrlimit=14&prop=imageinfo' +
-    '&iiprop=url%7Cextmetadata%7Cmime%7Csize&iiurlwidth=560' +
-    '&iiextmetadatafilter=Artist%7CLicenseShortName' +
-    '&origin=*';
-  let photo: DishPhoto | null = null;
-  try {
-    const response = await netFetch(url, { headers: HEADERS });
-    if (response.ok) {
-      const picked = chooseCommonsFile(await response.json(), query.must);
-      if (picked) {
-        photo = {
-          url: picked.thumb,
-          author: picked.author === '' ? 'Wikimedia Commons' : picked.author,
-          license: picked.license === '' ? 'CC' : picked.license,
-          page: picked.page,
-        };
-      }
-    }
-  } catch {
-    /* Offline or refused: recorded as a miss and retried tomorrow. */
+
+  let result = await search(query.q, query.must);
+  // A precise query that finds nothing is the common failure on Commons,
+  // where five words often match no file and two words match hundreds. One
+  // broader retry costs a request and recovers most of them.
+  if ('reason' in result && result.reason === 'нет результатов' && query.alt) {
+    result = await search(query.alt, query.must);
   }
-  cache = { ...cache, [id]: { photo, at: Date.now() } };
+
+  cache = {
+    ...cache,
+    [id]: 'photo' in result ? { photo: result.photo, at: Date.now() } : { photo: null, at: Date.now(), reason: result.reason },
+  };
   persist();
+  refreshStats();
   emit();
 }
 

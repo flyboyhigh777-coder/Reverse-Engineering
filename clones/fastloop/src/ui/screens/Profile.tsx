@@ -9,7 +9,7 @@ import type { ThemePreference } from '../../state/theme';
 import { VISION_MODEL, VISION_NOTE, checkKey } from '../../domain/vision';
 import { maskKey, readVisionKey, writeVisionKey } from '../../state/visionKey';
 import { DEFAULT_URL, refreshContent, setContentUrl, useContent } from '../../state/content';
-import { setPhotosEnabled, usePhotosEnabled } from '../../state/photos';
+import { findAllPhotos, forgetPhotos, setPhotosEnabled, usePhotoStats, usePhotosEnabled } from '../../state/photos';
 import { BackupSheet } from '../components/BackupSheet';
 import { Card, LockPill, Sheet } from '../components/common';
 
@@ -205,6 +205,7 @@ function ContentCard(): JSX.Element {
       : `обновлено ${new Date(content.fetchedAt).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`;
 
   const photos = usePhotosEnabled();
+  const shots = usePhotoStats();
 
   return (
     <Card>
@@ -244,6 +245,36 @@ function ContentCard(): JSX.Element {
           {photos ? 'вкл' : 'выкл'}
         </button>
       </div>
+
+      {photos ? (
+        <div className="col" style={{ gap: 8 }}>
+          <span className="tiny num">
+            Найдено {shots.found} из {shots.total}
+            {shots.pending > 0 ? ` · ещё не искали ${shots.pending}` : ''}
+            {shots.missing > 0 ? ` · без фото ${shots.missing}` : ''}
+          </span>
+          {shots.reasons.length > 0 ? (
+            <span className="tiny muted">
+              Почему не нашлось: {shots.reasons.map(([reason, count]) => `${reason} — ${count}`).join(', ')}.
+            </span>
+          ) : null}
+          <div className="row wrap" style={{ gap: 8 }}>
+            <button type="button" className="btn ghost sm" onClick={() => findAllPhotos()}>
+              Поискать остальные
+            </button>
+            <button
+              type="button"
+              className="btn quiet sm"
+              onClick={() => {
+                forgetPhotos();
+                findAllPhotos();
+              }}
+            >
+              Искать заново
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {content.status === 'error' && content.message ? (
         <p className="banner tiny" style={{ color: 'var(--warn)' }}>{content.message}</p>

@@ -7,6 +7,10 @@ import { buildProfile } from '../domain/profile';
 import { recommend } from '../domain/recommendation';
 import { planIdForDay } from '../domain/schedule';
 import type { Records } from '../domain/backup';
+import { forGrams } from '../domain/nutrition';
+import type { Food } from '../domain/foods';
+import type { Macros, Recipe } from '../domain/recipes';
+import type { FoodEntry, MealSlot } from '../domain/types';
 import { screen } from '../domain/screening';
 import type { Activity, AppState, Experience, FastSession, Goal, PlanId, Profile, StepSource, Units } from '../domain/types';
 import type { Wellbeing } from '../domain/wellbeing';
@@ -14,6 +18,12 @@ import type { ThemePreference } from './theme';
 import * as storage from './storage';
 
 const DAY_MS = 86_400_000;
+
+function newEntryId(): string {
+  const c = globalThis.crypto;
+  if (c && typeof c.randomUUID === 'function') return c.randomUUID();
+  return `f_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
 
 const EMPTY_PROFILE: Profile = {
   name: '',
@@ -52,6 +62,8 @@ function initialState(): AppState {
     history: [],
     weights: [],
     days: [],
+    meals: [],
+    calorieGoal: null,
     answers: {},
   };
 }
@@ -372,6 +384,62 @@ export const actions = {
 
   setTheme(theme: ThemePreference): void {
     set({ ...state, profile: { ...state.profile, theme } });
+  },
+
+  /* ─────────────────────────────── food diary ──────────────────────────── */
+
+  logFood(entry: Omit<FoodEntry, 'id'>): void {
+    set({ ...state, meals: [...state.meals, { ...entry, id: newEntryId() }] });
+  },
+
+  /** A database item, scaled to the portion. */
+  logFromFood(food: Food, grams: number, slot: MealSlot, at = Date.now()): void {
+    actions.logFood({
+      date: isoDate(at),
+      at,
+      slot,
+      name: food.name,
+      grams,
+      macros: forGrams(food.per100g, grams),
+      source: 'db',
+    });
+  },
+
+  /** One of the app's own recipes, scaled from its per-serving numbers. */
+  logFromRecipe(recipe: Recipe, servings: number, slot: MealSlot, at = Date.now()): void {
+    const k = servings;
+    actions.logFood({
+      date: isoDate(at),
+      at,
+      slot,
+      name: recipe.title,
+      grams: 0,
+      macros: {
+        kcal: Math.round(recipe.macros.kcal * k),
+        protein: Math.round(recipe.macros.protein * k),
+        fat: Math.round(recipe.macros.fat * k),
+        carbs: Math.round(recipe.macros.carbs * k),
+        fiber: Math.round(recipe.macros.fiber * k * 10) / 10,
+      },
+      source: 'recipe',
+    });
+  },
+
+  logManual(name: string, grams: number, macros: Macros, slot: MealSlot, source: FoodEntry['source'] = 'manual', at = Date.now()): void {
+    actions.logFood({ date: isoDate(at), at, slot, name, grams, macros, source });
+  },
+
+  removeFood(id: string): void {
+    set({ ...state, meals: state.meals.filter((entry) => entry.id !== id) });
+  },
+
+  moveFood(id: string, slot: MealSlot): void {
+    set({ ...state, meals: state.meals.map((entry) => (entry.id === id ? { ...entry, slot } : entry)) });
+  },
+
+  /** null hands the target back to the formula. */
+  setCalorieGoal(kcal: number | null): void {
+    set({ ...state, calorieGoal: kcal });
   },
 
   loadDemo(): void {

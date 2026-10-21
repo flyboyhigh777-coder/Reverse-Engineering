@@ -4,15 +4,19 @@ import type { MealPlan } from '../../domain/mealPlans';
 import { RECIPES, RECIPE_CATEGORIES, RECIPE_TAGS, REGIONS, recipeById, recipesByRegion } from '../../domain/recipes';
 import type { Macros, Recipe, RecipeTag, Region } from '../../domain/recipes';
 import { useAppState } from '../../state/store';
+import { Diary } from './Diary';
 import { ArtTile } from '../components/FoodArt';
 import { Sheet } from '../components/common';
 
 export function Recipes({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
-  const [tab, setTab] = useState<'recipes' | 'regions' | 'plans'>('recipes');
+  const [tab, setTab] = useState<'diary' | 'recipes' | 'regions' | 'plans'>('diary');
 
   return (
     <>
-      <div className="subtabs" role="tablist" aria-label="Рецепты и планы">
+      <div className="subtabs" role="tablist" aria-label="Еда">
+        <button type="button" role="tab" aria-selected={tab === 'diary'} onClick={() => setTab('diary')}>
+          Дневник
+        </button>
         <button type="button" role="tab" aria-selected={tab === 'recipes'} onClick={() => setTab('recipes')}>
           Рецепты
         </button>
@@ -20,10 +24,11 @@ export function Recipes({ onRequestPro }: { onRequestPro: (reason: string) => vo
           Кухни
         </button>
         <button type="button" role="tab" aria-selected={tab === 'plans'} onClick={() => setTab('plans')}>
-          Планы питания
+          Планы
         </button>
       </div>
 
+      {tab === 'diary' ? <Diary /> : null}
       {tab === 'recipes' ? <RecipeList onRequestPro={onRequestPro} /> : null}
       {tab === 'regions' ? <RegionList onRequestPro={onRequestPro} /> : null}
       {tab === 'plans' ? <PlanList onRequestPro={onRequestPro} /> : null}

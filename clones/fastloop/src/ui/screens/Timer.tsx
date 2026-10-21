@@ -18,6 +18,7 @@ import type { PlanId } from '../../domain/types';
 import { actions, useAppState } from '../../state/store';
 import { useNow } from '../useNow';
 import type { TaskId } from '../../domain/daily';
+import { CaloriesCard } from '../components/CaloriesCard';
 import { CoachCard } from '../components/CoachCard';
 import { DailyBriefCard, TodayCard } from '../components/Today';
 import { Ring, PhaseRail } from '../components/Ring';
@@ -167,6 +168,8 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
           ),
         }}
       />
+
+      <CaloriesCard />
 
       <CoachCard now={now} onRequestPro={onRequestPro} />
 

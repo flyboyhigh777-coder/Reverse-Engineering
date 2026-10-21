@@ -34,6 +34,27 @@ export interface WeightEntry {
   readonly kg: number;
 }
 
+/** Which part of the day an entry belongs to. */
+export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+/** Where the numbers on an entry came from. Shown, never guessed at later. */
+export type FoodSource = 'db' | 'recipe' | 'manual' | 'photo';
+
+export interface FoodEntry {
+  readonly id: string;
+  /** ISO day the entry belongs to. */
+  readonly date: string;
+  /** Epoch ms, so the diary can tell what fell inside the eating window. */
+  readonly at: number;
+  readonly slot: MealSlot;
+  readonly name: string;
+  /** Portion actually eaten. */
+  readonly grams: number;
+  /** For the portion above, not per 100 g. */
+  readonly macros: import('./recipes').Macros;
+  readonly source: FoodSource;
+}
+
 export interface DayLog {
   readonly date: string;
   readonly waterMl: number;
@@ -92,6 +113,9 @@ export interface AppState {
   readonly history: readonly FastSession[];
   readonly weights: readonly WeightEntry[];
   readonly days: readonly DayLog[];
+  readonly meals: readonly FoodEntry[];
+  /** Overrides the computed calorie target when the person sets their own. */
+  readonly calorieGoal: number | null;
   /** Quiz answers kept verbatim so the paywall can quote them back. */
   readonly answers: Readonly<Record<string, string | readonly string[]>>;
 }

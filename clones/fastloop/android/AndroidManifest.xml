@@ -13,10 +13,17 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="app.fastloop"
-    android:versionCode="13"
-    android:versionName="0.11.3">
+    android:versionCode="14"
+    android:versionName="0.12.0">
 
   <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+  <!--
+    Only the AI camera reaches the network, and only once an API key has been
+    entered by hand in the profile. With no key the app makes no requests at
+    all; the permission is declared because Android has no way to ask for it
+    later, not because anything is sent in the background.
+  -->
+  <uses-permission android:name="android.permission.INTERNET" />
   <!-- Detents on the tape picker. Not a dangerous permission: no prompt. -->
   <uses-permission android:name="android.permission.VIBRATE" />
   <uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false" />

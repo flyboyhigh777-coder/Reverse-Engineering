@@ -2,12 +2,18 @@ package app.fastloop;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ContentValues;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.ViewGroup;
 import android.webkit.JavascriptInterface;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -19,9 +25,14 @@ import android.webkit.WebViewClient;
 public class MainActivity extends Activity {
 
   private static final int REQ_ACTIVITY_RECOGNITION = 11;
+  private static final int REQ_PICK_IMAGE = 12;
 
   private WebView web;
   private StepCounter steps;
+  /** Held between opening the picker and the result coming back. */
+  private ValueCallback<Uri[]> pendingFiles;
+  /** Where the camera was told to write, when the camera was offered. */
+  private Uri cameraOutput;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -50,6 +61,16 @@ public class MainActivity extends Activity {
       public void onPageFinished(WebView view, String url) {
         super.onPageFinished(view, url);
         syncTheme();
+      }
+    });
+    // Without this a file input inside a WebView does nothing at all: the
+    // tap is delivered to the page, the page opens a picker, and the host has
+    // to be the one that actually shows it.
+    web.setWebChromeClient(new WebChromeClient() {
+      @Override
+      public boolean onShowFileChooser(
+          WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+        return openImagePicker(callback);
       }
     });
     web.addJavascriptInterface(new Bridge(), "FastLoopNative");
@@ -129,6 +150,73 @@ public class MainActivity extends Activity {
   public void onBackPressed() {
     // The app navigates by state, not by history, so back leaves the app.
     finish();
+  }
+
+  /**
+   * Shows the camera and the gallery in one chooser.
+   *
+   * The camera needs somewhere to write, and a file:// path handed to another
+   * app throws on API 24+. A MediaStore row gives a content:// destination
+   * with no permission and no FileProvider, which this build has no way to
+   * declare — but only from API 29. Below that the gallery is offered alone
+   * rather than asking for storage access the app would otherwise never need.
+   */
+  private boolean openImagePicker(ValueCallback<Uri[]> callback) {
+    if (pendingFiles != null) {
+      pendingFiles.onReceiveValue(null);
+    }
+    pendingFiles = callback;
+    cameraOutput = null;
+
+    Intent gallery = new Intent(Intent.ACTION_GET_CONTENT);
+    gallery.addCategory(Intent.CATEGORY_OPENABLE);
+    gallery.setType("image/*");
+
+    Intent chooser = Intent.createChooser(gallery, "Снимок блюда");
+
+    if (Build.VERSION.SDK_INT >= 29) {
+      try {
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, "fastloop-" + System.currentTimeMillis() + ".jpg");
+        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+        cameraOutput = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+        if (cameraOutput != null) {
+          Intent camera = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+          camera.putExtra(MediaStore.EXTRA_OUTPUT, cameraOutput);
+          camera.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+          chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[] {camera});
+        }
+      } catch (Exception unavailable) {
+        cameraOutput = null;
+      }
+    }
+
+    try {
+      startActivityForResult(chooser, REQ_PICK_IMAGE);
+      return true;
+    } catch (Exception noPicker) {
+      pendingFiles = null;
+      callback.onReceiveValue(null);
+      return false;
+    }
+  }
+
+  @Override
+  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    if (requestCode != REQ_PICK_IMAGE) {
+      super.onActivityResult(requestCode, resultCode, data);
+      return;
+    }
+    ValueCallback<Uri[]> callback = pendingFiles;
+    pendingFiles = null;
+    if (callback == null) return;
+
+    // The gallery answers with a uri in the intent; the camera wrote to the
+    // row we created and returns nothing. Cancelling must still answer, or
+    // the file input stays stuck and never opens again.
+    Uri picked = resultCode == RESULT_OK && data != null ? data.getData() : null;
+    if (picked == null && resultCode == RESULT_OK) picked = cameraOutput;
+    callback.onReceiveValue(picked == null ? null : new Uri[] {picked});
   }
 
   /** Exposed to the page as window.FastLoopNative. */

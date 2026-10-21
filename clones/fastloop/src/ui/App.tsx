@@ -18,7 +18,7 @@ type Tab = 'timer' | 'progress' | 'recipes' | 'learn' | 'profile';
 const TABS: readonly { id: Tab; label: string; icon: () => JSX.Element }[] = [
   { id: 'timer', label: 'Таймер', icon: TimerIcon },
   { id: 'progress', label: 'Прогресс', icon: ChartIcon },
-  { id: 'recipes', label: 'Рецепты', icon: ChefIcon },
+  { id: 'recipes', label: 'Еда', icon: ChefIcon },
   { id: 'learn', label: 'Статьи', icon: BookIcon },
   { id: 'profile', label: 'Профиль', icon: PersonIcon },
 ];

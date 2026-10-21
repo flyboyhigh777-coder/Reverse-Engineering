@@ -6,6 +6,8 @@ import { formatWeight, waterTargetMl } from '../../domain/metrics';
 import { actions, useAppState } from '../../state/store';
 import { THEME_LABELS, hasNativeTheme } from '../../state/theme';
 import type { ThemePreference } from '../../state/theme';
+import { VISION_MODEL, VISION_NOTE } from '../../domain/vision';
+import { maskKey, readVisionKey, writeVisionKey } from '../../state/visionKey';
 import { BackupSheet } from '../components/BackupSheet';
 import { Card, LockPill, Sheet } from '../components/common';
 
@@ -119,6 +121,8 @@ export function Profile({ onRequestPro }: { onRequestPro: (reason: string) => vo
         </dl>
       </Card>
 
+      <VisionCard />
+
       <Card>
         <span className="eyebrow">Данные приложения</span>
         <p className="tiny muted">
@@ -182,6 +186,87 @@ export function Profile({ onRequestPro }: { onRequestPro: (reason: string) => vo
         </Sheet>
       ) : null}
     </>
+  );
+}
+
+/**
+ * The one switch that lets the app reach the network.
+ *
+ * Off by default and off until a key is pasted here, so the promise that
+ * nothing leaves the phone is true for anyone who never opens this card.
+ */
+function VisionCard(): JSX.Element {
+  const [key, setKey] = useState<string | null>(() => readVisionKey());
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+
+  return (
+    <Card>
+      <div className="row between">
+        <span className="eyebrow">ИИ-камера</span>
+        <span className={key ? 'pill accent' : 'pill'}>{key ? 'включена' : 'выключена'}</span>
+      </div>
+      <p className="tiny muted">
+        Распознаёт блюдо на фотографии и оценивает калории и БЖУ. Работает через Claude ({VISION_MODEL}) и требует вашего
+        ключа с console.anthropic.com. Каждое фото — платный запрос на вашем счету.
+      </p>
+      <p className="tiny muted">
+        Пока ключа нет, приложение не делает ни одного сетевого запроса. С ключом в сеть уходит только сам снимок, в
+        момент распознавания; ни фото, ни ответ нигде не сохраняются, а ключ не попадает в резервную копию.
+      </p>
+
+      {key && !editing ? (
+        <div className="row wrap" style={{ gap: 8 }}>
+          <span className="pill num">{maskKey(key)}</span>
+          <button type="button" className="btn ghost sm" onClick={() => { setEditing(true); setDraft(''); }}>
+            Заменить
+          </button>
+          <button
+            type="button"
+            className="btn ghost sm"
+            onClick={() => {
+              writeVisionKey(null);
+              setKey(null);
+            }}
+          >
+            Удалить ключ
+          </button>
+        </div>
+      ) : (
+        <div className="col" style={{ gap: 8 }}>
+          <input
+            id="vision-key"
+            type="password"
+            autoComplete="off"
+            placeholder="sk-ant-..."
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+          />
+          <div className="row" style={{ gap: 8 }}>
+            <button
+              type="button"
+              className="btn sm grow"
+              disabled={draft.trim() === ''}
+              onClick={() => {
+                writeVisionKey(draft);
+                setKey(readVisionKey());
+                setEditing(false);
+                setDraft('');
+              }}
+            >
+              Сохранить ключ
+            </button>
+            {key ? (
+              <button type="button" className="btn ghost sm" onClick={() => setEditing(false)}>
+                Отмена
+              </button>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      <p className="tiny muted">{VISION_NOTE}</p>
+    </Card>
   );
 }
 

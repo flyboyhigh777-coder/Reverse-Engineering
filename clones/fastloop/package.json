@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Clean-room intermittent fasting tracker reconstructed from a public-sources teardown of GoFasting.",
+  "description": "Intermittent fasting tracker: timer, calorie diary, recipes and evidence-labelled fasting windows.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

@@ -42,7 +42,8 @@ export function Profile({ onRequestPro }: { onRequestPro: (reason: string) => vo
         ) : (
           <>
             <p className="tiny muted">
-              Заперты схемы 18:6 и длиннее, правка времени окна, полная история и разбор фаз — так же, как в оригинале.
+              Открыты 12:12, 13:11, 14:10 и 16:8. Остальные схемы, своё окно, правка времени, полная история и разбор фаз
+              заперты.
             </p>
             <div className="row wrap" style={{ gap: 8 }}>
               <button type="button" className="btn sm" onClick={() => actions.setPremium(true)}>

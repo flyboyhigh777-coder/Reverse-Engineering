@@ -1,9 +1,8 @@
 /**
  * The onboarding interview.
  *
- * Three things separate it from the funnel it was reconstructed from. It is
- * grouped into named sections so a long interview stays navigable instead of
- * reading as an endless counter. It branches, so nobody is asked about
+ * Three decisions shape it. It is grouped into named sections so a long
+ * interview stays navigable instead of reading as an endless counter. It branches, so nobody is asked about
  * pregnancy or gym access when the answer cannot apply. And it screens for
  * the conditions under which fasting is not a good idea, before selling
  * anyone a plan — see `screening.ts`.

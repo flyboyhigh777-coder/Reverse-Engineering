@@ -34,7 +34,7 @@ const FIELDS = 'code,product_name,product_name_ru,generic_name_ru,brands,nutrime
  */
 const HEADERS: Readonly<Record<string, string>> = {
   accept: 'application/json',
-  'user-agent': 'FastLoop/0.18 (personal build; https://github.com/flyboyhigh777-coder/Reverse-Engineering)',
+  'user-agent': 'FastLoop/0.19 (personal build; https://github.com/flyboyhigh777-coder/Reverse-Engineering)',
 };
 
 export type OffResult =

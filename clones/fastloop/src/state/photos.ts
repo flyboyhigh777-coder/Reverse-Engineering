@@ -35,6 +35,18 @@ const ENABLED = 'fastloop.dishPhotos.enabled';
 const MISS_TTL = 24 * 60 * 60 * 1000;
 const API = 'https://commons.wikimedia.org/w/api.php';
 
+/**
+ * Wikimedia refuses anonymous clients outright, the way Open Food Facts did:
+ * a request that arrives as the WebView's Java default gets a 403 and the
+ * cards silently stay drawn. The policy asks for a name and a way to reach
+ * whoever is behind it, so that is what is sent.
+ */
+const HEADERS: Readonly<Record<string, string>> = {
+  accept: 'application/json',
+  'user-agent': 'FastLoop/0.19 (personal build; https://github.com/flyboyhigh777-coder/Reverse-Engineering)',
+  'api-user-agent': 'FastLoop/0.19 (personal build; https://github.com/flyboyhigh777-coder/Reverse-Engineering)',
+};
+
 type Cache = Record<string, Entry>;
 
 function readCache(): Cache {
@@ -145,7 +157,7 @@ async function lookup(id: string): Promise<void> {
     '&origin=*';
   let photo: DishPhoto | null = null;
   try {
-    const response = await netFetch(url, { headers: { accept: 'application/json' } });
+    const response = await netFetch(url, { headers: HEADERS });
     if (response.ok) {
       const picked = chooseCommonsFile(await response.json(), query.must);
       if (picked) {

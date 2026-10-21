@@ -1,0 +1,173 @@
+import type { Food } from './foods';
+import type { Macros } from './recipes';
+
+/**
+ * Packaged products from Open Food Facts.
+ *
+ * The built-in table covers dishes — плов, щи, творог — which is what people
+ * cook. It cannot cover the yoghurt of a particular brand in a particular
+ * shop, and that is exactly what an open product database is for. Search by
+ * name or look a barcode up directly.
+ *
+ * Every field is treated as missing until proven otherwise: this is
+ * crowd-sourced data, and a product with no protein figure is common. A
+ * product without calories is dropped rather than logged as zero.
+ *
+ * NOT verified against the live API from the build container, whose egress
+ * proxy refuses that host. The parsing is defensive and every failure path
+ * ends in a message rather than a crash, but the first real request will be
+ * made from a phone.
+ */
+
+const BASE = 'https://world.openfoodfacts.org/api/v2';
+const FIELDS = 'code,product_name,product_name_ru,generic_name_ru,brands,nutriments,quantity';
+
+export type OffResult =
+  | { readonly kind: 'ok'; readonly foods: readonly Food[] }
+  | { readonly kind: 'empty' }
+  | { readonly kind: 'error'; readonly reason: string };
+
+function text(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function num(value: unknown): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'string') {
+    const parsed = Number.parseFloat(value.replace(',', '.'));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+/**
+ * Calories per 100 g. Some records carry only kilojoules, some only the
+ * energy field without a unit; kJ is converted rather than shown as a
+ * nonsense calorie count four times too large.
+ */
+function kcalPer100g(nutriments: Record<string, unknown>): number | null {
+  const direct = num(nutriments['energy-kcal_100g']);
+  if (direct !== null && direct > 0) return direct;
+  const kj = num(nutriments['energy-kj_100g']) ?? num(nutriments.energy_100g);
+  if (kj !== null && kj > 0) return kj / 4.184;
+  return null;
+}
+
+function macrosOf(nutriments: Record<string, unknown>): Macros | null {
+  const kcal = kcalPer100g(nutriments);
+  if (kcal === null || kcal <= 0 || kcal > 1000) return null;
+  return {
+    kcal: Math.round(kcal),
+    protein: Math.round((num(nutriments.proteins_100g) ?? 0) * 10) / 10,
+    fat: Math.round((num(nutriments.fat_100g) ?? 0) * 10) / 10,
+    carbs: Math.round((num(nutriments.carbohydrates_100g) ?? 0) * 10) / 10,
+    fiber: Math.round((num(nutriments.fiber_100g) ?? 0) * 10) / 10,
+  };
+}
+
+/** "Простоквашино — Творог 5%, 180 г" from whichever fields are filled in. */
+function nameOf(product: Record<string, unknown>): string {
+  const name =
+    text(product.product_name_ru) || text(product.product_name) || text(product.generic_name_ru);
+  const brand = text(product.brands).split(',')[0].trim();
+  if (name === '') return brand;
+  return brand === '' || name.toLowerCase().includes(brand.toLowerCase()) ? name : `${brand} — ${name}`;
+}
+
+/**
+ * The pack size, when the record states one in grams or millilitres.
+ * "0,5 л" and "180 г" both become a portion worth offering; anything the
+ * regex does not recognise is left out rather than guessed at.
+ */
+function packPortion(quantity: string): { label: string; grams: number } | null {
+  // \b is ASCII-only in JavaScript, so it never matches after "г" and the
+  // whole Russian half of the database would fall through. A lookahead for
+  // the next letter does the job in both alphabets; longer units come first
+  // in the alternation so "кг" is not read as "к" followed by "г".
+  const match = /(\d+(?:[.,]\d+)?)\s*(кг|kg|гр|мл|ml|г|g|л|l)(?![а-яёa-z])/i.exec(quantity);
+  if (!match) return null;
+  const value = Number.parseFloat(match[1].replace(',', '.'));
+  if (!Number.isFinite(value) || value <= 0) return null;
+  const unit = match[2].toLowerCase();
+  const litres = unit === 'кг' || unit === 'kg' || unit === 'л' || unit === 'l';
+  const grams = litres ? value * 1000 : value;
+  if (grams < 5 || grams > 5000) return null;
+  return { label: `упаковка ${Math.round(grams)} г`, grams: Math.round(grams) };
+}
+
+function toFood(raw: unknown): Food | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const product = raw as Record<string, unknown>;
+  const nutriments = product.nutriments;
+  if (!nutriments || typeof nutriments !== 'object') return null;
+  const macros = macrosOf(nutriments as Record<string, unknown>);
+  if (macros === null) return null;
+  const name = nameOf(product);
+  if (name === '') return null;
+
+  const pack = packPortion(text(product.quantity));
+  // A 100 g pack would otherwise appear twice under two names.
+  const portions =
+    pack && pack.grams !== 100 ? [{ label: '100 г', grams: 100 }, pack] : [{ label: '100 г', grams: 100 }];
+
+  return {
+    id: `off-${text(product.code) || name}`,
+    name,
+    group: 'Готовые блюда',
+    per100g: macros,
+    portions,
+  };
+}
+
+async function request(url: string, signal?: AbortSignal): Promise<unknown | { error: string }> {
+  let response: Response;
+  try {
+    response = await fetch(url, { signal, headers: { accept: 'application/json' } });
+  } catch {
+    return { error: 'Нет связи с базой продуктов. Проверьте интернет.' };
+  }
+  if (response.status === 404) return { error: 'Такого штрихкода в базе нет.' };
+  if (!response.ok) return { error: `База ответила ошибкой ${response.status}.` };
+  try {
+    return await response.json();
+  } catch {
+    return { error: 'Ответ базы не читается.' };
+  }
+}
+
+function failed(value: unknown): value is { error: string } {
+  return Boolean(value) && typeof value === 'object' && typeof (value as { error?: unknown }).error === 'string';
+}
+
+export async function searchOnline(query: string, signal?: AbortSignal): Promise<OffResult> {
+  const trimmed = query.trim();
+  if (trimmed.length < 2) return { kind: 'empty' };
+  const url = `${BASE}/search?search_terms=${encodeURIComponent(trimmed)}&fields=${FIELDS}&page_size=20&lc=ru`;
+  const payload = await request(url, signal);
+  if (failed(payload)) return { kind: 'error', reason: payload.error };
+
+  const products = (payload as { products?: unknown }).products;
+  if (!Array.isArray(products)) return { kind: 'error', reason: 'База вернула неожиданный ответ.' };
+  const foods = products.map(toFood).filter((item): item is Food => item !== null);
+  return foods.length === 0 ? { kind: 'empty' } : { kind: 'ok', foods };
+}
+
+export async function lookupBarcode(code: string, signal?: AbortSignal): Promise<OffResult> {
+  const digits = code.replace(/\D/g, '');
+  if (digits.length < 8) return { kind: 'error', reason: 'Штрихкод — это 8–13 цифр.' };
+  const url = `${BASE}/product/${digits}?fields=${FIELDS}`;
+  const payload = await request(url, signal);
+  if (failed(payload)) return { kind: 'error', reason: payload.error };
+
+  const box = payload as { status?: unknown; product?: unknown };
+  if (box.status === 0) return { kind: 'empty' };
+  const item = toFood(box.product);
+  if (item === null) {
+    return { kind: 'error', reason: 'Продукт найден, но калорийность в базе не указана — запишите вручную.' };
+  }
+  return { kind: 'ok', foods: [item] };
+}
+
+export const OFF_NOTE =
+  'Данные берутся из Open Food Facts — открытой базы, которую наполняют сами покупатели. Состав указан производителем ' +
+  'на упаковке, но записи бывают неполными и устаревшими. Если цифра выглядит странно, доверяйте этикетке в руках.';

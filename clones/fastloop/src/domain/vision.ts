@@ -93,6 +93,47 @@ function toGuesses(parsed: unknown): readonly Guess[] {
     .filter((guess): guess is Guess => guess !== null);
 }
 
+function describeStatus(status: number): string {
+  if (status === 401 || status === 403) return 'Ключ не принят. Проверьте, что скопирован он целиком.';
+  if (status === 429) return 'Слишком часто — лимит запросов. Попробуйте через минуту.';
+  if (status === 400) return 'Запрос отклонён. Возможно, на ключе нет доступа к этой модели.';
+  if (status === 402) return 'На счёте Anthropic нет средств — пополните баланс в консоли.';
+  return `Сервер ответил ошибкой ${status}.`;
+}
+
+export type KeyCheck = { readonly ok: true } | { readonly ok: false; readonly reason: string };
+
+/**
+ * One tiny request, so the answer is yes or no before a photo is taken.
+ *
+ * A key that turns out to be wrong at the moment someone is holding a plate
+ * is the worst time to find out, and the error a failed photo returns cannot
+ * distinguish "bad key" from "bad picture".
+ */
+export async function checkKey(apiKey: string, signal?: AbortSignal): Promise<KeyCheck> {
+  let response: Response;
+  try {
+    response = await fetch(ENDPOINT, {
+      method: 'POST',
+      signal,
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: VISION_MODEL,
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'ok' }],
+      }),
+    });
+  } catch {
+    return { ok: false, reason: 'Нет связи с сервером. Проверьте интернет на телефоне.' };
+  }
+  return response.ok ? { ok: true } : { ok: false, reason: describeStatus(response.status) };
+}
+
 export async function recogniseFood(apiKey: string, dataUrl: string, signal?: AbortSignal): Promise<VisionResult> {
   const image = parseDataUrl(dataUrl);
   if (!image) return { kind: 'error', reason: 'Снимок не удалось прочитать.' };
@@ -127,15 +168,7 @@ export async function recogniseFood(apiKey: string, dataUrl: string, signal?: Ab
     return { kind: 'error', reason: 'Не получилось связаться с сервером. Проверьте интернет.' };
   }
 
-  if (response.status === 401 || response.status === 403) {
-    return { kind: 'error', reason: 'Ключ не принят. Проверьте его в профиле.' };
-  }
-  if (response.status === 429) {
-    return { kind: 'error', reason: 'Слишком часто — лимит запросов. Попробуйте через минуту.' };
-  }
-  if (!response.ok) {
-    return { kind: 'error', reason: `Сервер ответил ошибкой ${response.status}.` };
-  }
+  if (!response.ok) return { kind: 'error', reason: describeStatus(response.status) };
 
   let payload: unknown;
   try {

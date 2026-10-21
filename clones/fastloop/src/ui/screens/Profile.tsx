@@ -6,7 +6,7 @@ import { formatWeight, waterTargetMl } from '../../domain/metrics';
 import { actions, useAppState } from '../../state/store';
 import { THEME_LABELS, hasNativeTheme } from '../../state/theme';
 import type { ThemePreference } from '../../state/theme';
-import { VISION_MODEL, VISION_NOTE } from '../../domain/vision';
+import { VISION_MODEL, VISION_NOTE, checkKey } from '../../domain/vision';
 import { maskKey, readVisionKey, writeVisionKey } from '../../state/visionKey';
 import { BackupSheet } from '../components/BackupSheet';
 import { Card, LockPill, Sheet } from '../components/common';
@@ -199,6 +199,16 @@ function VisionCard(): JSX.Element {
   const [key, setKey] = useState<string | null>(() => readVisionKey());
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
+  const [verdict, setVerdict] = useState<{ ok: boolean; text: string } | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const verify = async (candidate: string) => {
+    setChecking(true);
+    setVerdict(null);
+    const result = await checkKey(candidate);
+    setChecking(false);
+    setVerdict(result.ok ? { ok: true, text: 'Ключ работает — камера готова.' } : { ok: false, text: result.reason });
+  };
 
   return (
     <Card>
@@ -211,27 +221,39 @@ function VisionCard(): JSX.Element {
         ключа с console.anthropic.com. Каждое фото — платный запрос на вашем счету.
       </p>
       <p className="tiny muted">
-        Пока ключа нет, приложение не делает ни одного сетевого запроса. С ключом в сеть уходит только сам снимок, в
-        момент распознавания; ни фото, ни ответ нигде не сохраняются, а ключ не попадает в резервную копию.
+        Где взять: console.anthropic.com → Settings → API keys → Create key, пополнить баланс на минимальную сумму и
+        скопировать строку, начинающуюся на sk-ant-. Снимок уходит в Anthropic в момент распознавания; ни фото, ни ответ
+        нигде не сохраняются, а ключ не попадает в резервную копию.
       </p>
 
       {key && !editing ? (
-        <div className="row wrap" style={{ gap: 8 }}>
-          <span className="pill num">{maskKey(key)}</span>
-          <button type="button" className="btn ghost sm" onClick={() => { setEditing(true); setDraft(''); }}>
-            Заменить
-          </button>
-          <button
-            type="button"
-            className="btn ghost sm"
-            onClick={() => {
-              writeVisionKey(null);
-              setKey(null);
-            }}
-          >
-            Удалить ключ
-          </button>
-        </div>
+        <>
+          <div className="row wrap" style={{ gap: 8 }}>
+            <span className="pill num">{maskKey(key)}</span>
+            <button type="button" className="btn sm" disabled={checking} onClick={() => void verify(key)}>
+              {checking ? 'Проверяю…' : 'Проверить ключ'}
+            </button>
+            <button type="button" className="btn ghost sm" onClick={() => { setEditing(true); setDraft(''); setVerdict(null); }}>
+              Заменить
+            </button>
+            <button
+              type="button"
+              className="btn ghost sm"
+              onClick={() => {
+                writeVisionKey(null);
+                setKey(null);
+                setVerdict(null);
+              }}
+            >
+              Удалить
+            </button>
+          </div>
+          {verdict ? (
+            <p className="banner tiny" style={verdict.ok ? { color: 'var(--good)' } : { color: 'var(--warn)' }}>
+              {verdict.text}
+            </p>
+          ) : null}
+        </>
       ) : (
         <div className="col" style={{ gap: 8 }}>
           <input
@@ -246,15 +268,17 @@ function VisionCard(): JSX.Element {
             <button
               type="button"
               className="btn sm grow"
-              disabled={draft.trim() === ''}
+              disabled={draft.trim() === '' || checking}
               onClick={() => {
-                writeVisionKey(draft);
+                const candidate = draft.trim();
+                writeVisionKey(candidate);
                 setKey(readVisionKey());
                 setEditing(false);
                 setDraft('');
+                void verify(candidate);
               }}
             >
-              Сохранить ключ
+              {checking ? 'Проверяю…' : 'Сохранить и проверить'}
             </button>
             {key ? (
               <button type="button" className="btn ghost sm" onClick={() => setEditing(false)}>

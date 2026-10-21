@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { FOODS, FOOD_TABLE_NOTE, searchFoods } from '../../domain/foods';
 import type { Food } from '../../domain/foods';
 import { SLOT_LABEL, MEAL_SLOTS, forGrams } from '../../domain/nutrition';
+import { OFF_NOTE, lookupBarcode, searchOnline } from '../../domain/openFoodFacts';
 import { RECIPES } from '../../domain/recipes';
 import type { Macros, Recipe } from '../../domain/recipes';
 import type { MealSlot } from '../../domain/types';
@@ -12,10 +13,11 @@ import { readVisionKey } from '../../state/visionKey';
 import { ArtTile } from './FoodArt';
 import { Sheet } from './common';
 
-type Tab = 'search' | 'recipes' | 'manual' | 'photo';
+type Tab = 'search' | 'online' | 'recipes' | 'manual' | 'photo';
 
 const TABS: readonly { id: Tab; label: string }[] = [
   { id: 'search', label: 'Продукты' },
+  { id: 'online', label: 'В интернете' },
   { id: 'recipes', label: 'Мои рецепты' },
   { id: 'manual', label: 'Вручную' },
   { id: 'photo', label: 'Фото' },
@@ -65,6 +67,7 @@ export function FoodPicker({ slot, onClose }: { slot: MealSlot; onClose: () => v
       </div>
 
       {tab === 'search' ? <SearchTab onPick={setChosen} /> : null}
+      {tab === 'online' ? <OnlineTab onPick={setChosen} /> : null}
       {tab === 'recipes' ? <RecipeTab onPick={setRecipe} /> : null}
       {tab === 'manual' ? <ManualTab slot={slot} onDone={onClose} /> : null}
       {tab === 'photo' ? <PhotoTab slot={slot} onDone={onClose} /> : null}
@@ -107,6 +110,101 @@ function SearchTab({ onPick }: { onPick: (food: Food) => void }): JSX.Element {
       <p className="tiny muted">
         {FOOD_TABLE_NOTE} В базе {FOODS.length} позиций.
       </p>
+    </>
+  );
+}
+
+/**
+ * Packaged goods from the open product database.
+ *
+ * Kept apart from the built-in table rather than mixed into it: one is a
+ * reference table of dishes that does not change, the other is a network
+ * call to crowd-sourced records that can be absent, wrong or offline. The
+ * person should be able to tell which of the two a number came from.
+ */
+function OnlineTab({ onPick }: { onPick: (food: Food) => void }): JSX.Element {
+  const [query, setQuery] = useState('');
+  const [barcode, setBarcode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [results, setResults] = useState<readonly Food[] | null>(null);
+
+  const run = async (task: Promise<ReturnType<typeof searchOnline> extends Promise<infer R> ? R : never>) => {
+    setBusy(true);
+    setError(null);
+    setResults(null);
+    const outcome = await task;
+    setBusy(false);
+    if (outcome.kind === 'error') setError(outcome.reason);
+    else if (outcome.kind === 'empty') setError('Ничего не нашлось. Попробуйте другое слово или запишите вручную.');
+    else setResults(outcome.foods);
+  };
+
+  return (
+    <>
+      <form
+        className="row"
+        style={{ gap: 8 }}
+        onSubmit={(event) => {
+          event.preventDefault();
+          void run(searchOnline(query));
+        }}
+      >
+        <input
+          id="online-search"
+          type="search"
+          className="grow"
+          placeholder="Название продукта на упаковке"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <button type="submit" className="btn sm" disabled={busy || query.trim().length < 2}>
+          Найти
+        </button>
+      </form>
+
+      <form
+        className="row"
+        style={{ gap: 8 }}
+        onSubmit={(event) => {
+          event.preventDefault();
+          void run(lookupBarcode(barcode));
+        }}
+      >
+        <input
+          id="online-barcode"
+          type="text"
+          inputMode="numeric"
+          className="grow"
+          placeholder="или штрихкод с упаковки"
+          value={barcode}
+          onChange={(event) => setBarcode(event.target.value)}
+        />
+        <button type="submit" className="btn ghost sm" disabled={busy || barcode.replace(/\D/g, '').length < 8}>
+          Найти
+        </button>
+      </form>
+
+      {busy ? <p className="tiny muted">Ищу…</p> : null}
+      {error ? <p className="banner tiny">{error}</p> : null}
+
+      {results ? (
+        <div className="col" style={{ gap: 7 }}>
+          {results.map((item) => (
+            <button key={item.id} type="button" className="foodrow" onClick={() => onPick(item)}>
+              <span className="col" style={{ gap: 2 }}>
+                <strong style={{ fontSize: 14 }}>{item.name}</strong>
+                <span className="tiny num muted">
+                  {item.per100g.kcal} ккал / 100 г · Б {item.per100g.protein} · Ж {item.per100g.fat} · У {item.per100g.carbs}
+                </span>
+              </span>
+              <span className="pill">из сети</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      <p className="tiny muted">{OFF_NOTE}</p>
     </>
   );
 }

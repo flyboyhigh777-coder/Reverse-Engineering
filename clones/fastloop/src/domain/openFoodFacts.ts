@@ -20,8 +20,22 @@ import type { Macros } from './recipes';
  * made from a phone.
  */
 
-const BASE = 'https://world.openfoodfacts.org/api/v2';
+const HOST = 'https://world.openfoodfacts.org';
+const BASE = `${HOST}/api/v2`;
 const FIELDS = 'code,product_name,product_name_ru,generic_name_ru,brands,nutriments,quantity';
+
+/**
+ * Open Food Facts asks every client to identify itself and blocks traffic
+ * that does not. Android's default is "Dalvik/2.1.0 (Linux; U; Android …)",
+ * which is exactly the kind of anonymous request they refuse — the service
+ * answered 503 to every search until this was set. Browsers forbid setting
+ * this header and silently ignore it, which is fine: there the origin
+ * already identifies the caller.
+ */
+const HEADERS: Readonly<Record<string, string>> = {
+  accept: 'application/json',
+  'user-agent': 'FastLoop/0.18 (personal build; https://github.com/flyboyhigh777-coder/Reverse-Engineering)',
+};
 
 export type OffResult =
   | { readonly kind: 'ok'; readonly foods: readonly Food[] }
@@ -120,31 +134,50 @@ function toFood(raw: unknown): Food | null {
   };
 }
 
-async function request(url: string, signal?: AbortSignal): Promise<unknown | { error: string }> {
+interface Failure {
+  readonly error: string;
+  /** The service is up but refusing right now; another route may work. */
+  readonly retryable: boolean;
+}
+
+async function request(url: string, signal?: AbortSignal): Promise<unknown | Failure> {
   let response: Awaited<ReturnType<typeof netFetch>>;
   try {
-    response = await netFetch(url, { signal, headers: { accept: 'application/json' } });
+    response = await netFetch(url, { signal, headers: HEADERS });
   } catch {
-    return { error: 'Нет связи с базой продуктов. Проверьте интернет.' };
+    return { error: 'Нет связи с базой продуктов. Проверьте интернет.', retryable: false };
   }
-  if (response.status === 404) return { error: 'Такого штрихкода в базе нет.' };
-  if (!response.ok) return { error: `База ответила ошибкой ${response.status}.` };
+  if (response.status === 404) return { error: 'Такого штрихкода в базе нет.', retryable: false };
+  if (response.status >= 500) {
+    return { error: 'База сейчас перегружена и отвечает отказом.', retryable: true };
+  }
+  if (!response.ok) return { error: `База ответила ошибкой ${response.status}.`, retryable: false };
   try {
     return await response.json();
   } catch {
-    return { error: 'Ответ базы не читается.' };
+    return { error: 'Ответ базы не читается.', retryable: false };
   }
 }
 
-function failed(value: unknown): value is { error: string } {
+function failed(value: unknown): value is Failure {
   return Boolean(value) && typeof value === 'object' && typeof (value as { error?: unknown }).error === 'string';
 }
 
 export async function searchOnline(query: string, signal?: AbortSignal): Promise<OffResult> {
   const trimmed = query.trim();
   if (trimmed.length < 2) return { kind: 'empty' };
-  const url = `${BASE}/search?search_terms=${encodeURIComponent(trimmed)}&fields=${FIELDS}&page_size=20&lc=ru`;
-  const payload = await request(url, signal);
+  const term = encodeURIComponent(trimmed);
+
+  // The v2 search is the newer route and the first to shed load. The old CGI
+  // one is slower but stays up when v2 is returning 503, so it is worth one
+  // attempt before telling someone their search failed.
+  let payload = await request(`${BASE}/search?search_terms=${term}&fields=${FIELDS}&page_size=20&lc=ru`, signal);
+  if (failed(payload) && payload.retryable) {
+    payload = await request(
+      `${HOST}/cgi/search.pl?search_terms=${term}&search_simple=1&action=process&json=1&page_size=20&fields=${FIELDS}&lc=ru`,
+      signal,
+    );
+  }
   if (failed(payload)) return { kind: 'error', reason: payload.error };
 
   const products = (payload as { products?: unknown }).products;
@@ -156,8 +189,10 @@ export async function searchOnline(query: string, signal?: AbortSignal): Promise
 export async function lookupBarcode(code: string, signal?: AbortSignal): Promise<OffResult> {
   const digits = code.replace(/\D/g, '');
   if (digits.length < 8) return { kind: 'error', reason: 'Штрихкод — это 8–13 цифр.' };
-  const url = `${BASE}/product/${digits}?fields=${FIELDS}`;
-  const payload = await request(url, signal);
+  let payload = await request(`${BASE}/product/${digits}.json?fields=${FIELDS}`, signal);
+  if (failed(payload) && payload.retryable) {
+    payload = await request(`${HOST}/api/v0/product/${digits}.json`, signal);
+  }
   if (failed(payload)) return { kind: 'error', reason: payload.error };
 
   const box = payload as { status?: unknown; product?: unknown };
@@ -171,4 +206,5 @@ export async function lookupBarcode(code: string, signal?: AbortSignal): Promise
 
 export const OFF_NOTE =
   'Данные берутся из Open Food Facts — открытой базы, которую наполняют сами покупатели. Состав указан производителем ' +
-  'на упаковке, но записи бывают неполными и устаревшими. Если цифра выглядит странно, доверяйте этикетке в руках.';
+  'на упаковке, но записи бывают неполными и устаревшими. Если цифра выглядит странно, доверяйте этикетке в руках. ' +
+  'База бесплатная и живёт на пожертвования, поэтому иногда отвечает отказом — тогда помогает повтор через минуту.';

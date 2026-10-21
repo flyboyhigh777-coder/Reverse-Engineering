@@ -195,10 +195,10 @@ export function forgetPhotos(): void {
   emit();
 }
 
-/** Looks up every dish that has no photograph yet, not only visible ones. */
+/** Looks up every dish that has no photograph yet, not only the visible ones. */
 export function findAllPhotos(): void {
   if (!enabled) return;
-  for (const id of Object.keys(DISH_QUERIES)) want(id);
+  for (const id of Object.keys(DISH_QUERIES)) want(id, true);
 }
 
 function searchUrl(query: string): string {
@@ -279,10 +279,19 @@ function pump(): void {
   }
 }
 
-function want(id: string): void {
+/**
+ * Asks for this dish's photograph.
+ *
+ * `force` is what the profile's button means: look again now, ignoring the
+ * six hours a miss is normally remembered for. It still skips dishes that
+ * already have a photograph — re-fetching those would spend the person's
+ * data to replace a picture with itself.
+ */
+function want(id: string, force = false): void {
   if (!enabled) return;
   const entry = cache[id];
-  if (entry && (entry.photo !== null || Date.now() - entry.at < MISS_TTL)) return;
+  if (entry?.photo) return;
+  if (!force && entry && Date.now() - entry.at < MISS_TTL) return;
   if (inFlight.has(id) || queue.includes(id)) return;
   queue.push(id);
   pump();

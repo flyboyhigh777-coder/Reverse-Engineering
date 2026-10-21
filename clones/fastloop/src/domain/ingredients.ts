@@ -1,5 +1,7 @@
-import { FOODS } from './foods';
+import { FOODS, foodById } from './foods';
 import type { Food } from './foods';
+import { compositionOf } from './recipeItems';
+import type { RecipeItem } from './recipeItems';
 import type { Macros, Recipe } from './recipes';
 
 /**
@@ -150,8 +152,13 @@ function matchFood(name: string): Food | null {
   const first = needle[0];
   const last = needle[needle.length - 1];
 
+  // "Нут сухой" and "Нут отварной" both answer to «нут», and the dry one is
+  // three times the calories. It is only eligible when the line says so.
+  const saysDry = /сух/.test(FOLD(name));
+
   let best: { food: Food; score: number } | null = null;
   for (const food of FOODS) {
+    if (!saysDry && /сух/.test(FOLD(food.name))) continue;
     const named = words(food.name);
     const alias = (food.also ?? []).flatMap(words);
     // A synonym counts for half: «зелёный лук» is listed under greens, but a
@@ -194,38 +201,67 @@ export function parseRecipe(recipe: Recipe): readonly Ingredient[] {
   return recipe.ingredients.map(parseIngredient);
 }
 
+
+/* ─────────────────── the structured composition, at runtime ─────────────── */
+
+export interface ResolvedItem {
+  readonly item: RecipeItem;
+  /** For the whole recipe. Null when nothing measurable corresponds. */
+  readonly macros: Macros | null;
+}
+
+function scale(per100g: Macros, grams: number): Macros {
+  const k = grams / 100;
+  return {
+    kcal: per100g.kcal * k,
+    protein: per100g.protein * k,
+    fat: per100g.fat * k,
+    carbs: per100g.carbs * k,
+    fiber: per100g.fiber * k,
+  };
+}
+
+/** What the recipe is made of, each line with its own contribution. */
+export function compositionFor(recipe: Recipe): readonly ResolvedItem[] {
+  const composition = compositionOf(recipe.id);
+  if (!composition) return [];
+  return composition.items.map((item) => {
+    const food = item.food ? foodById(item.food) : undefined;
+    return { item, macros: food ? scale(food.per100g, item.grams) : null };
+  });
+}
+
 /**
- * The recipe's own macros per serving, less whatever was left out.
+ * The dish as actually made, per the servings asked for.
  *
- * Two figures bound the answer. The recipe's stated macros are the upper
- * one: they were worked out for the finished dish. The ingredients still in
- * it are the lower one — whatever else is true, the dish contains at least
- * those. Subtracting without that floor drove the carbohydrates of a
- * shakshuka to zero while its tomatoes and onion were still in the pan,
- * because the two sets of numbers were never derived from each other and do
- * not have to agree.
+ * Now that a recipe's stated macros are the sum of its items, leaving one
+ * out is exact arithmetic rather than an estimate corrected by a floor: the
+ * answer is simply what remains, divided by the servings the recipe makes.
  */
-export function adjusted(
+export function macrosOfKept(
   recipe: Recipe,
-  all: readonly Ingredient[],
-  removedLines: readonly string[],
+  kept: readonly ResolvedItem[],
   servings: number,
 ): Macros {
-  const removed = all.filter((item) => removedLines.includes(item.line));
-  const kept = all.filter((item) => !removedLines.includes(item.line));
-  const per = Math.max(1, recipe.servings);
-
-  const one = (pick: (m: Macros) => number): number => {
-    const taken = removed.reduce((sum, item) => sum + (item.macros ? pick(item.macros) : 0), 0) / per;
-    const floor = kept.reduce((sum, item) => sum + (item.macros ? pick(item.macros) : 0), 0) / per;
-    return Math.max(0, Math.min(pick(recipe.macros), Math.max(pick(recipe.macros) - taken, floor)));
-  };
-
+  const k = servings / Math.max(1, recipe.servings);
+  const total = kept.reduce(
+    (sum, entry) =>
+      entry.macros
+        ? {
+            kcal: sum.kcal + entry.macros.kcal,
+            protein: sum.protein + entry.macros.protein,
+            fat: sum.fat + entry.macros.fat,
+            carbs: sum.carbs + entry.macros.carbs,
+            fiber: sum.fiber + entry.macros.fiber,
+          }
+        : sum,
+    { kcal: 0, protein: 0, fat: 0, carbs: 0, fiber: 0 },
+  );
   return {
-    kcal: Math.round(one((m) => m.kcal) * servings),
-    protein: Math.round(one((m) => m.protein) * servings),
-    fat: Math.round(one((m) => m.fat) * servings),
-    carbs: Math.round(one((m) => m.carbs) * servings),
-    fiber: Math.round(one((m) => m.fiber) * servings * 10) / 10,
+    kcal: Math.round(total.kcal * k),
+    protein: Math.round(total.protein * k),
+    fat: Math.round(total.fat * k),
+    carbs: Math.round(total.carbs * k),
+    fiber: Math.round(total.fiber * k * 10) / 10,
   };
 }

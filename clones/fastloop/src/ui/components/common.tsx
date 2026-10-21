@@ -90,21 +90,29 @@ export function ChartIcon(): JSX.Element {
   );
 }
 
+/** An open book. The previous one left its second page as a loose stroke. */
 export function BookIcon(): JSX.Element {
   return (
     <svg {...ICON_PROPS}>
-      <path d="M5 4.5h8a3 3 0 0 1 3 3V20a2.5 2.5 0 0 0-2.5-2.5H5z" />
-      <path d="M19 6.5V20a2.5 2.5 0 0 0-2.5-2.5H16" />
+      <path d="M12 7.2v12.3" />
+      <path d="M12 7.2C10.5 5.9 8.6 5.3 6 5.3H3.4v12.4H6c2.6 0 4.5.6 6 1.8" />
+      <path d="M12 7.2c1.5-1.3 3.4-1.9 6-1.9h2.6v12.4H18c-2.6 0-4.5.6-6 1.8" />
     </svg>
   );
 }
 
+/**
+ * Fork and knife. The chef's hat it replaces had a brim narrower than its
+ * crown, which at 22 pixels read as a jar with a lid — and this tab is a
+ * food diary now, not only a recipe book.
+ */
 export function ChefIcon(): JSX.Element {
   return (
     <svg {...ICON_PROPS}>
-      <path d="M7.5 11.5a4 4 0 1 1 2.2-7.3 4.2 4.2 0 0 1 8.6 0 4 4 0 1 1 2.2 7.3z" />
-      <path d="M7.5 11.5V19a1.5 1.5 0 0 0 1.5 1.5h6a1.5 1.5 0 0 0 1.5-1.5v-7.5" />
-      <path d="M7.8 15.5h8.4" />
+      <path d="M7 3v5.5M10.4 3v5.5" />
+      <path d="M7 8.5h3.4" />
+      <path d="M8.7 8.5V21" />
+      <path d="M16.6 3c-1.3 1.9-2 3.8-2 5.7 0 1.5.7 2.4 2 2.5V21" />
     </svg>
   );
 }

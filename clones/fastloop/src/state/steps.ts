@@ -14,6 +14,8 @@ export interface NativeBridge {
   diagnostics?(): string;
   /** Android night mode; absent in builds before 0.10.0. */
   isNightMode?(): boolean;
+  /** Feeds the home-screen widgets; absent in builds before 0.14.0. */
+  publishWidgetState?(json: string): void;
 }
 
 declare global {

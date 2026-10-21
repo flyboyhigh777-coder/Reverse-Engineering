@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { refreshIfStale } from '../state/content';
 import { getState, useAppState } from '../state/store';
+import { publishWidgetState } from '../state/widget';
 import { applyTheme } from '../state/theme';
 import { Analyzing } from './onboarding/Analyzing';
 import { PlanReveal } from './onboarding/PlanReveal';
@@ -36,6 +37,11 @@ export function App(): JSX.Element {
   useEffect(() => {
     refreshIfStale();
   }, []);
+
+  // Hand the widgets a fresh summary whenever anything they show changes.
+  useEffect(() => {
+    publishWidgetState(state);
+  }, [state]);
 
   useEffect(() => {
     applyTheme(theme);

@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <color name="window_bg">#0B1413</color>
+
+  <color name="w_surface">#13201E</color>
+  <color name="w_ink">#E9F1EF</color>
+  <color name="w_ink_2">#A4B9B5</color>
+  <color name="w_ink_3">#74908B</color>
+  <color name="w_accent">#4FC3B5</color>
+  <color name="w_warm">#E8963F</color>
+  <color name="w_track">#223431</color>
+  <color name="w_line">#253633</color>
 </resources>

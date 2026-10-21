@@ -3,4 +3,15 @@
   <!-- Same value as the stylesheet's background token, so the window does
        not flash a different colour before the page paints. -->
   <color name="window_bg">#EEF2F1</color>
+
+  <!-- Widget palette, mirroring the stylesheet tokens so a widget sitting
+       next to the app does not look like a different product. -->
+  <color name="w_surface">#FFFFFF</color>
+  <color name="w_ink">#0F201E</color>
+  <color name="w_ink_2">#42605B</color>
+  <color name="w_ink_3">#78918C</color>
+  <color name="w_accent">#0E7C7B</color>
+  <color name="w_warm">#B85C15</color>
+  <color name="w_track">#DBE5E3</color>
+  <color name="w_line">#D2DEDB</color>
 </resources>

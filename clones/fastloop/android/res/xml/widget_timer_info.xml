@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  updatePeriodMillis is 0 on purpose: the countdown is a Chronometer, which
+  ticks on its own, and everything else is pushed by the app when it changes.
+  A polling interval would cost battery to redraw numbers that did not move.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_timer"
+    android:description="@string/widget_timer_desc"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen" />

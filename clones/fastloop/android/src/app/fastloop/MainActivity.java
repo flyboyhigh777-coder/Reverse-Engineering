@@ -247,6 +247,20 @@ public class MainActivity extends Activity {
       });
     }
 
+    /**
+     * The page hands over a small summary for the home-screen widgets.
+     *
+     * The widgets cannot read the WebView's storage, so this is the only way
+     * their numbers exist outside the app. Stored as the page sent it and
+     * parsed when a widget is drawn — storing it already parsed would mean
+     * migrating the stored shape every time a field is added.
+     */
+    @JavascriptInterface
+    public void publishWidgetState(String json) {
+      if (json == null || json.length() > 8192) return;
+      Widgets.store(MainActivity.this, json);
+    }
+
     @JavascriptInterface
     public boolean isNightMode() {
       return MainActivity.this.isNightMode();

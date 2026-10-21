@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <string name="app_name">FastLoop</string>
+  <string name="widget_timer_name">Таймер голодания</string>
+  <string name="widget_timer_desc">Сколько осталось до конца окна</string>
+  <string name="widget_summary_name">Голодание, вода, шаги</string>
+  <string name="widget_summary_desc">Таймер и дневные нормы в одном месте</string>
 </resources>

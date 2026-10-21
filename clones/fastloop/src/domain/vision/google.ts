@@ -3,11 +3,11 @@ import {
   NO_FOOD_IN_PHOTO,
   NO_FOOD_IN_TEXT,
   NO_NETWORK,
-  PHOTO_PROMPT,
   TEXT_PROMPT,
   UNREADABLE,
   extractJson,
   parseDataUrl,
+  photoPrompt,
   toGuesses,
 } from './contract';
 import type { KeyCheck, VisionProvider, VisionResult } from './contract';
@@ -24,6 +24,32 @@ import type { KeyCheck, VisionProvider, VisionResult } from './contract';
 const BASE = 'https://generativelanguage.googleapis.com/v1beta';
 /** Used only until a key is checked and the real list comes back. */
 const FALLBACK_MODEL = 'models/gemini-2.0-flash';
+
+/** The shape of an answer, stated to the API rather than asked for in prose. */
+const ANSWER_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    items: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          name: { type: 'STRING' },
+          grams: { type: 'NUMBER' },
+          kcal: { type: 'NUMBER' },
+          protein: { type: 'NUMBER' },
+          fat: { type: 'NUMBER' },
+          carbs: { type: 'NUMBER' },
+          fiber: { type: 'NUMBER' },
+          note: { type: 'STRING' },
+          confidence: { type: 'STRING', enum: ['high', 'medium', 'low'] },
+        },
+        required: ['name', 'grams', 'kcal', 'protein', 'fat', 'carbs', 'confidence'],
+      },
+    },
+  },
+  required: ['items'],
+};
 
 function headers(apiKey: string): Record<string, string> {
   // The key goes in a header rather than the query string, so it never ends
@@ -129,7 +155,15 @@ async function ask(apiKey: string, model: string, parts: unknown[], signal?: Abo
       headers: headers(apiKey),
       body: JSON.stringify({
         contents: [{ role: 'user', parts }],
-        generationConfig: { maxOutputTokens: 900, temperature: 0.2, responseMimeType: 'application/json' },
+        generationConfig: {
+          // 900 was not enough for a table with three dishes on it, and a
+          // reply cut off at the limit is unparseable however good the
+          // parser is — the person just saw "не удалось разобрать еду".
+          maxOutputTokens: 2000,
+          temperature: 0.2,
+          responseMimeType: 'application/json',
+          responseSchema: ANSWER_SCHEMA,
+        },
       }),
     });
   } catch {
@@ -186,13 +220,13 @@ export const google: VisionProvider = {
     return guesses.length === 0 ? { kind: 'error', reason: NO_FOOD_IN_TEXT } : { kind: 'ok', guesses };
   },
 
-  async recognise(apiKey, model, dataUrl, signal) {
+  async recognise(apiKey, model, dataUrl, context, signal) {
     const image = parseDataUrl(dataUrl);
     if (!image) return { kind: 'error', reason: 'Снимок не удалось прочитать.' };
     const answer = await ask(
       apiKey,
       model,
-      [{ inline_data: { mime_type: image.mediaType, data: image.base64 } }, { text: PHOTO_PROMPT }],
+      [{ inline_data: { mime_type: image.mediaType, data: image.base64 } }, { text: photoPrompt(context) }],
       signal,
     );
     if ('kind' in answer) return answer;

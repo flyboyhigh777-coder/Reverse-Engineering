@@ -56,8 +56,48 @@ export interface VisionProvider {
   readonly model: string;
   check(apiKey: string, signal?: AbortSignal): Promise<KeyCheck>;
   describe(apiKey: string, model: string, text: string, signal?: AbortSignal): Promise<VisionResult>;
-  recognise(apiKey: string, model: string, dataUrl: string, signal?: AbortSignal): Promise<VisionResult>;
+  recognise(apiKey: string, model: string, dataUrl: string, context?: ShotContext, signal?: AbortSignal): Promise<VisionResult>;
 }
+
+/**
+ * What the app already knows at the moment of the shot.
+ *
+ * None of it costs the person a tap: the meal was chosen before the camera
+ * opened, the clock is on the phone, and the app is a fasting tracker, so it
+ * knows how long the pause was. Context measurably narrows the guess — a
+ * porridge at eight in the morning and the same porridge at eleven at night
+ * are different portions — and it is phrased as fact rather than as an
+ * expectation, so it informs the estimate instead of anchoring it.
+ */
+export interface ShotContext {
+  /** «завтрак», «ужин» … */
+  readonly meal: string;
+  /** Local time, as the phone shows it. */
+  readonly time: string;
+  /** Hours since the last meal, when a fast is running. */
+  readonly fastedHours: number | null;
+  /** Whatever the person typed beside the photograph. */
+  readonly hint: string;
+}
+
+/**
+ * The rule that fights the one error this whole category makes.
+ *
+ * Independent tests keep finding the same bias, and always in one direction:
+ * roughly a third of the fat is missed, which is a few hundred calories a
+ * meal — a whole day's deficit for someone counting. The reason is physical:
+ * the oil a thing was fried in is not visible in the finished dish. Asking
+ * the model to name its assumption was not enough, because it was free to
+ * assume nothing; now it has to assume something and say what.
+ */
+const FAT_RULE = `- Жир приготовления. Если блюдо выглядит жареным, тушёным, запечённым или заправленным, включи масло или жир в расчёт, даже если его не видно, и назови в note принятое количество («масло принято 1 ст. л.»). При сомнении бери верхнюю границу обычного, а не нижнюю: такие оценки почти всегда занижают жир. Варёному, приготовленному на пару и сырому жира не приписывай.`;
+
+const SHARED_RULES = `- Отдельная запись на каждое блюдо или продукт, которые логично считать отдельно. Если это одно блюдо (например плов), не разбивай его на крупу, мясо и морковь.
+- Значения kcal, protein, fat, carbs, fiber — для указанной порции целиком, НЕ на 100 г.
+- name — по-русски, коротко, как назвал бы человек.
+${FAT_RULE}
+- note — одной фразой: что ты видишь и какие допущения сделал.
+- confidence — low, если состав, способ приготовления или количество понять трудно.`;
 
 export const TEXT_PROMPT = `Ты оцениваешь по описанию, что человек съел, для дневника питания.
 
@@ -71,23 +111,55 @@ export const TEXT_PROMPT = `Ты оцениваешь по описанию, ч�
 - grams — оценка веса готовой порции целиком, в граммах.
 - Значения kcal, protein, fat, carbs, fiber — для всей порции, НЕ на 100 г.
 - Когда количество не указано, бери обычную домашнюю порцию и скажи об этом в note.
+${FAT_RULE}
 - note — одной фразой: какие допущения сделаны (например «масло взято 1 ст. л.», «порция принята за 300 г»).
 - confidence — low, если состав или количество по описанию понять трудно.
 - Если в тексте нет еды, верни {"items":[]}.`;
 
-export const PHOTO_PROMPT = `Ты оцениваешь еду на фотографии для дневника питания.
+/**
+ * The photograph prompt, built around the one measurement people can give
+ * the model for free: a unit.
+ *
+ * Told to judge size «by the plate and the cutlery» a model falls back on
+ * its own idea of an average portion. Told to measure in plate diameters,
+ * fork lengths and finger widths it does far better — in a study of 67
+ * people the finger-width method put about 80% of estimates inside ±25%
+ * against 29% for household measures. The instruction not to read text in
+ * the frame is there because a price tag or a menu behind the plate pulls
+ * the answer away from what is actually on it.
+ */
+export function photoPrompt(context?: ShotContext): string {
+  const facts: string[] = [];
+  if (context) {
+    const when = context.time === '' ? '' : ` в ${context.time}`;
+    facts.push(`Снимок сделан для приёма пищи «${context.meal}»${when}.`);
+    if (context.fastedHours !== null && context.fastedHours >= 1) {
+      facts.push(`Это первый приём после паузы примерно в ${Math.round(context.fastedHours)} ч без еды — порция может быть крупнее обычной, но может и не быть.`);
+    }
+  }
+  const said = context && context.hint.trim() !== ''
+    ? `
+
+Человек добавил про это блюдо: «${context.hint.trim()}». Его словам о составе и способе приготовления верь больше, чем виду на снимке: он это готовил, ты — нет.`
+    : '';
+  const where = facts.length > 0 ? `
+
+Что известно помимо снимка: ${facts.join(' ')}` : '';
+
+  return `Ты оцениваешь еду на фотографии для дневника питания.
 
 Верни ТОЛЬКО JSON, без markdown и без пояснений вокруг, в таком виде:
 {"items":[{"name":"","grams":0,"kcal":0,"protein":0,"fat":0,"carbs":0,"fiber":0,"note":"","confidence":"high|medium|low"}]}
 
 Правила:
-- Отдельная запись на каждое блюдо или продукт, которые логично считать отдельно. Если это одно блюдо (например плов), не разбивай его на крупу, мясо и морковь.
-- grams — оценка веса порции на фото, в граммах. Опирайся на размер тарелки, приборов и других предметов рядом.
-- Значения kcal, protein, fat, carbs, fiber — для указанной порции целиком, НЕ на 100 г.
-- name — по-русски, коротко, как назвал бы человек.
-- note — одной фразой: что именно ты видишь и какое допущение сделал (например «жирность мяса неизвестна, взята средняя»).
-- confidence — low, если блюдо закрыто, снято под углом или состав непонятен.
-- Если еды на фото нет, верни {"items":[]}.`;
+${SHARED_RULES}
+- grams — оценка веса порции на фото. Меряй размер не на глаз, а относительно видимых предметов: в диаметрах тарелки, длинах вилки или ложки, ширинах пальца. Сначала прикинь объём порции в этих единицах, потом переведи в граммы.
+- Не читай надписи, ценники, меню и цифры, попавшие в кадр: они относятся не к этой тарелке. Оценивай только то, что видно глазами.
+- Если еды на фото нет, верни {"items":[]}.${where}${said}`;
+}
+
+/** Kept for the rare caller that needs the plain text with no context. */
+export const PHOTO_PROMPT = photoPrompt();
 
 export interface ImageData {
   readonly mediaType: string;
@@ -182,7 +254,19 @@ export const NO_FOOD_IN_TEXT =
 export const NO_NETWORK = 'Не получилось связаться с сервером. Проверьте интернет.';
 export const UNREADABLE = 'Ответ сервера не читается.';
 
+/**
+ * What a photograph cannot do, however good the model gets.
+ *
+ * Three of these are physics rather than engineering: what is dissolved in
+ * the dish is not in the frame, depth is not in a single view, and a model
+ * is not deterministic. Saying so is not modesty — it is the difference
+ * between a number someone sanity-checks and a number they believe.
+ */
 export const VISION_NOTE =
-  'Оценка по фотографии — это оценка, а не взвешивание. Модель не видит, сколько масла ушло в сковороду и какой жирности было мясо, ' +
-  'поэтому цифры стоит проверять глазами и править перед записью. Ближе к правде получается, когда в кадре видна вся тарелка и рядом есть ' +
-  'предмет известного размера — вилка, ложка, стакан.';
+  'Камера видит поверхность, а не состав. Масло, ушедшее в сковороду, жирность молока или творога, сахар в компоте — ' +
+  'этого в кадре нет физически, поэтому по снимку почти всегда выходит меньше, чем было, и промахивается в первую ' +
+  'очередь жир. Одна фраза о том, как вы готовили, помогает здесь больше, чем смена модели. Глубину по одному кадру ' +
+  'тоже не видно: горка риса и тонкий слой на той же тарелке выглядят одинаково. И одно и то же блюдо в разные дни ' +
+  'даст разные числа — это свойство метода, а не признак того, что вы съели больше. Поэтому отдельной записи верить ' +
+  'как измерению нельзя; смотреть стоит на среднее за неделю. Когда точность нужна по-настоящему — нужны весы и ' +
+  'этикетка, а не камера.';

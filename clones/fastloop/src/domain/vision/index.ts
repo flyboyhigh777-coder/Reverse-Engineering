@@ -2,7 +2,7 @@ import { anthropic } from './anthropic';
 import { google } from './google';
 import type { ProviderId, VisionProvider } from './contract';
 
-export type { Guess, KeyCheck, ProviderId, VisionProvider, VisionResult } from './contract';
+export type { Guess, KeyCheck, ProviderId, ShotContext, VisionProvider, VisionResult } from './contract';
 export { VISION_NOTE, scaleGuess } from './contract';
 
 /**

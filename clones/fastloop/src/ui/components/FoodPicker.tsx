@@ -9,9 +9,9 @@ import { OFF_NOTE, lookupBarcode, searchOnline } from '../../domain/openFoodFact
 import type { Macros, Recipe } from '../../domain/recipes';
 import type { MealSlot } from '../../domain/types';
 import { DEFAULT_PROVIDER, VISION_NOTE, VISION_PROVIDERS, providerById, scaleGuess } from '../../domain/vision';
-import type { Guess, ProviderId, VisionResult } from '../../domain/vision';
+import type { Guess, ProviderId, ShotContext, VisionResult } from '../../domain/vision';
 import { useContent } from '../../state/content';
-import { actions } from '../../state/store';
+import { actions, useAppState } from '../../state/store';
 import { readVisionAccess, writeVisionAccess } from '../../state/visionKey';
 import type { VisionAccess } from '../../state/visionKey';
 import { DishArt } from './DishArt';
@@ -633,9 +633,12 @@ type AiMode = 'text' | 'photo';
  * a fraction as much to send.
  */
 function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: () => void }): JSX.Element {
+  const state = useAppState();
   const [access, setAccess] = useState<VisionAccess | null>(() => readVisionAccess());
   const [mode, setMode] = useState<AiMode>('text');
   const [text, setText] = useState(seed);
+  /** Said beside the photograph: what the camera cannot see. */
+  const [hint, setHint] = useState('');
   const input = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -664,6 +667,37 @@ function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: (
     }
   };
 
+  /**
+   * What the app knows without asking: which meal, what time, and — being a
+   * fasting tracker — how long the pause was. None of it costs a tap.
+   */
+  const shotContext = (): ShotContext => {
+    const now = Date.now();
+    const fasted = state.current ? (now - state.current.startedAt) / 3_600_000 : null;
+    return {
+      meal: SLOT_LABEL[where],
+      time: new Date(now).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      fastedHours: fasted !== null && fasted >= 1 ? fasted : null,
+      hint,
+    };
+  };
+
+  /** The frame is almost never useless: two words from the person fix it. */
+  const reshoot = async () => {
+    if (!preview) return;
+    setError(null);
+    setGuesses(null);
+    setItems(null);
+    setBusy(true);
+    const result = await provider.recognise(access.key, model, preview, shotContext());
+    setBusy(false);
+    if (result.kind === 'error') setError(result.reason);
+    else {
+      setGuesses(result.guesses);
+      setItems(result.guesses);
+    }
+  };
+
   const shoot = async (file: File) => {
     setError(null);
     setGuesses(null);
@@ -672,7 +706,7 @@ function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: (
     try {
       const dataUrl = await toDataUrl(file);
       setPreview(dataUrl);
-      const result = await provider.recognise(access.key, model, dataUrl);
+      const result = await provider.recognise(access.key, model, dataUrl, shotContext());
       if (result.kind === 'error') setError(result.reason);
       else {
         setGuesses(result.guesses);
@@ -749,10 +783,32 @@ function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: (
               alt="Снимок блюда"
               style={{ width: '100%', borderRadius: 14, display: 'block', maxHeight: 220, objectFit: 'cover' }}
             />
-          ) : null}
+          ) : (
+            <p className="tiny muted">
+              Вся тарелка в кадре, съёмка сверху под углом примерно 45°, рядом вилка или ложка — по ним считается размер
+              порции. Эти три вещи дают больше точности, чем любая модель.
+            </p>
+          )}
           <button type="button" className="btn block" disabled={busy} onClick={() => input.current?.click()}>
             {busy ? 'Смотрю на снимок…' : preview ? 'Другой снимок' : 'Сфотографировать блюдо'}
           </button>
+
+          <input
+            id="ai-hint"
+            type="text"
+            placeholder="Необязательно: что это и как готовили"
+            value={hint}
+            onChange={(event) => setHint(event.target.value)}
+          />
+          <p className="tiny muted">
+            Масло в сковороде, жирность молока, заправка в салате — этого на снимке нет, а в калориях это больше
+            половины ошибки. Одна фраза здесь весит больше, чем ещё один кадр.
+          </p>
+          {preview && !busy ? (
+            <button type="button" className="btn ghost sm" onClick={() => void reshoot()}>
+              Спросить ещё раз с этим же снимком
+            </button>
+          ) : null}
         </>
       )}
 

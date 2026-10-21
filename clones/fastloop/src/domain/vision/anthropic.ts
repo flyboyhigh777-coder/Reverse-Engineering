@@ -3,11 +3,11 @@ import {
   NO_FOOD_IN_PHOTO,
   NO_FOOD_IN_TEXT,
   NO_NETWORK,
-  PHOTO_PROMPT,
   TEXT_PROMPT,
   UNREADABLE,
   extractJson,
   parseDataUrl,
+  photoPrompt,
   toGuesses,
 } from './contract';
 import type { KeyCheck, VisionProvider, VisionResult } from './contract';
@@ -52,7 +52,9 @@ async function ask(apiKey: string, model: string, content: unknown, signal?: Abo
       method: 'POST',
       signal,
       headers: headers(apiKey),
-      body: JSON.stringify({ model, max_tokens: 900, messages: [{ role: 'user', content }] }),
+      // A reply cut off at the limit is unparseable however good the parser
+      // is, and a table with three dishes on it does not fit in 900.
+      body: JSON.stringify({ model, max_tokens: 2000, messages: [{ role: 'user', content }] }),
     });
   } catch {
     return { kind: 'error', reason: NO_NETWORK };
@@ -105,7 +107,7 @@ export const anthropic: VisionProvider = {
     return guesses.length === 0 ? { kind: 'error', reason: NO_FOOD_IN_TEXT } : { kind: 'ok', guesses };
   },
 
-  async recognise(apiKey, model, dataUrl, signal) {
+  async recognise(apiKey, model, dataUrl, context, signal) {
     const image = parseDataUrl(dataUrl);
     if (!image) return { kind: 'error', reason: 'Снимок не удалось прочитать.' };
     const answer = await ask(
@@ -113,7 +115,7 @@ export const anthropic: VisionProvider = {
       model,
       [
         { type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.base64 } },
-        { type: 'text', text: PHOTO_PROMPT },
+        { type: 'text', text: photoPrompt(context) },
       ],
       signal,
     );

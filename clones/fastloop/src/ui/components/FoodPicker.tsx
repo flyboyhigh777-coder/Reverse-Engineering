@@ -6,10 +6,10 @@ import { OFF_NOTE, lookupBarcode, searchOnline } from '../../domain/openFoodFact
 import { RECIPES } from '../../domain/recipes';
 import type { Macros, Recipe } from '../../domain/recipes';
 import type { MealSlot } from '../../domain/types';
-import { VISION_NOTE, recogniseFood } from '../../domain/vision';
+import { VISION_NOTE, checkKey, recogniseFood } from '../../domain/vision';
 import type { Guess } from '../../domain/vision';
 import { actions } from '../../state/store';
-import { readVisionKey } from '../../state/visionKey';
+import { readVisionKey, writeVisionKey } from '../../state/visionKey';
 import { ArtTile } from './FoodArt';
 import { Sheet } from './common';
 
@@ -454,8 +454,58 @@ async function toDataUrl(file: File): Promise<string> {
   return canvas.toDataURL('image/jpeg', 0.72);
 }
 
+/** Turning the camera on where the camera is, rather than in a settings screen. */
+function KeySetup({ onReady }: { onReady: (key: string) => void }): JSX.Element {
+  const [draft, setDraft] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const save = async () => {
+    const candidate = draft.trim();
+    setChecking(true);
+    setError(null);
+    const result = await checkKey(candidate);
+    setChecking(false);
+    if (!result.ok) {
+      setError(result.reason);
+      return;
+    }
+    writeVisionKey(candidate);
+    onReady(candidate);
+  };
+
+  return (
+    <>
+      <p className="tiny">
+        Распознавание еды по фотографии делает Claude, и для него нужен ваш собственный ключ. Пока ключа нет,
+        приложение не обращается к нему вообще.
+      </p>
+      <p className="banner tiny">
+        console.anthropic.com → Settings → API keys → Create key. Пополнить баланс на минимальную сумму и скопировать
+        строку, которая начинается на sk-ant-. Одно фото стоит доли цента.
+      </p>
+      <input
+        id="photo-key"
+        type="password"
+        autoComplete="off"
+        placeholder="sk-ant-..."
+        value={draft}
+        onChange={(event) => {
+          setDraft(event.target.value);
+          setError(null);
+        }}
+      />
+      <button type="button" className="btn block" disabled={draft.trim() === '' || checking} onClick={() => void save()}>
+        {checking ? 'Проверяю ключ…' : 'Включить камеру'}
+      </button>
+      {error ? <p className="banner tiny" style={{ color: 'var(--warn)' }}>{error}</p> : null}
+      <p className="tiny muted">{VISION_NOTE}</p>
+    </>
+  );
+}
+
 function PhotoTab({ slot, onDone }: { slot: MealSlot; onDone: () => void }): JSX.Element {
-  const key = readVisionKey();
+  const [key, setKey] = useState<string | null>(() => readVisionKey());
   const input = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -463,21 +513,7 @@ function PhotoTab({ slot, onDone }: { slot: MealSlot; onDone: () => void }): JSX
   const [guesses, setGuesses] = useState<readonly Guess[] | null>(null);
   const [where, setWhere] = useState<MealSlot>(slot);
 
-  if (!key) {
-    return (
-      <>
-        <p className="tiny">
-          Распознавание еды по фотографии работает через Claude и требует вашего собственного ключа API. Пока ключа нет,
-          приложение не выходит в сеть вообще — ни одного запроса никуда.
-        </p>
-        <p className="banner tiny">
-          Включается в профиле: «ИИ-камера» → вставить ключ с console.anthropic.com. Каждое фото — отдельный платный
-          запрос у вас на счету, обычно это доли цента. Снимок уходит в Anthropic и нигде не сохраняется.
-        </p>
-        <p className="tiny muted">{VISION_NOTE}</p>
-      </>
-    );
-  }
+  if (!key) return <KeySetup onReady={setKey} />;
 
   const run = async (file: File) => {
     setError(null);

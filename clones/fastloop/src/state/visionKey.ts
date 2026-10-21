@@ -1,3 +1,6 @@
+import { DEFAULT_PROVIDER } from '../domain/vision';
+import type { ProviderId } from '../domain/vision';
+
 /**
  * The API key lives on its own, outside the app state.
  *
@@ -6,21 +9,47 @@
  * of those remembered to strip it, but because it was never in there.
  */
 
-const KEY = 'fastloop.vision.key';
+/** v1 held a bare Anthropic key; v2 holds who it is for and which model. */
+const LEGACY = 'fastloop.vision.key';
+const KEY = 'fastloop.vision.v2';
 
-export function readVisionKey(): string | null {
+export interface VisionAccess {
+  readonly provider: ProviderId;
+  readonly key: string;
+  /** Chosen when the key was checked, because providers retire model names. */
+  readonly model: string | null;
+}
+
+export function readVisionAccess(): VisionAccess | null {
   try {
     const raw = globalThis.localStorage?.getItem(KEY);
-    return raw && raw.trim() !== '' ? raw : null;
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<VisionAccess>;
+      const key = typeof parsed.key === 'string' ? parsed.key.trim() : '';
+      if (key === '') return null;
+      return {
+        provider: parsed.provider === 'anthropic' || parsed.provider === 'google' ? parsed.provider : DEFAULT_PROVIDER,
+        key,
+        model: typeof parsed.model === 'string' && parsed.model !== '' ? parsed.model : null,
+      };
+    }
+    // Somebody who already pasted an Anthropic key keeps it.
+    const legacy = globalThis.localStorage?.getItem(LEGACY);
+    if (legacy && legacy.trim() !== '') return { provider: 'anthropic', key: legacy.trim(), model: null };
+    return null;
   } catch {
     return null;
   }
 }
 
-export function writeVisionKey(key: string | null): void {
+export function writeVisionAccess(access: VisionAccess | null): void {
   try {
-    if (key && key.trim() !== '') globalThis.localStorage?.setItem(KEY, key.trim());
-    else globalThis.localStorage?.removeItem(KEY);
+    if (access && access.key.trim() !== '') {
+      globalThis.localStorage?.setItem(KEY, JSON.stringify({ ...access, key: access.key.trim() }));
+    } else {
+      globalThis.localStorage?.removeItem(KEY);
+    }
+    globalThis.localStorage?.removeItem(LEGACY);
   } catch {
     /* Storage unavailable — the key simply does not persist. */
   }

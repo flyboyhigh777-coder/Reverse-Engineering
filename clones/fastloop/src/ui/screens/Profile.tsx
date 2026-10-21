@@ -6,8 +6,10 @@ import { formatWeight, waterTargetMl } from '../../domain/metrics';
 import { actions, useAppState } from '../../state/store';
 import { THEME_LABELS, hasNativeTheme } from '../../state/theme';
 import type { ThemePreference } from '../../state/theme';
-import { VISION_MODEL, VISION_NOTE, checkKey } from '../../domain/vision';
-import { maskKey, readVisionKey, writeVisionKey } from '../../state/visionKey';
+import { DEFAULT_PROVIDER, VISION_NOTE, VISION_PROVIDERS, providerById } from '../../domain/vision';
+import type { ProviderId } from '../../domain/vision';
+import { maskKey, readVisionAccess, writeVisionAccess } from '../../state/visionKey';
+import type { VisionAccess } from '../../state/visionKey';
 import { DEFAULT_URL, refreshContent, setContentUrl, useContent } from '../../state/content';
 import { findAllPhotos, forgetPhotos, setPhotosEnabled, usePhotoStats, usePhotosEnabled } from '../../state/photos';
 import { BackupSheet } from '../components/BackupSheet';
@@ -329,58 +331,102 @@ function ContentCard(): JSX.Element {
  * nothing leaves the phone is true for anyone who never opens this card.
  */
 function VisionCard(): JSX.Element {
-  const [key, setKey] = useState<string | null>(() => readVisionKey());
+  const [access, setAccess] = useState<VisionAccess | null>(() => readVisionAccess());
+  const [chosen, setChosen] = useState<ProviderId>(() => readVisionAccess()?.provider ?? DEFAULT_PROVIDER);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const [verdict, setVerdict] = useState<{ ok: boolean; text: string } | null>(null);
   const [checking, setChecking] = useState(false);
 
-  const verify = async (candidate: string) => {
+  const active = access ? providerById(access.provider) : providerById(chosen);
+  const shown = access && !editing ? active : providerById(chosen);
+
+  const verify = async (provider: ProviderId, candidate: string) => {
     setChecking(true);
     setVerdict(null);
-    const result = await checkKey(candidate);
+    const result = await providerById(provider).check(candidate);
     setChecking(false);
-    setVerdict(result.ok ? { ok: true, text: 'Ключ работает — камера готова.' } : { ok: false, text: result.reason });
+    if (result.ok) {
+      const saved: VisionAccess = { provider, key: candidate, model: result.model ?? null };
+      writeVisionAccess(saved);
+      setAccess(saved);
+      setVerdict({ ok: true, text: `Ключ работает — камера готова. Модель: ${saved.model ?? providerById(provider).model}.` });
+    } else {
+      setVerdict({ ok: false, text: result.reason });
+    }
   };
 
   return (
     <Card>
       <div className="row between">
         <span className="eyebrow">ИИ-камера</span>
-        <span className={key ? 'pill accent' : 'pill'}>{key ? 'включена' : 'выключена'}</span>
+        <span className={access ? 'pill accent' : 'pill'}>{access ? 'включена' : 'выключена'}</span>
       </div>
       <p className="tiny muted">
-        Распознаёт блюдо на фотографии и оценивает калории и БЖУ. Работает через Claude ({VISION_MODEL}) и требует вашего
-        ключа с console.anthropic.com. Каждое фото — платный запрос на вашем счету.
-      </p>
-      <p className="tiny muted">
-        Где взять: console.anthropic.com → Settings → API keys → Create key, пополнить баланс на минимальную сумму и
-        скопировать строку, начинающуюся на sk-ant-. Снимок уходит в Anthropic в момент распознавания; ни фото, ни ответ
-        нигде не сохраняются, а ключ не попадает в резервную копию.
+        Распознаёт блюдо на фотографии и оценивает калории и БЖУ. Своего сервера у приложения нет, поэтому нужен ваш
+        ключ — выберите, чей. Снимок уходит выбранному сервису в момент распознавания; ни фото, ни ответ нигде не
+        сохраняются, а ключ не попадает в резервную копию.
       </p>
 
-      {key && !editing ? (
+      {!access || editing ? (
+        <div className="row wrap" style={{ gap: 7 }}>
+          {VISION_PROVIDERS.map((provider) => (
+            <button
+              key={provider.id}
+              type="button"
+              className="chip"
+              aria-pressed={chosen === provider.id}
+              onClick={() => {
+                setChosen(provider.id);
+                setVerdict(null);
+              }}
+            >
+              {provider.title}
+              <span className={provider.free ? 'pill accent' : 'pill'} style={{ fontSize: 10 }}>
+                {provider.free ? 'бесплатно' : 'платно'}
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      <p className="tiny muted">
+        <strong>{shown.cost}</strong> Где взять: {shown.where}
+      </p>
+
+      {access && !editing ? (
         <>
           <div className="row wrap" style={{ gap: 8 }}>
-            <span className="pill num">{maskKey(key)}</span>
-            <button type="button" className="btn sm" disabled={checking} onClick={() => void verify(key)}>
+            <span className="pill">{active.title}</span>
+            <span className="pill num">{maskKey(access.key)}</span>
+            <button type="button" className="btn sm" disabled={checking} onClick={() => void verify(access.provider, access.key)}>
               {checking ? 'Проверяю…' : 'Проверить ключ'}
             </button>
-            <button type="button" className="btn ghost sm" onClick={() => { setEditing(true); setDraft(''); setVerdict(null); }}>
+            <button
+              type="button"
+              className="btn ghost sm"
+              onClick={() => {
+                setEditing(true);
+                setChosen(access.provider);
+                setDraft('');
+                setVerdict(null);
+              }}
+            >
               Заменить
             </button>
             <button
               type="button"
               className="btn ghost sm"
               onClick={() => {
-                writeVisionKey(null);
-                setKey(null);
+                writeVisionAccess(null);
+                setAccess(null);
                 setVerdict(null);
               }}
             >
               Удалить
             </button>
           </div>
+          {access.model ? <span className="tiny muted num">Модель: {access.model}</span> : null}
           {verdict ? (
             <p className="banner tiny" style={verdict.ok ? { color: 'var(--good)' } : { color: 'var(--warn)' }}>
               {verdict.text}
@@ -393,7 +439,7 @@ function VisionCard(): JSX.Element {
             id="vision-key"
             type="password"
             autoComplete="off"
-            placeholder="sk-ant-..."
+            placeholder={shown.keyHint}
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
           />
@@ -404,21 +450,24 @@ function VisionCard(): JSX.Element {
               disabled={draft.trim() === '' || checking}
               onClick={() => {
                 const candidate = draft.trim();
-                writeVisionKey(candidate);
-                setKey(readVisionKey());
                 setEditing(false);
                 setDraft('');
-                void verify(candidate);
+                void verify(chosen, candidate);
               }}
             >
               {checking ? 'Проверяю…' : 'Сохранить и проверить'}
             </button>
-            {key ? (
+            {access ? (
               <button type="button" className="btn ghost sm" onClick={() => setEditing(false)}>
                 Отмена
               </button>
             ) : null}
           </div>
+          {verdict ? (
+            <p className="banner tiny" style={verdict.ok ? { color: 'var(--good)' } : { color: 'var(--warn)' }}>
+              {verdict.text}
+            </p>
+          ) : null}
         </div>
       )}
 

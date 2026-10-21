@@ -109,10 +109,18 @@ export interface Picked {
  * first — so position is worth a few points, enough to break ties but never
  * enough to beat a genuine name match further down.
  */
-export function pick(list: readonly CommonsFile[], must: readonly string[]): Picked | null {
+export function pick(
+  list: readonly CommonsFile[],
+  must: readonly string[],
+  taken: ReadonlySet<string> = new Set(),
+): Picked | null {
   let best: Picked | null = null;
   for (let index = 0; index < list.length; index += 1) {
     const item = list[index];
+    // Neighbouring dishes share tokens — both tuna salads match «tuna» — so
+    // the best file for one is often the best file for the other. Taking the
+    // runner-up keeps two cards from showing the same plate.
+    if (taken.has(item.thumb)) continue;
     if (!/^image\/(jpeg|png|webp)$/.test(item.mime)) continue;
     if (item.width > 0 && item.width < 420) continue;
     const title = item.title.toLowerCase();
@@ -136,9 +144,13 @@ export function pick(list: readonly CommonsFile[], must: readonly string[]): Pic
 export function chooseCommonsFile(
   payload: unknown,
   must: readonly string[],
+  taken: ReadonlySet<string> = new Set(),
 ): { readonly file: CommonsFile } | { readonly failure: PickFailure } {
   const files = commonsFiles(payload);
   if (files.length === 0) return { failure: 'нет результатов' };
-  const picked = pick(files, must);
-  return picked === null ? { failure: 'ничего не подошло' } : { file: picked.file };
+  const picked = pick(files, must, taken);
+  // Rather than leave a card empty for the sake of the rule, a dish that has
+  // no candidate of its own falls back to the shared one.
+  const chosen = picked ?? pick(files, must);
+  return chosen === null ? { failure: 'ничего не подошло' } : { file: chosen.file };
 }

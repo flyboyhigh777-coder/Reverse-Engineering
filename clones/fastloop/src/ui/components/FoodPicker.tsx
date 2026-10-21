@@ -8,11 +8,12 @@ import { SLOT_LABEL, MEAL_SLOTS, forGrams } from '../../domain/nutrition';
 import { OFF_NOTE, lookupBarcode, searchOnline } from '../../domain/openFoodFacts';
 import type { Macros, Recipe } from '../../domain/recipes';
 import type { MealSlot } from '../../domain/types';
-import { VISION_NOTE, checkKey, describeFood, recogniseFood } from '../../domain/vision';
-import type { Guess } from '../../domain/vision';
+import { DEFAULT_PROVIDER, VISION_NOTE, VISION_PROVIDERS, providerById } from '../../domain/vision';
+import type { Guess, ProviderId, VisionResult } from '../../domain/vision';
 import { useContent } from '../../state/content';
 import { actions } from '../../state/store';
-import { readVisionKey, writeVisionKey } from '../../state/visionKey';
+import { readVisionAccess, writeVisionAccess } from '../../state/visionKey';
+import type { VisionAccess } from '../../state/visionKey';
 import { DishArt } from './DishArt';
 import { Sheet } from './common';
 
@@ -552,40 +553,61 @@ async function toDataUrl(file: File): Promise<string> {
 }
 
 /** Turning the camera on where the camera is, rather than in a settings screen. */
-function KeySetup({ onReady }: { onReady: (key: string) => void }): JSX.Element {
+function KeySetup({ onReady }: { onReady: (access: VisionAccess) => void }): JSX.Element {
+  const [chosen, setChosen] = useState<ProviderId>(DEFAULT_PROVIDER);
   const [draft, setDraft] = useState('');
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const provider = providerById(chosen);
 
   const save = async () => {
     const candidate = draft.trim();
     setChecking(true);
     setError(null);
-    const result = await checkKey(candidate);
+    const result = await provider.check(candidate);
     setChecking(false);
     if (!result.ok) {
       setError(result.reason);
       return;
     }
-    writeVisionKey(candidate);
-    onReady(candidate);
+    const access: VisionAccess = { provider: chosen, key: candidate, model: result.model ?? null };
+    writeVisionAccess(access);
+    onReady(access);
   };
 
   return (
     <>
       <p className="tiny">
-        Распознавание еды по фотографии делает Claude, и для него нужен ваш собственный ключ. Пока ключа нет,
-        приложение не обращается к нему вообще.
+        Распознавание делает не приложение, а модель, и для неё нужен ваш собственный ключ. Пока ключа нет, никуда
+        ничего не уходит.
       </p>
+      <div className="row wrap" style={{ gap: 7 }}>
+        {VISION_PROVIDERS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className="chip"
+            aria-pressed={chosen === item.id}
+            onClick={() => {
+              setChosen(item.id);
+              setError(null);
+            }}
+          >
+            {item.title}
+            <span className={item.free ? 'pill accent' : 'pill'} style={{ fontSize: 10 }}>
+              {item.free ? 'бесплатно' : 'платно'}
+            </span>
+          </button>
+        ))}
+      </div>
       <p className="banner tiny">
-        console.anthropic.com → Settings → API keys → Create key. Пополнить баланс на минимальную сумму и скопировать
-        строку, которая начинается на sk-ant-. Одно фото стоит доли цента.
+        <strong>{provider.cost}</strong> {provider.where}
       </p>
       <input
         id="photo-key"
         type="password"
         autoComplete="off"
-        placeholder="sk-ant-..."
+        placeholder={provider.keyHint}
         value={draft}
         onChange={(event) => {
           setDraft(event.target.value);
@@ -611,7 +633,7 @@ type AiMode = 'text' | 'photo';
  * a fraction as much to send.
  */
 function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: () => void }): JSX.Element {
-  const [key, setKey] = useState<string | null>(() => readVisionKey());
+  const [access, setAccess] = useState<VisionAccess | null>(() => readVisionAccess());
   const [mode, setMode] = useState<AiMode>('text');
   const [text, setText] = useState(seed);
   const input = useRef<HTMLInputElement>(null);
@@ -621,9 +643,11 @@ function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: (
   const [guesses, setGuesses] = useState<readonly Guess[] | null>(null);
   const [where, setWhere] = useState<MealSlot>(slot);
 
-  if (!key) return <KeySetup onReady={setKey} />;
+  if (!access) return <KeySetup onReady={setAccess} />;
+  const provider = providerById(access.provider);
+  const model = access.model ?? provider.model;
 
-  const handle = async (task: Promise<ReturnType<typeof describeFood> extends Promise<infer R> ? R : never>) => {
+  const handle = async (task: Promise<VisionResult>) => {
     setError(null);
     setGuesses(null);
     setBusy(true);
@@ -640,7 +664,7 @@ function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: (
     try {
       const dataUrl = await toDataUrl(file);
       setPreview(dataUrl);
-      const result = await recogniseFood(key, dataUrl);
+      const result = await provider.recognise(access.key, model, dataUrl);
       if (result.kind === 'error') setError(result.reason);
       else setGuesses(result.guesses);
     } catch {
@@ -684,7 +708,7 @@ function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: (
             type="button"
             className="btn block"
             disabled={busy || text.trim().length < 3}
-            onClick={() => void handle(describeFood(key, text))}
+            onClick={() => void handle(provider.describe(access.key, model, text))}
           >
             {busy ? 'Считаю…' : 'Посчитать'}
           </button>

@@ -212,6 +212,13 @@ function searchUrl(query: string): string {
   );
 }
 
+/** Every photograph already spoken for, so two dishes do not share one. */
+function takenUrls(): Set<string> {
+  const used = new Set<string>();
+  for (const entry of Object.values(cache)) if (entry.photo) used.add(entry.photo.url);
+  return used;
+}
+
 async function search(query: string, must: readonly string[]): Promise<
   { readonly photo: DishPhoto } | { readonly reason: Reason }
 > {
@@ -228,7 +235,7 @@ async function search(query: string, must: readonly string[]): Promise<
   } catch {
     return { reason: 'база ответила ошибкой' };
   }
-  const chosen = chooseCommonsFile(payload, must);
+  const chosen = chooseCommonsFile(payload, must, takenUrls());
   if ('failure' in chosen) return { reason: chosen.failure };
   return {
     photo: {

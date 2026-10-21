@@ -166,7 +166,11 @@ public class MainActivity extends Activity {
 
     @JavascriptInterface
     public String appVersion() {
-      return "0.10.0";
+      try {
+        return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+      } catch (Exception unavailable) {
+        return "?";
+      }
     }
 
     /** Plain-text state for the diagnostics block in the steps sheet. */
@@ -178,6 +182,7 @@ public class MainActivity extends Activity {
           + "; разрешение: " + (hasActivityPermission() ? "выдано" : "нет")
           + "; подписка: " + (steps.listening() ? "активна" : "нет")
           + "; шагов: " + steps.stepsToday()
+          + "; " + steps.state()
           + "; последнее событие: " + (since < 0 ? "не было" : since + " с назад")
           + (steps.lastError().isEmpty() ? "" : "; ошибка: " + steps.lastError());
     }

@@ -13,8 +13,8 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="app.fastloop"
-    android:versionCode="12"
-    android:versionName="0.11.2">
+    android:versionCode="13"
+    android:versionName="0.11.3">
 
   <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
   <!-- Detents on the tape picker. Not a dangerous permission: no prompt. -->

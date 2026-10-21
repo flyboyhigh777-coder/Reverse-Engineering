@@ -26,15 +26,16 @@
         android:id="@+id/clock"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="19sp"
+        android:textSize="22sp"
         android:textStyle="bold"
+        android:includeFontPadding="false"
         android:textColor="@color/w_ink"
         android:format="%s" />
     <TextView
         android:id="@+id/idle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="19sp"
+        android:textSize="22sp"
         android:textStyle="bold"
         android:textColor="@color/w_ink"
         android:visibility="gone" />
@@ -42,7 +43,7 @@
         android:id="@+id/caption"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="10sp"
+        android:textSize="11sp"
         android:textColor="@color/w_ink_3" />
   </LinearLayout>
 </FrameLayout>

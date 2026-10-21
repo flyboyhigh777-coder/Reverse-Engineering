@@ -17,6 +17,13 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Iterator;
+import org.json.JSONObject;
 
 /**
  * FastLoop shell: the built web app from assets, plus the one thing a browser
@@ -219,6 +226,33 @@ public class MainActivity extends Activity {
     callback.onReceiveValue(picked == null ? null : new Uri[] {picked});
   }
 
+  private static final int HTTP_LIMIT = 2 * 1024 * 1024;
+
+  /** Reads a response body, refusing one large enough to choke the WebView. */
+  private static String readBody(InputStream in) throws Exception {
+    if (in == null) return "";
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    byte[] chunk = new byte[8192];
+    int read;
+    while ((read = in.read(chunk)) > 0) {
+      out.write(chunk, 0, read);
+      if (out.size() > HTTP_LIMIT) throw new IllegalStateException("ответ слишком большой");
+    }
+    return out.toString("UTF-8");
+  }
+
+  /** Hands the result back to the page as a JSON string literal. */
+  private void deliverHttp(final String payload) {
+    runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        if (web == null) return;
+        web.evaluateJavascript(
+            "window.__fastloopHttp && window.__fastloopHttp(" + JSONObject.quote(payload) + ")", null);
+      }
+    });
+  }
+
   /** Exposed to the page as window.FastLoopNative. */
   private final class Bridge {
 
@@ -259,6 +293,66 @@ public class MainActivity extends Activity {
     public void publishWidgetState(String json) {
       if (json == null || json.length() > 8192) return;
       Widgets.store(MainActivity.this, json);
+    }
+
+    /**
+     * Makes a request on the page's behalf.
+     *
+     * The page is served from file://, an opaque origin, so a browser refuses
+     * its cross-origin requests before sending them — no header the server
+     * returns can change that. Performed here instead, where no origin rule
+     * applies. Runs off the UI thread and answers through a callback,
+     * because a @JavascriptInterface method blocks the page while it runs.
+     */
+    @JavascriptInterface
+    public void httpRequest(
+        final String id, final String method, final String url, final String headers, final String body) {
+      new Thread(new Runnable() {
+        @Override
+        public void run() {
+          JSONObject result = new JSONObject();
+          HttpURLConnection connection = null;
+          try {
+            result.put("id", id);
+            connection = (HttpURLConnection) new URL(url).openConnection();
+            connection.setConnectTimeout(20000);
+            connection.setReadTimeout(40000);
+            connection.setRequestMethod(method == null || method.isEmpty() ? "GET" : method);
+            connection.setInstanceFollowRedirects(true);
+
+            if (headers != null && headers.length() > 2) {
+              JSONObject parsed = new JSONObject(headers);
+              for (Iterator<String> keys = parsed.keys(); keys.hasNext(); ) {
+                String key = keys.next();
+                connection.setRequestProperty(key, parsed.getString(key));
+              }
+            }
+
+            if (body != null && body.length() > 0) {
+              connection.setDoOutput(true);
+              OutputStream out = connection.getOutputStream();
+              out.write(body.getBytes("UTF-8"));
+              out.close();
+            }
+
+            int status = connection.getResponseCode();
+            InputStream stream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
+            result.put("status", status);
+            result.put("body", readBody(stream));
+          } catch (Exception failure) {
+            try {
+              result.put("id", id);
+              result.put("status", 0);
+              result.put("error", String.valueOf(failure.getMessage()));
+            } catch (Exception ignored) {
+              // Nothing can be reported if even the envelope fails to build.
+            }
+          } finally {
+            if (connection != null) connection.disconnect();
+          }
+          deliverHttp(result.toString());
+        }
+      }).start();
     }
 
     @JavascriptInterface

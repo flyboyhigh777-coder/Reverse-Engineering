@@ -1,3 +1,4 @@
+import { netFetch } from '../state/net';
 import type { Macros } from './recipes';
 
 /**
@@ -26,6 +27,22 @@ export interface Guess {
 export type VisionResult =
   | { readonly kind: 'ok'; readonly guesses: readonly Guess[] }
   | { readonly kind: 'error'; readonly reason: string };
+
+const TEXT_PROMPT = `Ты оцениваешь по описанию, что человек съел, для дневника питания.
+
+Верни ТОЛЬКО JSON, без markdown и без пояснений вокруг, в таком виде:
+{"items":[{"name":"","grams":0,"kcal":0,"protein":0,"fat":0,"carbs":0,"fiber":0,"note":"","confidence":"high|medium|low"}]}
+
+Правила:
+- Если человек перечислил состав одного блюда, верни ОДНУ запись с названием блюда целиком, а не отдельные записи на каждый ингредиент.
+- Если перечислены разные блюда или продукты, которые едят отдельно, верни запись на каждое.
+- name — по-русски, коротко, как назвал бы человек. Если блюдо названо, используй это название.
+- grams — оценка веса готовой порции целиком, в граммах.
+- Значения kcal, protein, fat, carbs, fiber — для всей порции, НЕ на 100 г.
+- Когда количество не указано, бери обычную домашнюю порцию и скажи об этом в note.
+- note — одной фразой: какие допущения сделаны (например «масло взято 1 ст. л.», «порция принята за 300 г»).
+- confidence — low, если состав или количество по описанию понять трудно.
+- Если в тексте нет еды, верни {"items":[]}.`;
 
 const PROMPT = `Ты оцениваешь еду на фотографии для дневника питания.
 
@@ -63,6 +80,16 @@ function extractJson(text: string): unknown {
 function num(value: unknown, fallback = 0): number {
   const parsed = typeof value === 'number' ? value : Number.parseFloat(String(value));
   return Number.isFinite(parsed) ? Math.max(0, parsed) : fallback;
+}
+
+/** The assistant's reply is a list of blocks; only the text ones matter. */
+function textOf(payload: unknown): string {
+  const content = (payload as { content?: unknown }).content;
+  if (!Array.isArray(content)) return '';
+  return content
+    .map((block) => (block && typeof block === 'object' ? (block as { text?: unknown }).text : null))
+    .filter((value): value is string => typeof value === 'string')
+    .join('\n');
 }
 
 function toGuesses(parsed: unknown): readonly Guess[] {
@@ -111,9 +138,9 @@ export type KeyCheck = { readonly ok: true } | { readonly ok: false; readonly re
  * distinguish "bad key" from "bad picture".
  */
 export async function checkKey(apiKey: string, signal?: AbortSignal): Promise<KeyCheck> {
-  let response: Response;
+  let response: Awaited<ReturnType<typeof netFetch>>;
   try {
-    response = await fetch(ENDPOINT, {
+    response = await netFetch(ENDPOINT, {
       method: 'POST',
       signal,
       headers: {
@@ -134,13 +161,58 @@ export async function checkKey(apiKey: string, signal?: AbortSignal): Promise<Ke
   return response.ok ? { ok: true } : { ok: false, reason: describeStatus(response.status) };
 }
 
+/**
+ * The same estimate, from words instead of a picture.
+ *
+ * Cheaper than an image, and often more accurate: a photo cannot show how
+ * much oil went into the pan, and a sentence can.
+ */
+export async function describeFood(apiKey: string, text: string, signal?: AbortSignal): Promise<VisionResult> {
+  const trimmed = text.trim();
+  if (trimmed.length < 3) return { kind: 'error', reason: 'Напишите, что вы ели.' };
+
+  let response: Awaited<ReturnType<typeof netFetch>>;
+  try {
+    response = await netFetch(ENDPOINT, {
+      method: 'POST',
+      signal,
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: VISION_MODEL,
+        max_tokens: 900,
+        messages: [{ role: 'user', content: `${TEXT_PROMPT}\n\nЧто съели: ${trimmed}` }],
+      }),
+    });
+  } catch {
+    return { kind: 'error', reason: 'Не получилось связаться с сервером. Проверьте интернет.' };
+  }
+  if (!response.ok) return { kind: 'error', reason: describeStatus(response.status) };
+
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    return { kind: 'error', reason: 'Ответ сервера не читается.' };
+  }
+  const guesses = toGuesses(extractJson(textOf(payload)));
+  if (guesses.length === 0) {
+    return { kind: 'error', reason: 'Не удалось разобрать описание. Напишите подробнее — что за блюдо и примерно сколько.' };
+  }
+  return { kind: 'ok', guesses };
+}
+
 export async function recogniseFood(apiKey: string, dataUrl: string, signal?: AbortSignal): Promise<VisionResult> {
   const image = parseDataUrl(dataUrl);
   if (!image) return { kind: 'error', reason: 'Снимок не удалось прочитать.' };
 
-  let response: Response;
+  let response: Awaited<ReturnType<typeof netFetch>>;
   try {
-    response = await fetch(ENDPOINT, {
+    response = await netFetch(ENDPOINT, {
       method: 'POST',
       signal,
       headers: {
@@ -177,14 +249,7 @@ export async function recogniseFood(apiKey: string, dataUrl: string, signal?: Ab
     return { kind: 'error', reason: 'Ответ сервера не читается.' };
   }
 
-  const content = (payload as { content?: unknown }).content;
-  const text = Array.isArray(content)
-    ? content
-        .map((block) => (block && typeof block === 'object' ? (block as { text?: unknown }).text : null))
-        .filter((value): value is string => typeof value === 'string')
-        .join('\n')
-    : '';
-  const guesses = toGuesses(extractJson(text));
+  const guesses = toGuesses(extractJson(textOf(payload)));
   if (guesses.length === 0) {
     return { kind: 'error', reason: 'На снимке не удалось разобрать еду. Снимите ближе и при свете или введите вручную.' };
   }

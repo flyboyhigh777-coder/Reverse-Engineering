@@ -1,3 +1,4 @@
+import { netFetch } from '../state/net';
 import type { Food } from './foods';
 import type { Macros } from './recipes';
 
@@ -120,9 +121,9 @@ function toFood(raw: unknown): Food | null {
 }
 
 async function request(url: string, signal?: AbortSignal): Promise<unknown | { error: string }> {
-  let response: Response;
+  let response: Awaited<ReturnType<typeof netFetch>>;
   try {
-    response = await fetch(url, { signal, headers: { accept: 'application/json' } });
+    response = await netFetch(url, { signal, headers: { accept: 'application/json' } });
   } catch {
     return { error: 'Нет связи с базой продуктов. Проверьте интернет.' };
   }

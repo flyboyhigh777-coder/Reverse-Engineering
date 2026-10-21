@@ -16,6 +16,8 @@ export interface NativeBridge {
   isNightMode?(): boolean;
   /** Feeds the home-screen widgets; absent in builds before 0.14.0. */
   publishWidgetState?(json: string): void;
+  /** Performs a network request natively; absent in builds before 0.16.0. */
+  httpRequest?(id: string, method: string, url: string, headers: string, body: string): void;
 }
 
 declare global {

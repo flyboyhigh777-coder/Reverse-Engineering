@@ -1,26 +1,26 @@
 import { useMemo, useRef, useState } from 'react';
-import { FOODS, FOOD_TABLE_NOTE, searchFoods } from '../../domain/foods';
+import { FOODS, FOOD_TABLE_NOTE } from '../../domain/foods';
 import type { Food } from '../../domain/foods';
+import { searchLibrary } from '../../domain/foodSearch';
 import { SLOT_LABEL, MEAL_SLOTS, forGrams } from '../../domain/nutrition';
 import { OFF_NOTE, lookupBarcode, searchOnline } from '../../domain/openFoodFacts';
-import { RECIPES } from '../../domain/recipes';
 import type { Macros, Recipe } from '../../domain/recipes';
 import type { MealSlot } from '../../domain/types';
-import { VISION_NOTE, checkKey, recogniseFood } from '../../domain/vision';
+import { VISION_NOTE, checkKey, describeFood, recogniseFood } from '../../domain/vision';
 import type { Guess } from '../../domain/vision';
+import { useContent } from '../../state/content';
 import { actions } from '../../state/store';
 import { readVisionKey, writeVisionKey } from '../../state/visionKey';
 import { ArtTile } from './FoodArt';
 import { Sheet } from './common';
 
-type Tab = 'search' | 'online' | 'recipes' | 'manual' | 'photo';
+type Tab = 'search' | 'online' | 'ai' | 'manual';
 
 const TABS: readonly { id: Tab; label: string }[] = [
-  { id: 'search', label: 'Продукты' },
+  { id: 'search', label: 'Поиск' },
   { id: 'online', label: 'В интернете' },
-  { id: 'recipes', label: 'Мои рецепты' },
+  { id: 'ai', label: 'ИИ' },
   { id: 'manual', label: 'Вручную' },
-  { id: 'photo', label: 'Фото' },
 ];
 
 function MacroLine({ macros }: { macros: Macros }): JSX.Element {
@@ -48,6 +48,8 @@ export function FoodPicker({ slot, onClose }: { slot: MealSlot; onClose: () => v
   const [tab, setTab] = useState<Tab>('search');
   const [chosen, setChosen] = useState<Food | null>(null);
   const [recipe, setRecipe] = useState<Recipe | null>(null);
+  /** Carried over when a search finds nothing and the person asks the model. */
+  const [seed, setSeed] = useState('');
 
   if (chosen) {
     return <PortionSheet food={chosen} slot={slot} onBack={() => setChosen(null)} onDone={onClose} />;
@@ -66,50 +68,97 @@ export function FoodPicker({ slot, onClose }: { slot: MealSlot; onClose: () => v
         ))}
       </div>
 
-      {tab === 'search' ? <SearchTab onPick={setChosen} /> : null}
+      {tab === 'search' ? (
+        <SearchTab
+          onPickFood={setChosen}
+          onPickRecipe={setRecipe}
+          onAskModel={(query) => {
+            setSeed(query);
+            setTab('ai');
+          }}
+        />
+      ) : null}
       {tab === 'online' ? <OnlineTab onPick={setChosen} /> : null}
-      {tab === 'recipes' ? <RecipeTab onPick={setRecipe} /> : null}
+      {tab === 'ai' ? <AiTab slot={slot} seed={seed} onDone={onClose} /> : null}
       {tab === 'manual' ? <ManualTab slot={slot} onDone={onClose} /> : null}
-      {tab === 'photo' ? <PhotoTab slot={slot} onDone={onClose} /> : null}
     </Sheet>
   );
 }
 
-function SearchTab({ onPick }: { onPick: (food: Food) => void }): JSX.Element {
+function SearchTab({
+  onPickFood,
+  onPickRecipe,
+  onAskModel,
+}: {
+  onPickFood: (food: Food) => void;
+  onPickRecipe: (recipe: Recipe) => void;
+  onAskModel: (query: string) => void;
+}): JSX.Element {
+  const recipes = useContent().recipes;
   const [query, setQuery] = useState('');
-  const results = useMemo(() => searchFoods(query), [query]);
+  const results = useMemo(() => searchLibrary(query, recipes), [query, recipes]);
 
   return (
     <>
       <input
         id="food-search"
         type="search"
-        placeholder="Найти продукт или блюдо"
+        placeholder="Продукт или блюдо: творог, плов, шакшука"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />
+
       {results.length === 0 ? (
-        <p className="tiny muted">
-          Ничего не нашлось. Запишите вручную — на соседней вкладке можно указать название и калории.
-        </p>
+        <>
+          <p className="tiny muted">
+            Ни в таблице продуктов, ни среди рецептов такого нет.
+          </p>
+          <button type="button" className="btn block" onClick={() => onAskModel(query)}>
+            Описать словами и посчитать
+          </button>
+          <p className="tiny muted">
+            Напишите блюдо и из чего оно — «шакшука: 2 яйца, помидоры, перец, ложка масла» — и ИИ посчитает порцию
+            целиком. Либо занесите вручную на соседней вкладке.
+          </p>
+        </>
       ) : (
         <div className="col" style={{ gap: 7 }}>
-          {results.map((item) => (
-            <button key={item.id} type="button" className="foodrow" onClick={() => onPick(item)}>
-              <span className="col" style={{ gap: 2 }}>
-                <strong style={{ fontSize: 14 }}>{item.name}</strong>
-                <span className="tiny num muted">
-                  {item.per100g.kcal} ккал / 100 г · Б {item.per100g.protein} · Ж {item.per100g.fat} · У {item.per100g.carbs}
+          {results.map((hit) =>
+            hit.kind === 'recipe' ? (
+              <button key={`r-${hit.recipe.id}`} type="button" className="foodrow" onClick={() => onPickRecipe(hit.recipe)}>
+                <span className="row" style={{ gap: 9 }}>
+                  <span style={{ width: 38, flex: 'none', borderRadius: 9, overflow: 'hidden' }}>
+                    <ArtTile kind={hit.recipe.art} height={38} rounded={9} label="" />
+                  </span>
+                  <span className="col" style={{ gap: 2 }}>
+                    <strong style={{ fontSize: 14 }}>{hit.recipe.title}</strong>
+                    <MacroLine macros={hit.recipe.macros} />
+                  </span>
                 </span>
-              </span>
-              <span className="pill">{item.group.split(',')[0]}</span>
-            </button>
-          ))}
+                <span className="pill accent">рецепт</span>
+              </button>
+            ) : (
+              <button key={`f-${hit.food.id}`} type="button" className="foodrow" onClick={() => onPickFood(hit.food)}>
+                <span className="col" style={{ gap: 2 }}>
+                  <strong style={{ fontSize: 14 }}>{hit.food.name}</strong>
+                  <span className="tiny num muted">
+                    {hit.food.per100g.kcal} ккал / 100 г · Б {hit.food.per100g.protein} · Ж {hit.food.per100g.fat} · У{' '}
+                    {hit.food.per100g.carbs}
+                  </span>
+                </span>
+                <span className="pill">{hit.food.group.split(',')[0]}</span>
+              </button>
+            ),
+          )}
         </div>
       )}
-      <p className="tiny muted">
-        {FOOD_TABLE_NOTE} В базе {FOODS.length} позиций.
-      </p>
+
+      {results.length > 0 ? (
+        <p className="tiny muted">
+          {FOOD_TABLE_NOTE} В таблице {FOODS.length} позиций, рядом ищутся и рецепты приложения — у них значения на
+          порцию.
+        </p>
+      ) : null}
     </>
   );
 }
@@ -205,40 +254,6 @@ function OnlineTab({ onPick }: { onPick: (food: Food) => void }): JSX.Element {
       ) : null}
 
       <p className="tiny muted">{OFF_NOTE}</p>
-    </>
-  );
-}
-
-function RecipeTab({ onPick }: { onPick: (recipe: Recipe) => void }): JSX.Element {
-  const [query, setQuery] = useState('');
-  const needle = query.trim().toLowerCase();
-  const results = needle === '' ? RECIPES : RECIPES.filter((item) => item.title.toLowerCase().includes(needle));
-
-  return (
-    <>
-      <input
-        id="recipe-search"
-        type="search"
-        placeholder="Найти среди рецептов приложения"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-      />
-      <div className="col" style={{ gap: 7 }}>
-        {results.map((item) => (
-          <button key={item.id} type="button" className="foodrow" onClick={() => onPick(item)}>
-            <span className="row" style={{ gap: 9 }}>
-              <span style={{ width: 40, flex: 'none', borderRadius: 9, overflow: 'hidden' }}>
-                <ArtTile kind={item.art} height={40} rounded={9} label="" />
-              </span>
-              <span className="col" style={{ gap: 2 }}>
-                <strong style={{ fontSize: 14 }}>{item.title}</strong>
-                <MacroLine macros={item.macros} />
-              </span>
-            </span>
-          </button>
-        ))}
-      </div>
-      <p className="tiny muted">Значения указаны на одну порцию рецепта — её и записываем.</p>
     </>
   );
 }
@@ -504,8 +519,19 @@ function KeySetup({ onReady }: { onReady: (key: string) => void }): JSX.Element 
   );
 }
 
-function PhotoTab({ slot, onDone }: { slot: MealSlot; onDone: () => void }): JSX.Element {
+type AiMode = 'text' | 'photo';
+
+/**
+ * One tab, two ways to ask the model: describe the meal, or photograph it.
+ *
+ * Words are usually the better of the two. A photo cannot show how much oil
+ * went into the pan or how fatty the meat was; a sentence can, and it costs
+ * a fraction as much to send.
+ */
+function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: () => void }): JSX.Element {
   const [key, setKey] = useState<string | null>(() => readVisionKey());
+  const [mode, setMode] = useState<AiMode>('text');
+  const [text, setText] = useState(seed);
   const input = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -515,7 +541,17 @@ function PhotoTab({ slot, onDone }: { slot: MealSlot; onDone: () => void }): JSX
 
   if (!key) return <KeySetup onReady={setKey} />;
 
-  const run = async (file: File) => {
+  const handle = async (task: Promise<ReturnType<typeof describeFood> extends Promise<infer R> ? R : never>) => {
+    setError(null);
+    setGuesses(null);
+    setBusy(true);
+    const result = await task;
+    setBusy(false);
+    if (result.kind === 'error') setError(result.reason);
+    else setGuesses(result.guesses);
+  };
+
+  const shoot = async (file: File) => {
     setError(null);
     setGuesses(null);
     setBusy(true);
@@ -534,37 +570,80 @@ function PhotoTab({ slot, onDone }: { slot: MealSlot; onDone: () => void }): JSX
 
   return (
     <>
-      <input
-        ref={input}
-        id="food-photo"
-        type="file"
-        accept="image/*"
-        capture="environment"
-        style={{ display: 'none' }}
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (file) void run(file);
-          event.target.value = '';
-        }}
-      />
+      <div className="row" style={{ gap: 8 }}>
+        <button type="button" className="chip grow" aria-pressed={mode === 'text'} onClick={() => setMode('text')}>
+          Описать словами
+        </button>
+        <button type="button" className="chip grow" aria-pressed={mode === 'photo'} onClick={() => setMode('photo')}>
+          Сфотографировать
+        </button>
+      </div>
 
-      {preview ? (
-        <img
-          src={preview}
-          alt="Снимок блюда"
-          style={{ width: '100%', borderRadius: 14, display: 'block', maxHeight: 220, objectFit: 'cover' }}
-        />
-      ) : null}
-
-      <button type="button" className="btn block" disabled={busy} onClick={() => input.current?.click()}>
-        {busy ? 'Смотрю на снимок…' : preview ? 'Другой снимок' : 'Сфотографировать блюдо'}
-      </button>
+      {mode === 'text' ? (
+        <>
+          <textarea
+            id="ai-text"
+            rows={3}
+            placeholder="Шакшука: 2 яйца, помидоры, болгарский перец, зелень, ложка оливкового масла"
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            style={{
+              width: '100%',
+              padding: 12,
+              borderRadius: 14,
+              border: '1px solid var(--line)',
+              background: 'var(--surface-2)',
+              color: 'var(--ink)',
+              font: 'inherit',
+              resize: 'vertical',
+            }}
+          />
+          <button
+            type="button"
+            className="btn block"
+            disabled={busy || text.trim().length < 3}
+            onClick={() => void handle(describeFood(key, text))}
+          >
+            {busy ? 'Считаю…' : 'Посчитать'}
+          </button>
+          <p className="tiny muted">
+            Пишите как говорите: блюдо и из чего оно. Количество можно не указывать — тогда возьмётся обычная домашняя
+            порция, и модель об этом скажет.
+          </p>
+        </>
+      ) : (
+        <>
+          <input
+            ref={input}
+            id="food-photo"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style={{ display: 'none' }}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void shoot(file);
+              event.target.value = '';
+            }}
+          />
+          {preview ? (
+            <img
+              src={preview}
+              alt="Снимок блюда"
+              style={{ width: '100%', borderRadius: 14, display: 'block', maxHeight: 220, objectFit: 'cover' }}
+            />
+          ) : null}
+          <button type="button" className="btn block" disabled={busy} onClick={() => input.current?.click()}>
+            {busy ? 'Смотрю на снимок…' : preview ? 'Другой снимок' : 'Сфотографировать блюдо'}
+          </button>
+        </>
+      )}
 
       {error ? <p className="banner tiny">{error}</p> : null}
 
       {guesses ? (
         <>
-          <span className="eyebrow">Что видно на снимке</span>
+          <span className="eyebrow">Что получилось</span>
           <div className="col" style={{ gap: 7 }}>
             {guesses.map((guess, index) => (
               <div key={`${guess.name}-${index}`} className="foodrow" style={{ cursor: 'default', alignItems: 'flex-start' }}>
@@ -597,8 +676,7 @@ function PhotoTab({ slot, onDone }: { slot: MealSlot; onDone: () => void }): JSX
             Записать {guesses.length === 1 ? 'запись' : `все ${guesses.length}`}
           </button>
           <p className="tiny muted">
-            Если цифра выглядит не так — запишите и поправьте вручную на соседней вкладке. Оценка по фото всегда
-            приблизительная.
+            Если цифра выглядит не так — запишите и поправьте вручную. Любая оценка здесь приблизительная.
           </p>
         </>
       ) : null}

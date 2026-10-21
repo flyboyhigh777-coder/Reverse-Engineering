@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { DEFAULT_SLOTS, MEAL_PLANS, PLAN_SECTIONS, dayMacros, planAverage, planRecipes } from '../../domain/mealPlans';
 import type { MealPlan } from '../../domain/mealPlans';
-import { RECIPES, RECIPE_CATEGORIES, RECIPE_TAGS, REGIONS, recipeById, recipesByRegion } from '../../domain/recipes';
+import { RECIPE_CATEGORIES, RECIPE_TAGS, REGIONS, recipeById, recipesByRegion } from '../../domain/recipes';
 import type { Macros, Recipe, RecipeTag, Region } from '../../domain/recipes';
 import { useAppState } from '../../state/store';
+import { useContent } from '../../state/content';
 import { Diary } from './Diary';
 import { ArtTile } from '../components/FoodArt';
 import { Sheet } from '../components/common';
@@ -69,6 +70,7 @@ function RecipeTile({ recipe, locked, onOpen }: { recipe: Recipe; locked: boolea
 
 function RecipeList({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
   const state = useAppState();
+  const RECIPES = useContent().recipes;
   const [open, setOpen] = useState<Recipe | null>(null);
   const [tag, setTag] = useState<RecipeTag | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);

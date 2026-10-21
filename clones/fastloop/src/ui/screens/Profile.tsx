@@ -8,6 +8,7 @@ import { THEME_LABELS, hasNativeTheme } from '../../state/theme';
 import type { ThemePreference } from '../../state/theme';
 import { VISION_MODEL, VISION_NOTE, checkKey } from '../../domain/vision';
 import { maskKey, readVisionKey, writeVisionKey } from '../../state/visionKey';
+import { DEFAULT_URL, refreshContent, setContentUrl, useContent } from '../../state/content';
 import { BackupSheet } from '../components/BackupSheet';
 import { Card, LockPill, Sheet } from '../components/common';
 
@@ -121,6 +122,8 @@ export function Profile({ onRequestPro }: { onRequestPro: (reason: string) => vo
         </dl>
       </Card>
 
+      <ContentCard />
+
       <VisionCard />
 
       <Card>
@@ -186,6 +189,82 @@ export function Profile({ onRequestPro }: { onRequestPro: (reason: string) => vo
         </Sheet>
       ) : null}
     </>
+  );
+}
+
+/** Articles and recipes pulled over the network, and where from. */
+function ContentCard(): JSX.Element {
+  const content = useContent();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(content.url);
+
+  const when =
+    content.fetchedAt === null
+      ? 'ещё не обновлялось'
+      : `обновлено ${new Date(content.fetchedAt).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`;
+
+  return (
+    <Card>
+      <div className="row between">
+        <span className="eyebrow">Статьи и рецепты из сети</span>
+        {content.fromNetwork > 0 ? <span className="pill accent num">+{content.fromNetwork}</span> : null}
+      </div>
+
+      <p className="tiny muted">
+        Библиотека внутри приложения работает без интернета. По этому адресу приложение забирает дополнение к ней —
+        новые статьи, рецепты и заметки дня — и запоминает их, чтобы читать потом офлайн.
+      </p>
+
+      <div className="row between">
+        <span className="tiny muted">{when}</span>
+        <button type="button" className="btn sm" disabled={content.status === 'loading'} onClick={() => void refreshContent()}>
+          {content.status === 'loading' ? 'Проверяю…' : 'Обновить сейчас'}
+        </button>
+      </div>
+
+      {content.status === 'error' && content.message ? (
+        <p className="banner tiny" style={{ color: 'var(--warn)' }}>{content.message}</p>
+      ) : null}
+      {content.status === 'ok' ? (
+        <p className="tiny" style={{ color: 'var(--good)' }}>
+          Загружено записей: {content.fromNetwork}
+          {content.packUpdatedAt ? ` · выпуск от ${content.packUpdatedAt}` : ''}
+          {content.message ? ` · ${content.message}` : ''}
+        </p>
+      ) : null}
+
+      {editing ? (
+        <div className="col" style={{ gap: 8 }}>
+          <input
+            id="content-url"
+            type="url"
+            inputMode="url"
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+          />
+          <div className="row" style={{ gap: 8 }}>
+            <button
+              type="button"
+              className="btn sm grow"
+              onClick={() => {
+                setContentUrl(draft);
+                setEditing(false);
+                void refreshContent(draft.trim() === '' ? DEFAULT_URL : draft.trim());
+              }}
+            >
+              Сохранить и проверить
+            </button>
+            <button type="button" className="btn ghost sm" onClick={() => { setDraft(content.url); setEditing(false); }}>
+              Отмена
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="btn quiet tiny" onClick={() => { setDraft(content.url); setEditing(true); }}>
+          Сменить адрес обновлений
+        </button>
+      )}
+    </Card>
   );
 }
 

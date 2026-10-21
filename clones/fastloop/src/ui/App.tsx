@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { refreshIfStale } from '../state/content';
 import { getState, useAppState } from '../state/store';
 import { applyTheme } from '../state/theme';
 import { Analyzing } from './onboarding/Analyzing';
@@ -28,6 +29,13 @@ export function App(): JSX.Element {
   const [tab, setTab] = useState<Tab>('timer');
   const [pro, setPro] = useState<string | null>(null);
   const theme = state.profile.theme;
+
+  // Quietly top the library up when the cache is stale. A failure is silent
+  // here: the built-in library works, and an error belongs in the profile
+  // where someone went looking for updates, not in the way of the timer.
+  useEffect(() => {
+    refreshIfStale();
+  }, []);
 
   useEffect(() => {
     applyTheme(theme);

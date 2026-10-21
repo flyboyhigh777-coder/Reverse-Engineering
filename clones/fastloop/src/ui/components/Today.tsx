@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { dailyBrief, dailyProgress, dailyTasks, taskRatio } from '../../domain/daily';
 import type { DailyTask, TaskId } from '../../domain/daily';
 import { useAppState } from '../../state/store';
+import { useContent } from '../../state/content';
 import { ArticleSheet, EvidenceTag } from './ArticleSheet';
 import { ArtTile } from './FoodArt';
 import { Card, DropIcon, ScaleIcon, StepIcon, TimerIcon } from './common';
@@ -122,8 +123,12 @@ export function TodayCard({
  */
 export function DailyBriefCard(): JSX.Element {
   const state = useAppState();
+  const content = useContent();
   const [open, setOpen] = useState(false);
-  const brief = useMemo(() => dailyBrief(Date.now(), state.premium), [state.premium]);
+  const brief = useMemo(
+    () => dailyBrief(Date.now(), state.premium, content.articles, content.notes),
+    [state.premium, content.articles, content.notes],
+  );
 
   return (
     <>

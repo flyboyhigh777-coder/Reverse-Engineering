@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { ARTICLES, CATEGORIES, EVIDENCE_LABEL } from '../../domain/articles';
+import { CATEGORIES, EVIDENCE_LABEL } from '../../domain/articles';
 import type { Article } from '../../domain/articles';
 import { DISCLAIMER } from '../../domain/phases';
 import { useAppState } from '../../state/store';
+import { useContent } from '../../state/content';
 import { ArticleSheet, EvidenceTag } from '../components/ArticleSheet';
 import { BeginnerCard } from '../components/BeginnerGuide';
 import { ArtTile } from '../components/FoodArt';
@@ -24,6 +25,8 @@ const FEATURED = ['water-practice', 'breaking', 'protein', 'start-training', 're
 
 export function Learn({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
   const state = useAppState();
+  const content = useContent();
+  const ARTICLES = content.articles;
   const [open, setOpen] = useState<Article | null>(null);
   const [filter, setFilter] = useState<string>('Все');
 
@@ -34,6 +37,7 @@ export function Learn({ onRequestPro }: { onRequestPro: (reason: string) => void
       <h1 style={{ fontSize: 21 }}>Статьи</h1>
       <p className="tiny muted">
         У каждой статьи стоит метка того, насколько надёжны данные под ней — включая «спорно» на материалах про саму эту тему.
+        Сейчас их {ARTICLES.length}{content.fromNetwork > 0 ? ', часть подгружена из сети' : ''}.
       </p>
 
       <BeginnerCard />

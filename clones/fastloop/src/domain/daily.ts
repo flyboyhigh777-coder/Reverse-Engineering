@@ -162,7 +162,7 @@ export interface DailyNote {
  * Short practice notes. Each one is a statement the library already defends
  * at length — this is the same knowledge cut to a size that fits a morning.
  */
-const NOTES: readonly DailyNote[] = [
+export const NOTES: readonly DailyNote[] = [
   {
     text: 'Первые выходы из голодания решают больше, чем сам голод: начните с супа, овощей или кефира, а не с жирного и сладкого.',
     source: 'Как выходить из голодания',
@@ -227,11 +227,17 @@ export interface DailyBrief {
   readonly date: string;
 }
 
-export function dailyBrief(now: number, premium: boolean): DailyBrief {
-  const pool = premium ? ARTICLES : ARTICLES.filter((a) => !a.premium);
+export function dailyBrief(
+  now: number,
+  premium: boolean,
+  library: readonly Article[] = ARTICLES,
+  notes: readonly DailyNote[] = NOTES,
+): DailyBrief {
+  const pool = premium ? library : library.filter((a) => !a.premium);
   const articles = pool.length > 0 ? pool : ARTICLES;
+  const deck = notes.length > 0 ? notes : NOTES;
   return {
-    note: NOTES[dayIndex(now, NOTES.length)],
+    note: deck[dayIndex(now, deck.length)],
     article: articles[dayIndex(now + 86_400_000, articles.length)],
     date: isoDate(now),
   };

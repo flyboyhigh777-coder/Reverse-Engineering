@@ -2,6 +2,8 @@ import { useMemo, useRef, useState } from 'react';
 import { FOODS, FOOD_TABLE_NOTE } from '../../domain/foods';
 import type { Food } from '../../domain/foods';
 import { searchLibrary } from '../../domain/foodSearch';
+import { adjusted, parseRecipe } from '../../domain/ingredients';
+import type { Ingredient } from '../../domain/ingredients';
 import { SLOT_LABEL, MEAL_SLOTS, forGrams } from '../../domain/nutrition';
 import { OFF_NOTE, lookupBarcode, searchOnline } from '../../domain/openFoodFacts';
 import type { Macros, Recipe } from '../../domain/recipes';
@@ -22,6 +24,14 @@ const TABS: readonly { id: Tab; label: string }[] = [
   { id: 'ai', label: 'ИИ' },
   { id: 'manual', label: 'Вручную' },
 ];
+
+function TickGlyph(): JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 13l4.5 4.5L19 7" />
+    </svg>
+  );
+}
 
 function MacroLine({ macros }: { macros: Macros }): JSX.Element {
   return (
@@ -329,6 +339,15 @@ function PortionSheet({
   );
 }
 
+/**
+ * Logging a recipe, with the option of saying what was not in it.
+ *
+ * Recipes describe one way of making a dish, and nobody cooks it exactly.
+ * Switching an ingredient off subtracts what it contributed from the
+ * recipe's own stated macros — not from a recomputed sum of its parts,
+ * because the stated figures account for the finished dish and a sum of raw
+ * lines would quietly disagree with them.
+ */
 function RecipeSheet({
   recipe,
   slot,
@@ -340,13 +359,69 @@ function RecipeSheet({
   onBack: () => void;
   onDone: () => void;
 }): JSX.Element {
+  const parsed = useMemo(() => parseRecipe(recipe), [recipe]);
   const [servings, setServings] = useState(1);
   const [where, setWhere] = useState<MealSlot>(slot);
-  const k = servings;
+  const [out, setOut] = useState<readonly string[]>([]);
+
+  const removed = parsed.filter((item) => out.includes(item.line));
+  const macros = adjusted(recipe, parsed, out, servings);
+  const dropped = removed.filter((item) => item.macros !== null);
+  const name = removed.length === 0
+    ? recipe.title
+    : `${recipe.title} (без: ${removed.map((item) => item.name.toLowerCase()).join(', ')})`;
+
+  const toggle = (item: Ingredient) =>
+    setOut((current) =>
+      current.includes(item.line) ? current.filter((line) => line !== item.line) : [...current, item.line],
+    );
 
   return (
     <Sheet title={recipe.title} onClose={onBack}>
-      <ArtTile kind={recipe.art} height={110} label="" />
+      <ArtTile kind={recipe.art} height={100} label="" />
+
+      <span className="eyebrow">Что было в блюде</span>
+      <div className="col" style={{ gap: 6 }}>
+        {parsed.map((item) => {
+          const kept = !out.includes(item.line);
+          return (
+            <button
+              key={item.line}
+              type="button"
+              className="optcard"
+              aria-pressed={kept}
+              style={{ minHeight: 0, padding: '9px 11px', borderWidth: 1 }}
+              onClick={() => toggle(item)}
+            >
+              <span className="bullet" style={{ width: 26, height: 26, borderRadius: 9 }}>
+                {kept ? <TickGlyph /> : null}
+              </span>
+              <span className="col grow" style={{ gap: 1 }}>
+                <span style={{ fontSize: 13.5, textDecoration: kept ? 'none' : 'line-through', opacity: kept ? 1 : 0.55 }}>
+                  {item.line}
+                </span>
+                {item.macros ? (
+                  <span className="tiny num muted">−{Math.round(item.macros.kcal / recipe.servings)} ккал на порцию</span>
+                ) : (
+                  <span className="tiny muted">вклад не посчитать</span>
+                )}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {removed.length > dropped.length ? (
+        <p className="tiny muted">
+          У части вычеркнутых строк не указано количество или их нет в таблице состава — специи, зелень, масло «по
+          вкусу». Они убраны из названия, но на цифры не повлияли: придумывать за них вес было бы хуже, чем оставить
+          как есть.
+        </p>
+      ) : null}
+
+      <hr className="divider" />
+
+      <span className="eyebrow">Сколько порций</span>
       <div className="row wrap" style={{ gap: 7 }}>
         {[0.5, 1, 1.5, 2].map((count) => (
           <button key={count} type="button" className="chip" aria-pressed={servings === count} onClick={() => setServings(count)}>
@@ -354,19 +429,22 @@ function RecipeSheet({
           </button>
         ))}
       </div>
+
       <div className="macro-row">
-        <div className="macro"><b>{Math.round(recipe.macros.kcal * k)}</b><span>ккал</span></div>
-        <div className="macro" style={{ color: 'var(--prot)' }}><b>{Math.round(recipe.macros.protein * k)}</b><span>белок, г</span></div>
-        <div className="macro" style={{ color: 'var(--fat)' }}><b>{Math.round(recipe.macros.fat * k)}</b><span>жиры, г</span></div>
-        <div className="macro" style={{ color: 'var(--carb)' }}><b>{Math.round(recipe.macros.carbs * k)}</b><span>углев., г</span></div>
+        <div className="macro"><b>{macros.kcal}</b><span>ккал</span></div>
+        <div className="macro" style={{ color: 'var(--prot)' }}><b>{macros.protein}</b><span>белок, г</span></div>
+        <div className="macro" style={{ color: 'var(--fat)' }}><b>{macros.fat}</b><span>жиры, г</span></div>
+        <div className="macro" style={{ color: 'var(--carb)' }}><b>{macros.carbs}</b><span>углев., г</span></div>
       </div>
+
       <span className="eyebrow">Куда записать</span>
       <SlotPicker slot={where} onChange={setWhere} />
+
       <button
         type="button"
         className="btn block"
         onClick={() => {
-          actions.logFromRecipe(recipe, servings, where);
+          actions.logManual(name, 0, macros, where, 'recipe');
           onDone();
         }}
       >

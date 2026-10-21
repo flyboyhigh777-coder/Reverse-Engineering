@@ -6,6 +6,10 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.RectF;
 import android.os.SystemClock;
 import android.view.View;
 import android.widget.RemoteViews;
@@ -53,13 +57,18 @@ final class Widgets {
     AppWidgetManager manager = AppWidgetManager.getInstance(context);
     push(context, manager, TimerWidget.class);
     push(context, manager, SummaryWidget.class);
+    push(context, manager, RingWidget.class);
   }
 
   private static void push(Context context, AppWidgetManager manager, Class<?> provider) {
     int[] ids = manager.getAppWidgetIds(new ComponentName(context, provider));
     if (ids == null || ids.length == 0) return;
     for (int id : ids) {
-      manager.updateAppWidget(id, provider == TimerWidget.class ? timer(context) : summary(context));
+      RemoteViews views =
+          provider == TimerWidget.class
+              ? timer(context)
+              : provider == SummaryWidget.class ? summary(context) : ring(context);
+      manager.updateAppWidget(id, views);
     }
   }
 
@@ -119,6 +128,71 @@ final class Widgets {
 
     int done = state == null ? 0 : percent(state.optDouble("elapsedHours", 0), state.optDouble("planHours", 0));
     views.setProgressBar(R.id.bar, 100, done, false);
+    return views;
+  }
+
+  private static final int RING_PX = 240;
+
+  /**
+   * The progress arc, drawn rather than laid out.
+   *
+   * RemoteViews can only inflate a fixed set of views, and none of them is a
+   * circular progress indicator. A bitmap sidesteps that: the host draws it
+   * here, in this app's process, and hands the result to the launcher.
+   */
+  private static Bitmap ringBitmap(Context context, double ratio) {
+    Bitmap bitmap = Bitmap.createBitmap(RING_PX, RING_PX, Bitmap.Config.ARGB_8888);
+    Canvas canvas = new Canvas(bitmap);
+
+    Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    paint.setStyle(Paint.Style.FILL);
+    paint.setColor(context.getColor(R.color.w_surface));
+    canvas.drawCircle(RING_PX / 2f, RING_PX / 2f, RING_PX / 2f - 2f, paint);
+
+    float stroke = 18f;
+    RectF box = new RectF(stroke, stroke, RING_PX - stroke, RING_PX - stroke);
+    paint.setStyle(Paint.Style.STROKE);
+    paint.setStrokeWidth(stroke);
+    paint.setColor(context.getColor(R.color.w_track));
+    canvas.drawArc(box, -90f, 360f, false, paint);
+
+    if (ratio > 0) {
+      paint.setStrokeCap(Paint.Cap.ROUND);
+      paint.setColor(context.getColor(ratio >= 1 ? R.color.w_warm : R.color.w_accent));
+      canvas.drawArc(box, -90f, (float) (360 * Math.min(1, ratio)), false, paint);
+    }
+    return bitmap;
+  }
+
+  static RemoteViews ring(Context context) {
+    JSONObject state = read(context);
+    RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_ring);
+    views.setOnClickPendingIntent(R.id.root, openApp(context));
+
+    boolean running = state != null && state.optBoolean("running", false);
+    double planHours = state == null ? 0 : state.optDouble("planHours", 0);
+    double elapsed = state == null ? 0 : state.optDouble("elapsedHours", 0);
+    double ratio = planHours > 0 ? elapsed / planHours : 0;
+
+    views.setImageViewBitmap(R.id.ring, ringBitmap(context, running ? ratio : 0));
+
+    if (!running) {
+      views.setViewVisibility(R.id.clock, View.GONE);
+      views.setViewVisibility(R.id.idle, View.VISIBLE);
+      views.setTextViewText(R.id.idle, planHours > 0 ? hoursLabel(planHours) : "—");
+      views.setTextViewText(R.id.caption, state == null ? "откройте приложение" : "не запущено");
+      return views;
+    }
+
+    // Counts up from the start of the fast: what the person asked to see is
+    // how long they have held it, not how long is left.
+    long startedAt = state.optLong("targetEndAt", 0) - Math.round(planHours * 3_600_000d);
+    long since = Math.max(0, System.currentTimeMillis() - startedAt);
+    views.setViewVisibility(R.id.idle, View.GONE);
+    views.setViewVisibility(R.id.clock, View.VISIBLE);
+    views.setChronometerCountDown(R.id.clock, false);
+    views.setChronometer(R.id.clock, SystemClock.elapsedRealtime() - since, null, true);
+    views.setTextViewText(R.id.caption, ratio >= 1 ? "цель взята" : "идёт голодание");
     return views;
   }
 

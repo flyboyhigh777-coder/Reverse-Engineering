@@ -748,3 +748,157 @@ input[type='number'], input[type='text'], input[type='date'], input[type='time']
   cursor: pointer;
 }
 .foodrow:hover { border-color: var(--accent); }
+
+/* ---------- onboarding ----------
+   The interview is the first thing anyone sees, so it carries colour of its
+   own: each section has a hue, and the screen glows with it. The soft tints
+   are mixed against the current surface, so the same two declarations work
+   in both themes instead of a palette duplicated three times. */
+
+.quiz-shell {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(130% 48% at 50% -6%, var(--sec-glow, transparent), transparent 70%),
+    var(--bg);
+}
+/* A second wash low on the screen, so the colour does not drain away the
+   moment the eye leaves the header. */
+.quiz-shell::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: auto -90px -120px auto;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: var(--sec-glow, transparent);
+  filter: blur(18px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.sectionchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px 5px 6px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--sec, var(--accent));
+}
+.sectionchip .dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--sec, var(--accent));
+  color: #fff;
+}
+.sectionchip .dot svg { width: 13px; height: 13px; }
+
+/* One segment per section: where you are in the whole interview, not just
+   in the current question. */
+.segments { display: flex; gap: 4px; }
+.segments > span {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--track);
+  overflow: hidden;
+}
+.segments > span > i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--sec, var(--accent));
+  transition: width 0.35s ease;
+}
+
+.optcard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 60px;
+  padding: 13px 14px;
+  border-radius: 16px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgb(15 32 30 / 0.04), 0 10px 20px -18px rgb(15 32 30 / 0.5);
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.08s ease;
+}
+.optcard:active { transform: scale(0.985); }
+.optcard .bullet {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--sec-tint, var(--surface-2));
+  color: var(--sec, var(--accent));
+  font-weight: 800;
+  font-size: 14px;
+}
+.optcard .bullet svg { width: 17px; height: 17px; }
+.optcard[aria-pressed='true'] {
+  border-color: var(--sec, var(--accent));
+  border-width: 2px;
+  background: var(--sec-tint, var(--accent-soft));
+}
+.optcard[aria-pressed='true'] .bullet { background: var(--sec, var(--accent)); color: #fff; }
+
+/* A fact computed from what was just answered. The interview gives
+   something back instead of only taking. */
+.insight {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 11px 13px;
+  border-radius: 14px;
+  background: var(--sec-tint, var(--accent-soft));
+  border: 1px solid var(--line);
+}
+.insight b { font-family: var(--display); font-size: 15px; color: var(--sec, var(--accent)); }
+
+/* The call to action carries the section's colour too, darkened enough that
+   white text keeps its contrast on the lighter hues. */
+.quiz-shell .btn:not(.ghost):not(.quiet) {
+  background: color-mix(in oklab, var(--sec, var(--accent)) 82%, #06302e);
+  border-color: transparent;
+  color: #fff;
+}
+
+.quiz-hero {
+  border-radius: 22px;
+  padding: 22px 20px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.quiz-hero .stat {
+  font-family: var(--display);
+  font-size: 52px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.quiz-hero h1 { font-size: 24px; margin-top: 10px; }
+.quiz-hero p { font-size: 14px; line-height: 1.5; opacity: 0.92; margin-top: 8px; }
+.quiz-hero .glow {
+  position: absolute;
+  inset: auto -30px -60px auto;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.13);
+}

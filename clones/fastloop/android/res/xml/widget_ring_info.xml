@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Half an hour is the shortest period the platform allows, and it is the
+  right one: the arc moves about 3% of a 16-hour window in that time, while
+  the clock in the middle ticks every second on its own. Anything faster
+  would spend battery to redraw a line nobody can see move.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/widget_ring"
+    android:description="@string/widget_ring_desc"
+    android:resizeMode="none"
+    android:widgetCategory="home_screen" />

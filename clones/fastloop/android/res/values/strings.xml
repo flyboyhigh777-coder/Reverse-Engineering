@@ -5,4 +5,6 @@
   <string name="widget_timer_desc">Сколько осталось до конца окна</string>
   <string name="widget_summary_name">Голодание, вода, шаги</string>
   <string name="widget_summary_desc">Таймер и дневные нормы в одном месте</string>
+  <string name="widget_ring_name">Круглый таймер</string>
+  <string name="widget_ring_desc">Кольцо прогресса и часы — рядом с иконкой</string>
 </resources>

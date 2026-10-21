@@ -13,8 +13,8 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="app.fastloop"
-    android:versionCode="17"
-    android:versionName="0.14.0">
+    android:versionCode="18"
+    android:versionName="0.15.0">
 
   <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
   <!--
@@ -31,6 +31,7 @@
   <application
       android:label="@string/app_name"
       android:icon="@mipmap/ic_launcher"
+      android:roundIcon="@mipmap/ic_launcher_round"
       android:theme="@style/FastLoopTheme"
       android:hardwareAccelerated="true"
       android:allowBackup="false">
@@ -67,6 +68,18 @@
       <meta-data
           android:name="android.appwidget.provider"
           android:resource="@xml/widget_summary_info" />
+    </receiver>
+
+    <receiver
+        android:name="app.fastloop.RingWidget"
+        android:label="@string/widget_ring_name"
+        android:exported="false">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+          android:name="android.appwidget.provider"
+          android:resource="@xml/widget_ring_info" />
     </receiver>
   </application>
 </manifest>

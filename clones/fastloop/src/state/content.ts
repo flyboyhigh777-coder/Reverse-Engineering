@@ -20,12 +20,16 @@ import type { ContentPack } from '../domain/contentPack';
 const CACHE = 'fastloop.content.v1';
 
 /**
- * Where updates come from by default: this project's own repository.
+ * Where updates come from by default: this project's own repository, on its
+ * main branch. It used to point at the working branch of the session that
+ * wrote it, which outlives nothing: once that branch is merged and deleted,
+ * every installed build gets a 404 and a message blaming a private
+ * repository.
  * Readable only while the repository is public; the UI says so when the
  * address answers 404, and the address can be changed to any other.
  */
 export const DEFAULT_URL =
-  'https://raw.githubusercontent.com/flyboyhigh777-coder/Reverse-Engineering/ccr-ec1e3e74-sij75z/clones/fastloop/content/content.json';
+  'https://raw.githubusercontent.com/flyboyhigh777-coder/Reverse-Engineering/main/clones/fastloop/content/content.json';
 
 export type Status = 'idle' | 'loading' | 'ok' | 'error';
 

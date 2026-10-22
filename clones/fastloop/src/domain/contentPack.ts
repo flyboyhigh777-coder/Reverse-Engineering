@@ -1,3 +1,5 @@
+import { netFetch } from '../state/net';
+import type { NetResponse } from '../state/net';
 import type { Article, Category, Evidence } from './articles';
 import { CATEGORIES } from './articles';
 import type { DailyNote } from './daily';
@@ -156,9 +158,14 @@ export function parsePack(payload: unknown): PackResult {
 
 export async function fetchPack(url: string, signal?: AbortSignal): Promise<PackResult> {
   if (url.trim() === '') return { kind: 'error', reason: 'Адрес обновлений не задан.' };
-  let response: Response;
+  // netFetch, not fetch: the Android build serves its page from file://,
+  // which is an opaque origin, so a cross-origin fetch is refused before it
+  // is sent. Everything else that touches the network was moved across when
+  // that was found; this call was missed, and it is the one that makes
+  // «Обновить сейчас» silently never work on a phone.
+  let response: NetResponse;
   try {
-    response = await fetch(url, { signal, cache: 'no-cache', headers: { accept: 'application/json' } });
+    response = await netFetch(url, { signal, headers: { accept: 'application/json', 'cache-control': 'no-cache' } });
   } catch {
     return { kind: 'error', reason: 'Нет связи. Проверьте интернет на телефоне.' };
   }

@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  A fork standing where the stopwatch dot used to be, on the free end of the
-  arc at twelve.
+  A fork standing inside the ring, centred.
 
-  The whole drawing is scaled to 0.88 about the centre. At full size the
-  tines reach 39dp from the middle, and a launcher's circular mask keeps
-  only the central 36dp — the tips would have been cut off on exactly the
-  phones this is drawn for. Scaled, the furthest point is 34dp.
+  It used to stand on the free end of the arc at twelve, which threw the
+  whole drawing's weight down and to the right and left the tines looking
+  glued to the edge. Everything now lives inside a circle of radius 33 about
+  the centre, which no launcher mask crops: the guaranteed-visible area of a
+  108dp adaptive icon is the central 72dp.
+
+  Dark ink on lime, matching the app's own buttons.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
@@ -14,42 +16,16 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-  <group
-      android:pivotX="54"
-      android:pivotY="54"
-      android:scaleX="0.88"
-      android:scaleY="0.88">
+  <!-- Three quarters of a ring, opening at the lower left. -->
+  <path
+      android:pathData="M49.1,26.4 A28,28 0 1 1 26.4,58.9"
+      android:fillColor="#00000000"
+      android:strokeColor="#14280B"
+      android:strokeWidth="8"
+      android:strokeLineCap="round" />
 
-    <path
-        android:pathData="M54,33 a21,21 0 1,0 21,21"
-        android:fillColor="#00000000"
-        android:strokeColor="#F4F7F6"
-        android:strokeWidth="8"
-        android:strokeLineCap="round" />
-
-    <path
-        android:pathData="M47.5,18.5 L47.5,27.5"
-        android:fillColor="#00000000"
-        android:strokeColor="#F2A33C"
-        android:strokeWidth="4.8"
-        android:strokeLineCap="round" />
-    <path
-        android:pathData="M54,17.5 L54,27.5"
-        android:fillColor="#00000000"
-        android:strokeColor="#F2A33C"
-        android:strokeWidth="4.8"
-        android:strokeLineCap="round" />
-    <path
-        android:pathData="M60.5,18.5 L60.5,27.5"
-        android:fillColor="#00000000"
-        android:strokeColor="#F2A33C"
-        android:strokeWidth="4.8"
-        android:strokeLineCap="round" />
-    <path
-        android:pathData="M54,27.5 L54,37"
-        android:fillColor="#00000000"
-        android:strokeColor="#F2A33C"
-        android:strokeWidth="6.2"
-        android:strokeLineCap="round" />
-  </group>
+  <path android:pathData="M48,42 L48,50" android:fillColor="#00000000" android:strokeColor="#14280B" android:strokeWidth="4.6" android:strokeLineCap="round" />
+  <path android:pathData="M54,41 L54,50" android:fillColor="#00000000" android:strokeColor="#14280B" android:strokeWidth="4.6" android:strokeLineCap="round" />
+  <path android:pathData="M60,42 L60,50" android:fillColor="#00000000" android:strokeColor="#14280B" android:strokeWidth="4.6" android:strokeLineCap="round" />
+  <path android:pathData="M54,50 L54,68" android:fillColor="#00000000" android:strokeColor="#14280B" android:strokeWidth="5.8" android:strokeLineCap="round" />
 </vector>

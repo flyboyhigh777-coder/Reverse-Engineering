@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Background layer of the adaptive icon: fills the whole 108dp canvas so
-     the launcher can crop it to any mask without exposing a corner. -->
+<!--
+  Light theme: the lime the app's own buttons are painted with, so the icon
+  and «Начать голодание» are obviously the same product. Fills the whole
+  108dp canvas, so no mask can expose a corner.
+-->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
   <gradient
       android:type="linear"
       android:angle="315"
-      android:startColor="#0E7C7B"
-      android:endColor="#0A5553" />
+      android:startColor="#B6EA63"
+      android:centerColor="#7FC91F"
+      android:endColor="#4FA01A" />
 </shape>

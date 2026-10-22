@@ -446,9 +446,19 @@ export const actions = {
     set(demoState(Date.now()));
   },
 
-  /** Replaces everything with a full backup, including stage and profile. */
+  /**
+   * Replaces everything with a full backup, including stage and profile.
+   *
+   * Through normalize, because a backup is older than the app that reads it
+   * by definition. One made before the calorie diary existed has no meals
+   * array at all, and restoring it raw put undefined where the screens
+   * expect a list — a blank screen, saved to storage on the spot. The same
+   * function already guards everything loaded from storage; the restore
+   * path simply never went through it.
+   */
   restoreBackup(restored: AppState): void {
-    set({ ...restored, current: restored.current ?? null, pendingRatingId: null });
+    const safe = normalize(restored);
+    set({ ...safe, current: safe.current ?? null, pendingRatingId: null });
   },
 
   /**

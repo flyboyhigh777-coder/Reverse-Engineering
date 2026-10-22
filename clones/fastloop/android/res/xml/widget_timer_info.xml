@@ -13,4 +13,9 @@
     android:initialLayout="@layout/widget_timer"
     android:description="@string/widget_timer_desc"
     android:resizeMode="horizontal|vertical"
+    android:previewLayout="@layout/widget_timer"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="110dp"
+    android:maxResizeWidth="320dp"
+    android:maxResizeHeight="220dp"
     android:widgetCategory="home_screen" />

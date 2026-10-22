@@ -43,6 +43,24 @@ const ANSWER_SCHEMA = {
           fiber: { type: 'NUMBER' },
           note: { type: 'STRING' },
           confidence: { type: 'STRING', enum: ['high', 'medium', 'low'] },
+          alternatives: { type: 'ARRAY', items: { type: 'STRING' } },
+          parts: {
+            type: 'ARRAY',
+            items: {
+              type: 'OBJECT',
+              properties: {
+                name: { type: 'STRING' },
+                grams: { type: 'NUMBER' },
+                kcal: { type: 'NUMBER' },
+                protein: { type: 'NUMBER' },
+                fat: { type: 'NUMBER' },
+                carbs: { type: 'NUMBER' },
+                fiber: { type: 'NUMBER' },
+                kind: { type: 'STRING', enum: ['видно', 'по рецепту'] },
+              },
+              required: ['name', 'grams', 'kcal', 'kind'],
+            },
+          },
         },
         required: ['name', 'grams', 'kcal', 'protein', 'fat', 'carbs', 'confidence'],
       },
@@ -159,7 +177,7 @@ async function ask(apiKey: string, model: string, parts: unknown[], signal?: Abo
           // 900 was not enough for a table with three dishes on it, and a
           // reply cut off at the limit is unparseable however good the
           // parser is — the person just saw "не удалось разобрать еду".
-          maxOutputTokens: 2000,
+          maxOutputTokens: 3000,
           temperature: 0.2,
           responseMimeType: 'application/json',
           responseSchema: ANSWER_SCHEMA,

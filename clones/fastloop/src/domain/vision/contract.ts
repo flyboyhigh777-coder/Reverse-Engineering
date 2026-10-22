@@ -14,6 +14,25 @@ import type { Macros } from '../recipes';
  * most people will not do that for a food diary.
  */
 
+/**
+ * One thing inside a dish.
+ *
+ * Where it came from matters as much as what it is. A model naming cumin in
+ * a shakshuka has not seen cumin — it knows what shakshuka usually contains,
+ * and that is a different kind of statement from «there are two eggs here».
+ * Both are useful; presenting them as the same thing is how a breakdown
+ * turns into theatre. So each part says which it is, and the ones that were
+ * only inferred can be struck out in one tap by anyone who did not use them.
+ */
+export interface Component {
+  readonly name: string;
+  /** 0 for things used in amounts too small to weigh, like spices. */
+  readonly grams: number;
+  readonly macros: Macros;
+  /** 'видно' — visible in the frame. 'по рецепту' — assumed from the dish. */
+  readonly kind: 'видно' | 'по рецепту';
+}
+
 export interface Guess {
   readonly name: string;
   /** Estimated portion on the plate. */
@@ -22,6 +41,17 @@ export interface Guess {
   /** What the model saw and what it had to assume. */
   readonly note: string;
   readonly confidence: 'high' | 'medium' | 'low';
+  /** Other names the model considered, best first. Usually one or two. */
+  readonly alternatives: readonly string[];
+  /** What the dish is made of. Empty when the model gave no breakdown. */
+  readonly parts: readonly Component[];
+  /**
+   * True when the parts add up to the totals, within rounding. When they do
+   * not, the totals are kept and the breakdown is shown as indicative only —
+   * a list that does not sum is worse than no list, because people subtract
+   * from it.
+   */
+  readonly partsAddUp: boolean;
 }
 
 export type VisionResult =
@@ -97,12 +127,16 @@ const SHARED_RULES = `- Отдельная запись на каждое блю
 - name — по-русски, коротко, как назвал бы человек.
 ${FAT_RULE}
 - note — одной фразой: что ты видишь и какие допущения сделал.
-- confidence — low, если состав, способ приготовления или количество понять трудно.`;
+- confidence — low, если состав, способ приготовления или количество понять трудно.
+- parts — из чего состоит блюдо. Отдельная строка на каждый продукт, включая масло, соус, заправку и специи. У специй и соли ставь grams и все макросы в 0: их называть нужно, а калорий в них нет.
+- kind у части: «видно», если ты действительно видишь этот продукт в кадре или в описании, и «по рецепту», если ты его не видишь, а знаешь, что в таком блюде он обычно есть. Не выдавай второе за первое.
+- Сумма parts по каждому макросу должна совпадать с числами блюда. Человек вычёркивает лишнее из списка, и вычитание должно сходиться.
+- alternatives — одно-два других названия, которыми это блюдо могло бы быть, если ты не уверен. Если уверен, верни пустой список.`;
 
 export const TEXT_PROMPT = `Ты оцениваешь по описанию, что человек съел, для дневника питания.
 
 Верни ТОЛЬКО JSON, без markdown и без пояснений вокруг, в таком виде:
-{"items":[{"name":"","grams":0,"kcal":0,"protein":0,"fat":0,"carbs":0,"fiber":0,"note":"","confidence":"high|medium|low"}]}
+{"items":[{"name":"","alternatives":[""],"grams":0,"kcal":0,"protein":0,"fat":0,"carbs":0,"fiber":0,"note":"","confidence":"high|medium|low","parts":[{"name":"","grams":0,"kcal":0,"protein":0,"fat":0,"carbs":0,"fiber":0,"kind":"видно|по рецепту"}]}]}
 
 Правила:
 - Если человек перечислил состав одного блюда, верни ОДНУ запись с названием блюда целиком, а не отдельные записи на каждый ингредиент.
@@ -114,6 +148,10 @@ export const TEXT_PROMPT = `Ты оцениваешь по описанию, ч�
 ${FAT_RULE}
 - note — одной фразой: какие допущения сделаны (например «масло взято 1 ст. л.», «порция принята за 300 г»).
 - confidence — low, если состав или количество по описанию понять трудно.
+- parts — из чего состоит блюдо. Отдельная строка на каждый продукт, включая масло, соус, заправку и специи. У специй и соли ставь grams и все макросы в 0: их называть нужно, а калорий в них нет.
+- kind у части: «видно», если ты действительно видишь этот продукт в описании человека, и «по рецепту», если ты его не видишь, а знаешь, что в таком блюде он обычно есть. Не выдавай второе за первое.
+- Сумма parts по каждому макросу должна совпадать с числами блюда. Человек вычёркивает лишнее из списка, и вычитание должно сходиться.
+- alternatives — одно-два других названия, которыми это блюдо могло бы быть, если ты не уверен. Если уверен, верни пустой список.
 - Если в тексте нет еды, верни {"items":[]}.`;
 
 /**
@@ -149,7 +187,7 @@ export function photoPrompt(context?: ShotContext): string {
   return `Ты оцениваешь еду на фотографии для дневника питания.
 
 Верни ТОЛЬКО JSON, без markdown и без пояснений вокруг, в таком виде:
-{"items":[{"name":"","grams":0,"kcal":0,"protein":0,"fat":0,"carbs":0,"fiber":0,"note":"","confidence":"high|medium|low"}]}
+{"items":[{"name":"","alternatives":[""],"grams":0,"kcal":0,"protein":0,"fat":0,"carbs":0,"fiber":0,"note":"","confidence":"high|medium|low","parts":[{"name":"","grams":0,"kcal":0,"protein":0,"fat":0,"carbs":0,"fiber":0,"kind":"видно|по рецепту"}]}]}
 
 Правила:
 ${SHARED_RULES}
@@ -190,6 +228,50 @@ function num(value: unknown, fallback = 0): number {
   return Number.isFinite(parsed) ? Math.max(0, parsed) : fallback;
 }
 
+function macrosOf(item: Record<string, unknown>): Macros {
+  return {
+    kcal: Math.round(num(item.kcal)),
+    protein: Math.round(num(item.protein)),
+    fat: Math.round(num(item.fat)),
+    carbs: Math.round(num(item.carbs)),
+    fiber: Math.round(num(item.fiber) * 10) / 10,
+  };
+}
+
+function toComponents(raw: unknown): Component[] {
+  if (!Array.isArray(raw)) return [];
+  const out: Component[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const part = entry as Record<string, unknown>;
+    const name = typeof part.name === 'string' ? part.name.trim() : '';
+    if (name === '') continue;
+    out.push({
+      name,
+      grams: Math.round(num(part.grams)),
+      macros: macrosOf(part),
+      kind: part.kind === 'видно' ? 'видно' : 'по рецепту',
+    });
+  }
+  return out;
+}
+
+/**
+ * Does the breakdown add up to the dish?
+ *
+ * Asked because a list that does not sum is worse than no list: the whole
+ * point of showing parts is that striking one out subtracts it, and that is
+ * only true when the parts were the totals in the first place. A tenth of
+ * slack covers rounding on each line; beyond that the breakdown is shown as
+ * indicative and nothing can be struck from it.
+ */
+function addsUp(total: Macros, parts: readonly Component[]): boolean {
+  if (parts.length === 0) return false;
+  const sum = parts.reduce((acc, part) => acc + part.macros.kcal, 0);
+  if (total.kcal <= 0) return sum <= 0;
+  return Math.abs(sum - total.kcal) <= Math.max(25, total.kcal * 0.1);
+}
+
 export function toGuesses(parsed: unknown): readonly Guess[] {
   if (!parsed || typeof parsed !== 'object') return [];
   const items = (parsed as { items?: unknown }).items;
@@ -201,18 +283,24 @@ export function toGuesses(parsed: unknown): readonly Guess[] {
       const name = typeof item.name === 'string' ? item.name.trim() : '';
       if (name === '') return null;
       const confidence = item.confidence === 'high' || item.confidence === 'low' ? item.confidence : 'medium';
+      const macros = macrosOf(item);
+      const parts = toComponents(item.parts);
+      const alternatives = Array.isArray(item.alternatives)
+        ? item.alternatives
+            .filter((alt): alt is string => typeof alt === 'string' && alt.trim() !== '')
+            .map((alt) => alt.trim())
+            .filter((alt) => alt.toLowerCase() !== name.toLowerCase())
+            .slice(0, 3)
+        : [];
       return {
         name,
         grams: Math.round(num(item.grams)),
-        macros: {
-          kcal: Math.round(num(item.kcal)),
-          protein: Math.round(num(item.protein)),
-          fat: Math.round(num(item.fat)),
-          carbs: Math.round(num(item.carbs)),
-          fiber: Math.round(num(item.fiber) * 10) / 10,
-        },
+        macros,
         note: typeof item.note === 'string' ? item.note : '',
         confidence,
+        alternatives,
+        parts,
+        partsAddUp: addsUp(macros, parts),
       };
     })
     .filter((guess): guess is Guess => guess !== null);
@@ -225,7 +313,7 @@ export function toGuesses(parsed: unknown): readonly Guess[] {
  * direction: measurements of this whole category of app find they read low,
  * and that someone who does not correct the portion eats noticeably more
  * than the screen says. So the number has to be adjustable before it is
- * written down, and the macros have to follow it rather than stay put.
+ * written down, and the macros — and the breakdown — have to follow it.
  *
  * Scaling is always from the model's own figures, never from the previous
  * edit, so dragging a portion up and back down lands exactly where it began.
@@ -234,16 +322,39 @@ export function scaleGuess(guess: Guess, grams: number): Guess {
   const target = Math.max(0, Math.round(grams));
   if (guess.grams <= 0 || target === guess.grams) return { ...guess, grams: target };
   const k = target / guess.grams;
+  const scale = (macros: Macros): Macros => ({
+    kcal: Math.round(macros.kcal * k),
+    protein: Math.round(macros.protein * k),
+    fat: Math.round(macros.fat * k),
+    carbs: Math.round(macros.carbs * k),
+    fiber: Math.round(macros.fiber * k * 10) / 10,
+  });
   return {
     ...guess,
     grams: target,
+    macros: scale(guess.macros),
+    parts: guess.parts.map((part) => ({ ...part, grams: Math.round(part.grams * k), macros: scale(part.macros) })),
+  };
+}
+
+/** The dish with one of its parts taken out — «я без нута». */
+export function withoutPart(guess: Guess, index: number): Guess {
+  const part = guess.parts[index];
+  if (!part || !guess.partsAddUp) return guess;
+  const parts = guess.parts.filter((_, i) => i !== index);
+  const left = (a: number, b: number): number => Math.max(0, Math.round(a - b));
+  return {
+    ...guess,
+    grams: Math.max(0, guess.grams - part.grams),
     macros: {
-      kcal: Math.round(guess.macros.kcal * k),
-      protein: Math.round(guess.macros.protein * k),
-      fat: Math.round(guess.macros.fat * k),
-      carbs: Math.round(guess.macros.carbs * k),
-      fiber: Math.round(guess.macros.fiber * k * 10) / 10,
+      kcal: left(guess.macros.kcal, part.macros.kcal),
+      protein: left(guess.macros.protein, part.macros.protein),
+      fat: left(guess.macros.fat, part.macros.fat),
+      carbs: left(guess.macros.carbs, part.macros.carbs),
+      fiber: Math.max(0, Math.round((guess.macros.fiber - part.macros.fiber) * 10) / 10),
     },
+    parts,
+    partsAddUp: parts.length > 0,
   };
 }
 

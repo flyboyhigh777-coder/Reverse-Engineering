@@ -1294,3 +1294,43 @@ input[type='number'], input[type='text'], input[type='date'], input[type='time']
 }
 .guess input[type='number'] { padding: 7px 9px; font-variant-numeric: tabular-nums; }
 .guess .chip { padding: 5px 10px; font-size: 12px; }
+
+/* The breakdown under a guess. It is a claim about what is in the dish, so
+   it says which lines were seen and which were assumed, and it only offers
+   a cross when the lines actually sum to the total. */
+.parts { display: flex; flex-direction: column; gap: 6px; }
+.parts ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.parts li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: 9px;
+  background: var(--surface-2);
+}
+.parts li .grow { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.parts li .num { font-size: 12px; white-space: nowrap; }
+.parts li button {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.parts li button:hover { background: color-mix(in oklab, var(--danger) 14%, transparent); color: var(--danger); }
+.parts .guessed {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--ink-3);
+  background: var(--surface);
+  border-radius: 99px;
+  padding: 1px 7px;
+}

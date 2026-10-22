@@ -54,7 +54,7 @@ async function ask(apiKey: string, model: string, content: unknown, signal?: Abo
       headers: headers(apiKey),
       // A reply cut off at the limit is unparseable however good the parser
       // is, and a table with three dishes on it does not fit in 900.
-      body: JSON.stringify({ model, max_tokens: 2000, messages: [{ role: 'user', content }] }),
+      body: JSON.stringify({ model, max_tokens: 3000, messages: [{ role: 'user', content }] }),
     });
   } catch {
     return { kind: 'error', reason: NO_NETWORK };

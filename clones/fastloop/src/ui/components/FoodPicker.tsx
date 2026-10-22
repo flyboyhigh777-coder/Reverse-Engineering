@@ -16,6 +16,7 @@ import { readVisionAccess, writeVisionAccess } from '../../state/visionKey';
 import type { VisionAccess } from '../../state/visionKey';
 import { DishArt } from './DishArt';
 import { Sheet } from './common';
+import { MealTimeProvider, WhenPicker, useMealAt } from './MealTime';
 
 type Tab = 'search' | 'online' | 'ai' | 'manual';
 
@@ -63,13 +64,22 @@ export function FoodPicker({ slot, onClose }: { slot: MealSlot; onClose: () => v
   const [seed, setSeed] = useState('');
 
   if (chosen) {
-    return <PortionSheet food={chosen} slot={slot} onBack={() => setChosen(null)} onDone={onClose} />;
+    return (
+      <MealTimeProvider>
+        <PortionSheet food={chosen} slot={slot} onBack={() => setChosen(null)} onDone={onClose} />
+      </MealTimeProvider>
+    );
   }
   if (recipe) {
-    return <RecipeSheet recipe={recipe} slot={slot} onBack={() => setRecipe(null)} onDone={onClose} />;
+    return (
+      <MealTimeProvider>
+        <RecipeSheet recipe={recipe} slot={slot} onBack={() => setRecipe(null)} onDone={onClose} />
+      </MealTimeProvider>
+    );
   }
 
   return (
+    <MealTimeProvider>
     <Sheet title={`Записать: ${SLOT_LABEL[slot].toLowerCase()}`} onClose={onClose}>
       <div className="carousel chiprow">
         {TABS.map((item) => (
@@ -93,6 +103,7 @@ export function FoodPicker({ slot, onClose }: { slot: MealSlot; onClose: () => v
       {tab === 'ai' ? <AiTab slot={slot} seed={seed} onDone={onClose} /> : null}
       {tab === 'manual' ? <ManualTab slot={slot} onDone={onClose} /> : null}
     </Sheet>
+    </MealTimeProvider>
   );
 }
 
@@ -280,6 +291,7 @@ function PortionSheet({
   onBack: () => void;
   onDone: () => void;
 }): JSX.Element {
+  const mealAt = useMealAt();
   const [grams, setGrams] = useState(food.portions[0]?.grams ?? 100);
   const [where, setWhere] = useState<MealSlot>(slot);
   const macros = forGrams(food.per100g, grams);
@@ -325,12 +337,14 @@ function PortionSheet({
       <span className="eyebrow">Куда записать</span>
       <SlotPicker slot={where} onChange={setWhere} />
 
+      <WhenPicker />
+
       <button
         type="button"
         className="btn block"
         disabled={grams <= 0}
         onClick={() => {
-          actions.logFromFood(food, grams, where);
+          actions.logFromFood(food, grams, where, mealAt());
           onDone();
         }}
       >
@@ -358,6 +372,7 @@ function RecipeSheet({
   onBack: () => void;
   onDone: () => void;
 }): JSX.Element {
+  const mealAt = useMealAt();
   const composition = useMemo(() => compositionFor(recipe), [recipe]);
   const [servings, setServings] = useState(1);
   const [where, setWhere] = useState<MealSlot>(slot);
@@ -445,11 +460,13 @@ function RecipeSheet({
       <span className="eyebrow">Куда записать</span>
       <SlotPicker slot={where} onChange={setWhere} />
 
+      <WhenPicker />
+
       <button
         type="button"
         className="btn block"
         onClick={() => {
-          actions.logManual(name, 0, macros, where, 'recipe');
+          actions.logManual(name, 0, macros, where, 'recipe', mealAt());
           onDone();
         }}
       >
@@ -460,6 +477,7 @@ function RecipeSheet({
 }
 
 function ManualTab({ slot, onDone }: { slot: MealSlot; onDone: () => void }): JSX.Element {
+  const mealAt = useMealAt();
   const [name, setName] = useState('');
   const [kcal, setKcal] = useState('');
   const [grams, setGrams] = useState('');
@@ -512,6 +530,8 @@ function ManualTab({ slot, onDone }: { slot: MealSlot; onDone: () => void }): JS
       <span className="eyebrow">Куда записать</span>
       <SlotPicker slot={where} onChange={setWhere} />
 
+      <WhenPicker />
+
       <button
         type="button"
         className="btn block"
@@ -528,6 +548,8 @@ function ManualTab({ slot, onDone }: { slot: MealSlot; onDone: () => void }): JS
               fiber: 0,
             },
             where,
+            'manual',
+            mealAt(),
           );
           onDone();
         }}
@@ -633,6 +655,7 @@ type AiMode = 'text' | 'photo';
  * a fraction as much to send.
  */
 function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: () => void }): JSX.Element {
+  const mealAt = useMealAt();
   const state = useAppState();
   const [access, setAccess] = useState<VisionAccess | null>(() => readVisionAccess());
   const [mode, setMode] = useState<AiMode>('text');
@@ -971,13 +994,16 @@ function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: (
               <span className="eyebrow">Куда записать</span>
               <SlotPicker slot={where} onChange={setWhere} />
 
+              <WhenPicker />
+
               <button
                 type="button"
                 className="btn block"
                 onClick={() => {
+                  const at = mealAt();
                   for (const item of items) {
                     if (item.grams <= 0 && item.macros.kcal <= 0) continue;
-                    actions.logManual(item.name, item.grams, item.macros, where, mode === 'photo' ? 'photo' : 'manual');
+                    actions.logManual(item.name, item.grams, item.macros, where, mode === 'photo' ? 'photo' : 'manual', at);
                   }
                   onDone();
                 }}

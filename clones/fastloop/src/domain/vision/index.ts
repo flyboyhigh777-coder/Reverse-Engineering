@@ -4,6 +4,8 @@ import type { ProviderId, VisionProvider } from './contract';
 
 export type { Component, Guess, KeyCheck, ProviderId, ShotContext, VisionProvider, VisionResult } from './contract';
 export { VISION_NOTE, scaleGuess, withoutPart } from './contract';
+export { clearVisionLog, describeLog, subscribeVisionLog, visionLog } from './log';
+export type { Attempt } from './log';
 
 /**
  * Who can read a plate, free one first.

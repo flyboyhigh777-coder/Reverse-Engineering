@@ -26,24 +26,24 @@
         android:id="@+id/clock"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="22sp"
+        android:textSize="27sp"
         android:textStyle="bold"
         android:includeFontPadding="false"
-        android:textColor="@color/w_ink"
+        android:textColor="@color/w_accent"
         android:format="%s" />
     <TextView
         android:id="@+id/idle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="22sp"
+        android:textSize="27sp"
         android:textStyle="bold"
-        android:textColor="@color/w_ink"
+        android:textColor="@color/w_accent"
         android:visibility="gone" />
     <TextView
         android:id="@+id/caption"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="11sp"
+        android:textSize="12sp"
         android:textColor="@color/w_ink_3" />
   </LinearLayout>
 </FrameLayout>

@@ -2,140 +2,159 @@
 <!--
   The wide widget: the fast plus the three things counted daily.
 
-  The rows carry layout_weight so they spread across whatever height the
-  launcher gives the widget, instead of huddling in the middle of it. Sizes
-  are fixed rather than auto-sizing because Chronometer, unlike TextView,
-  has no autoSizeTextType.
+  Sizes are deliberate rather than inherited. The clock is the reason the
+  widget exists, so it gets the room; the rows carry layout_weight to spread
+  across whatever height the launcher gives, and their text and rails grew
+  because at 13sp and 9dp they read as a legend rather than as data.
+  Chronometer, unlike TextView, has no autoSizeTextType, hence fixed sizes.
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="horizontal"
-    android:background="@drawable/widget_bg"
-    android:padding="16dp"
-    android:baselineAligned="false">
+    android:background="@drawable/widget_bg">
 
   <LinearLayout
-      android:layout_width="0dp"
+      android:layout_width="match_parent"
       android:layout_height="match_parent"
-      android:layout_weight="1.15"
-      android:orientation="vertical"
-      android:gravity="center_vertical">
-    <TextView
-        android:id="@+id/plan"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textSize="12sp"
-        android:textAllCaps="true"
-        android:letterSpacing="0.05"
-        android:textColor="@color/w_ink_3"
-        android:text="FastLoop" />
-    <Chronometer
-        android:id="@+id/clock"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:textSize="32sp"
-        android:textStyle="bold"
-        android:includeFontPadding="false"
-        android:singleLine="true"
-        android:textColor="@color/w_ink"
-        android:format="%s" />
-    <TextView
-        android:id="@+id/idle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:textSize="32sp"
-        android:textStyle="bold"
-        android:includeFontPadding="false"
-        android:textColor="@color/w_ink"
-        android:visibility="gone" />
-    <TextView
-        android:id="@+id/caption"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="1dp"
-        android:textSize="13sp"
-        android:textColor="@color/w_ink_2"
-        android:text="не запущено" />
+      android:orientation="horizontal"
+      android:padding="14dp"
+      android:baselineAligned="false">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1.12"
+        android:orientation="vertical"
+        android:background="@drawable/widget_clock_glow"
+        android:gravity="center_vertical">
+      <TextView
+          android:id="@+id/plan"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:textSize="12sp"
+          android:textAllCaps="true"
+          android:letterSpacing="0.08"
+          android:textColor="@color/w_cyan"
+          android:text="FastLoop" />
+      <Chronometer
+          android:id="@+id/clock"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_marginTop="3dp"
+          android:textSize="40sp"
+          android:textStyle="bold"
+          android:includeFontPadding="false"
+          android:singleLine="true"
+          android:textColor="@color/w_accent"
+          android:format="%s" />
+      <TextView
+          android:id="@+id/idle"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_marginTop="3dp"
+          android:textSize="40sp"
+          android:textStyle="bold"
+          android:includeFontPadding="false"
+          android:textColor="@color/w_accent"
+          android:visibility="gone" />
+      <TextView
+          android:id="@+id/caption"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_marginTop="2dp"
+          android:textSize="14sp"
+          android:textColor="@color/w_ink_2"
+          android:text="не запущено" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:layout_marginStart="12dp"
+        android:orientation="vertical">
+
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="0dp"
+          android:layout_weight="1"
+          android:orientation="vertical"
+          android:gravity="center_vertical">
+        <TextView
+            android:id="@+id/row1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="15sp"
+            android:singleLine="true"
+            android:textColor="@color/w_ink"
+            android:text="Вода" />
+        <ProgressBar
+            android:id="@+id/bar1"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="13dp"
+            android:layout_marginTop="5dp"
+            android:max="100"
+            android:progressDrawable="@drawable/widget_bar_cyan" />
+      </LinearLayout>
+
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="0dp"
+          android:layout_weight="1"
+          android:orientation="vertical"
+          android:gravity="center_vertical">
+        <TextView
+            android:id="@+id/row2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="15sp"
+            android:singleLine="true"
+            android:textColor="@color/w_ink"
+            android:text="Шаги" />
+        <ProgressBar
+            android:id="@+id/bar2"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="13dp"
+            android:layout_marginTop="5dp"
+            android:max="100"
+            android:progressDrawable="@drawable/widget_bar_warm" />
+      </LinearLayout>
+
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="0dp"
+          android:layout_weight="1"
+          android:orientation="vertical"
+          android:gravity="center_vertical">
+        <TextView
+            android:id="@+id/row3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="15sp"
+            android:singleLine="true"
+            android:textColor="@color/w_ink"
+            android:text="Калории" />
+        <ProgressBar
+            android:id="@+id/bar3"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="13dp"
+            android:layout_marginTop="5dp"
+            android:max="100"
+            android:progressDrawable="@drawable/widget_bar" />
+      </LinearLayout>
+    </LinearLayout>
   </LinearLayout>
 
-  <LinearLayout
-      android:layout_width="0dp"
-      android:layout_height="match_parent"
-      android:layout_weight="1"
-      android:layout_marginStart="14dp"
-      android:orientation="vertical">
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="vertical"
-        android:gravity="center_vertical">
-      <TextView
-          android:id="@+id/row1"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:textSize="13sp"
-          android:textColor="@color/w_ink_2"
-          android:text="Вода" />
-      <ProgressBar
-          android:id="@+id/bar1"
-          style="?android:attr/progressBarStyleHorizontal"
-          android:layout_width="match_parent"
-          android:layout_height="9dp"
-          android:layout_marginTop="4dp"
-          android:max="100"
-          android:progressDrawable="@drawable/widget_bar" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="vertical"
-        android:gravity="center_vertical">
-      <TextView
-          android:id="@+id/row2"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:textSize="13sp"
-          android:textColor="@color/w_ink_2"
-          android:text="Шаги" />
-      <ProgressBar
-          android:id="@+id/bar2"
-          style="?android:attr/progressBarStyleHorizontal"
-          android:layout_width="match_parent"
-          android:layout_height="9dp"
-          android:layout_marginTop="4dp"
-          android:max="100"
-          android:progressDrawable="@drawable/widget_bar_warm" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="vertical"
-        android:gravity="center_vertical">
-      <TextView
-          android:id="@+id/row3"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:textSize="13sp"
-          android:textColor="@color/w_ink_2"
-          android:text="Калории" />
-      <ProgressBar
-          android:id="@+id/bar3"
-          style="?android:attr/progressBarStyleHorizontal"
-          android:layout_width="match_parent"
-          android:layout_height="9dp"
-          android:layout_marginTop="4dp"
-          android:max="100"
-          android:progressDrawable="@drawable/widget_bar" />
-    </LinearLayout>
-  </LinearLayout>
-</LinearLayout>
+  <View
+      android:layout_width="match_parent"
+      android:layout_height="3dp"
+      android:layout_gravity="bottom"
+      android:layout_marginStart="18dp"
+      android:layout_marginEnd="18dp"
+      android:layout_marginBottom="1dp"
+      android:background="@drawable/widget_edge" />
+</FrameLayout>

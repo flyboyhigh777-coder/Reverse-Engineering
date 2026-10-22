@@ -11,6 +11,8 @@ import {
   toGuesses,
 } from './contract';
 import type { KeyCheck, VisionProvider, VisionResult } from './contract';
+import { noteAttempt } from './log';
+import type { Attempt } from './log';
 
 /**
  * Google AI Studio. The reason this feature is reachable at all.
@@ -56,9 +58,9 @@ const ANSWER_SCHEMA = {
                 fat: { type: 'NUMBER' },
                 carbs: { type: 'NUMBER' },
                 fiber: { type: 'NUMBER' },
-                kind: { type: 'STRING', enum: ['видно', 'по рецепту'] },
+                kind: { type: 'STRING', enum: ['seen', 'assumed'] },
               },
-              required: ['name', 'grams', 'kcal', 'kind'],
+              required: ['name'],
             },
           },
         },
@@ -73,6 +75,19 @@ function headers(apiKey: string): Record<string, string> {
   // The key goes in a header rather than the query string, so it never ends
   // up in anything that logs a URL.
   return { 'content-type': 'application/json', 'x-goog-api-key': apiKey };
+}
+
+/** The server's own message, if it sent one, trimmed to something readable. */
+function detailOf(body: string): string {
+  if (body.trim() === '') return '';
+  try {
+    const parsed = JSON.parse(body) as { error?: { message?: unknown; status?: unknown } };
+    const message = parsed.error?.message;
+    if (typeof message === 'string' && message !== '') return message.slice(0, 300);
+  } catch {
+    /* Not JSON — fall through to the raw text. */
+  }
+  return body.replace(/\s+/g, ' ').trim().slice(0, 300);
 }
 
 function describeStatus(status: number): string {
@@ -163,7 +178,7 @@ export function chooseModel(payload: unknown): string | null {
   return best;
 }
 
-async function ask(apiKey: string, model: string, parts: unknown[], signal?: AbortSignal): Promise<VisionResult | { readonly text: string }> {
+async function ask(apiKey: string, model: string, parts: unknown[], what: Attempt['what'], signal?: AbortSignal): Promise<VisionResult | { readonly text: string }> {
   const path = model.startsWith('models/') ? model : `models/${model}`;
   let response: Awaited<ReturnType<typeof netFetch>>;
   try {
@@ -185,12 +200,20 @@ async function ask(apiKey: string, model: string, parts: unknown[], signal?: Abo
       }),
     });
   } catch {
+    noteAttempt({ at: Date.now(), provider: 'Google AI Studio', model, what, ok: false, status: 0, detail: 'запрос не ушёл: нет сети или хост закрыт' });
     return { kind: 'error', reason: NO_NETWORK };
   }
-  if (!response.ok) return { kind: 'error', reason: describeStatus(response.status) };
+  if (!response.ok) {
+    const detail = detailOf(await response.text().catch(() => ''));
+    noteAttempt({ at: Date.now(), provider: 'Google AI Studio', model, what, ok: false, status: response.status, detail });
+    return { kind: 'error', reason: describeStatus(response.status) };
+  }
   try {
-    return { text: textOf(await response.json()) };
+    const text = textOf(await response.json());
+    noteAttempt({ at: Date.now(), provider: 'Google AI Studio', model, what, ok: true, status: 200, detail: text.slice(0, 160) });
+    return { text };
   } catch {
+    noteAttempt({ at: Date.now(), provider: 'Google AI Studio', model, what, ok: false, status: response.status, detail: 'ответ не разобрался как JSON' });
     return { kind: 'error', reason: UNREADABLE };
   }
 }
@@ -213,9 +236,14 @@ export const google: VisionProvider = {
     try {
       response = await netFetch(`${BASE}/models`, { headers: headers(apiKey), signal });
     } catch {
+      noteAttempt({ at: Date.now(), provider: 'Google AI Studio', model: '', what: 'ключ', ok: false, status: 0, detail: 'запрос не ушёл: нет сети или хост закрыт' });
       return { ok: false, reason: 'Нет связи с сервером. Проверьте интернет на телефоне.' };
     }
-    if (!response.ok) return { ok: false, reason: describeStatus(response.status) };
+    if (!response.ok) {
+      const detail = detailOf(await response.text().catch(() => ''));
+      noteAttempt({ at: Date.now(), provider: 'Google AI Studio', model: '', what: 'ключ', ok: false, status: response.status, detail });
+      return { ok: false, reason: describeStatus(response.status) };
+    }
     let payload: unknown;
     try {
       payload = await response.json();
@@ -223,6 +251,10 @@ export const google: VisionProvider = {
       return { ok: false, reason: UNREADABLE };
     }
     const model = chooseModel(payload);
+    noteAttempt({
+      at: Date.now(), provider: 'Google AI Studio', model: model ?? '', what: 'ключ', ok: model !== null, status: 200,
+      detail: model ? '' : 'в списке нет подходящей модели',
+    });
     if (!model) {
       return { ok: false, reason: 'Ключ принят, но подходящей модели у него нет. Проверьте, включён ли Gemini API.' };
     }
@@ -232,7 +264,7 @@ export const google: VisionProvider = {
   async describe(apiKey, model, text, signal) {
     const trimmed = text.trim();
     if (trimmed.length < 3) return { kind: 'error', reason: 'Напишите, что вы ели.' };
-    const answer = await ask(apiKey, model, [{ text: `${TEXT_PROMPT}\n\nЧто съели: ${trimmed}` }], signal);
+    const answer = await ask(apiKey, model, [{ text: `${TEXT_PROMPT}\n\nЧто съели: ${trimmed}` }], 'описание', signal);
     if ('kind' in answer) return answer;
     const guesses = toGuesses(extractJson(answer.text));
     return guesses.length === 0 ? { kind: 'error', reason: NO_FOOD_IN_TEXT } : { kind: 'ok', guesses };
@@ -245,6 +277,7 @@ export const google: VisionProvider = {
       apiKey,
       model,
       [{ inline_data: { mime_type: image.mediaType, data: image.base64 } }, { text: photoPrompt(context) }],
+      'фото',
       signal,
     );
     if ('kind' in answer) return answer;

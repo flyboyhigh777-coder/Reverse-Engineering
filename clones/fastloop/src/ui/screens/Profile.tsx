@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useSyncExternalStore } from 'react';
 import { buildCsv, csvFileName } from '../../domain/exportCsv';
 import { DISCLAIMER } from '../../domain/phases';
 import { resolvePlan } from '../../domain/plans';
@@ -6,7 +6,7 @@ import { formatWeight, waterTargetMl } from '../../domain/metrics';
 import { actions, useAppState } from '../../state/store';
 import { THEME_LABELS, hasNativeTheme } from '../../state/theme';
 import type { ThemePreference } from '../../state/theme';
-import { DEFAULT_PROVIDER, VISION_NOTE, VISION_PROVIDERS, providerById } from '../../domain/vision';
+import { DEFAULT_PROVIDER, VISION_NOTE, VISION_PROVIDERS, clearVisionLog, describeLog, providerById, subscribeVisionLog, visionLog } from '../../domain/vision';
 import type { ProviderId } from '../../domain/vision';
 import { maskKey, readVisionAccess, writeVisionAccess } from '../../state/visionKey';
 import type { VisionAccess } from '../../state/visionKey';
@@ -471,8 +471,79 @@ function VisionCard(): JSX.Element {
         </div>
       )}
 
+      <VisionLog />
+
       <p className="tiny muted">{VISION_NOTE}</p>
     </Card>
+  );
+}
+
+/**
+ * What actually happened on the last few attempts.
+ *
+ * The feature cannot be tested where it is built — the network policy here
+ * refuses every provider — so when someone says the camera does not work,
+ * this is the only way to learn more than «не получилось». It shows the
+ * server's own words, which the translated message throws away.
+ */
+function VisionLog(): JSX.Element | null {
+  const entries = useSyncExternalStore(subscribeVisionLog, visionLog, visionLog);
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  if (entries.length === 0) return null;
+  const text = describeLog(entries);
+
+  return (
+    <div className="col" style={{ gap: 8 }}>
+      <hr className="divider" />
+      <div className="row between" style={{ gap: 10 }}>
+        <button type="button" className="btn quiet sm" style={{ padding: 0 }} onClick={() => setOpen(!open)}>
+          {open ? 'Скрыть, что происходило' : `Что происходило · последних попыток: ${entries.length}`}
+        </button>
+        {entries[0] && !entries[0].ok ? <span className="pill" style={{ color: 'var(--warn)' }}>была ошибка</span> : null}
+      </div>
+      {open ? (
+        <>
+          <pre
+            style={{
+              margin: 0,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              fontSize: 11.5,
+              lineHeight: 1.45,
+              background: 'var(--surface-2)',
+              borderRadius: 12,
+              padding: '10px 11px',
+              maxHeight: 260,
+              overflowY: 'auto',
+            }}
+          >
+            {text}
+          </pre>
+          <div className="row wrap" style={{ gap: 8 }}>
+            <button
+              type="button"
+              className="btn sm"
+              onClick={() => {
+                navigator.clipboard?.writeText(text).then(
+                  () => setCopied(true),
+                  () => setCopied(false),
+                );
+              }}
+            >
+              {copied ? 'Скопировано' : 'Скопировать'}
+            </button>
+            <button type="button" className="btn ghost sm" onClick={() => { clearVisionLog(); setCopied(false); }}>
+              Очистить
+            </button>
+          </div>
+          <p className="tiny muted">
+            Здесь настоящий ответ сервера, а не его перевод. Если камера не работает — пришлите мне этот текст, по нему
+            видно, что именно отказало. Записи живут только до перезапуска приложения и никуда не отправляются сами.
+          </p>
+        </>
+      ) : null}
+    </div>
   );
 }
 

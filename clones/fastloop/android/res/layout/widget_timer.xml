@@ -1,63 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The small widget: how long is left, and nothing competing with it. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  The small widget: how long is left, and nothing competing with it.
+
+  Two layers, because one view cannot carry two backgrounds: the card, then
+  the halo behind the digits. RemoteViews text has no shadow layer, so the
+  glow has to be something drawn underneath it.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@drawable/widget_bg"
-    android:padding="16dp"
-    android:gravity="center_vertical">
+    android:background="@drawable/widget_bg">
 
-  <TextView
-      android:id="@+id/plan"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:textSize="12sp"
-      android:letterSpacing="0.05"
-      android:textAllCaps="true"
-      android:textColor="@color/w_ink_3"
-      android:text="FastLoop" />
-
-  <Chronometer
-      android:id="@+id/clock"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:layout_marginTop="4dp"
-      android:textSize="26sp"
-      android:textStyle="bold"
-      android:includeFontPadding="false"
-      android:singleLine="true"
-      android:textColor="@color/w_ink"
-      android:format="%s" />
-
-  <TextView
-      android:id="@+id/idle"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:layout_marginTop="4dp"
-      android:textSize="26sp"
-      android:textStyle="bold"
-      android:includeFontPadding="false"
-      android:textColor="@color/w_ink"
-      android:visibility="gone" />
-
-  <TextView
-      android:id="@+id/caption"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:layout_marginTop="2dp"
-      android:textSize="13sp"
-      android:textColor="@color/w_ink_2"
-      android:text="голодание не запущено" />
-
-  <ProgressBar
-      android:id="@+id/bar"
-      style="?android:attr/progressBarStyleHorizontal"
+  <View
       android:layout_width="match_parent"
-      android:layout_height="10dp"
-      android:layout_marginTop="12dp"
-      android:max="100"
-      android:progress="0"
-      android:progressDrawable="@drawable/widget_bar" />
-</LinearLayout>
+      android:layout_height="match_parent"
+      android:background="@drawable/widget_clock_glow" />
+
+  <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:orientation="vertical"
+      android:padding="14dp"
+      android:gravity="center_vertical">
+
+    <TextView
+        android:id="@+id/plan"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="12sp"
+        android:letterSpacing="0.08"
+        android:textAllCaps="true"
+        android:textColor="@color/w_cyan"
+        android:text="FastLoop" />
+
+    <Chronometer
+        android:id="@+id/clock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textSize="36sp"
+        android:textStyle="bold"
+        android:includeFontPadding="false"
+        android:singleLine="true"
+        android:textColor="@color/w_accent"
+        android:format="%s" />
+
+    <TextView
+        android:id="@+id/idle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textSize="36sp"
+        android:textStyle="bold"
+        android:includeFontPadding="false"
+        android:textColor="@color/w_accent"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/caption"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:textSize="14sp"
+        android:textColor="@color/w_ink_2"
+        android:text="голодание не запущено" />
+
+    <ProgressBar
+        android:id="@+id/bar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="13dp"
+        android:layout_marginTop="12dp"
+        android:max="100"
+        android:progress="0"
+        android:progressDrawable="@drawable/widget_bar" />
+  </LinearLayout>
+</FrameLayout>

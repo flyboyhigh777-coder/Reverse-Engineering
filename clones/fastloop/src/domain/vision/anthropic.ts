@@ -11,6 +11,8 @@ import {
   toGuesses,
 } from './contract';
 import type { KeyCheck, VisionProvider, VisionResult } from './contract';
+import { noteAttempt } from './log';
+import type { Attempt } from './log';
 
 /** Claude. The better estimate of the two, and the one that costs money. */
 
@@ -25,6 +27,19 @@ function headers(apiKey: string): Record<string, string> {
     // Required for a request made straight from a page rather than a server.
     'anthropic-dangerous-direct-browser-access': 'true',
   };
+}
+
+/** The server's own message, if it sent one, trimmed to something readable. */
+function detailOf(body: string): string {
+  if (body.trim() === '') return '';
+  try {
+    const parsed = JSON.parse(body) as { error?: { message?: unknown } };
+    const message = parsed.error?.message;
+    if (typeof message === 'string' && message !== '') return message.slice(0, 300);
+  } catch {
+    /* Not JSON — fall through to the raw text. */
+  }
+  return body.replace(/\s+/g, ' ').trim().slice(0, 300);
 }
 
 function describeStatus(status: number): string {
@@ -45,7 +60,7 @@ function textOf(payload: unknown): string {
     .join('\n');
 }
 
-async function ask(apiKey: string, model: string, content: unknown, signal?: AbortSignal): Promise<VisionResult | { readonly text: string }> {
+async function ask(apiKey: string, model: string, content: unknown, what: Attempt['what'], signal?: AbortSignal): Promise<VisionResult | { readonly text: string }> {
   let response: Awaited<ReturnType<typeof netFetch>>;
   try {
     response = await netFetch(ENDPOINT, {
@@ -57,12 +72,20 @@ async function ask(apiKey: string, model: string, content: unknown, signal?: Abo
       body: JSON.stringify({ model, max_tokens: 3000, messages: [{ role: 'user', content }] }),
     });
   } catch {
+    noteAttempt({ at: Date.now(), provider: 'Claude', model, what, ok: false, status: 0, detail: 'запрос не ушёл: нет сети или хост закрыт' });
     return { kind: 'error', reason: NO_NETWORK };
   }
-  if (!response.ok) return { kind: 'error', reason: describeStatus(response.status) };
+  if (!response.ok) {
+    const detail = detailOf(await response.text().catch(() => ''));
+    noteAttempt({ at: Date.now(), provider: 'Claude', model, what, ok: false, status: response.status, detail });
+    return { kind: 'error', reason: describeStatus(response.status) };
+  }
   try {
-    return { text: textOf(await response.json()) };
+    const text = textOf(await response.json());
+    noteAttempt({ at: Date.now(), provider: 'Claude', model, what, ok: true, status: 200, detail: text.slice(0, 160) });
+    return { text };
   } catch {
+    noteAttempt({ at: Date.now(), provider: 'Claude', model, what, ok: false, status: response.status, detail: 'ответ не разобрался как JSON' });
     return { kind: 'error', reason: UNREADABLE };
   }
 }
@@ -93,15 +116,22 @@ export const anthropic: VisionProvider = {
         body: JSON.stringify({ model: MODEL, max_tokens: 1, messages: [{ role: 'user', content: 'ok' }] }),
       });
     } catch {
+      noteAttempt({ at: Date.now(), provider: 'Claude', model: MODEL, what: 'ключ', ok: false, status: 0, detail: 'запрос не ушёл: нет сети или хост закрыт' });
       return { ok: false, reason: 'Нет связи с сервером. Проверьте интернет на телефоне.' };
     }
-    return response.ok ? { ok: true, model: MODEL } : { ok: false, reason: describeStatus(response.status) };
+    if (!response.ok) {
+      const detail = detailOf(await response.text().catch(() => ''));
+      noteAttempt({ at: Date.now(), provider: 'Claude', model: MODEL, what: 'ключ', ok: false, status: response.status, detail });
+      return { ok: false, reason: describeStatus(response.status) };
+    }
+    noteAttempt({ at: Date.now(), provider: 'Claude', model: MODEL, what: 'ключ', ok: true, status: 200, detail: '' });
+    return { ok: true, model: MODEL };
   },
 
   async describe(apiKey, model, text, signal) {
     const trimmed = text.trim();
     if (trimmed.length < 3) return { kind: 'error', reason: 'Напишите, что вы ели.' };
-    const answer = await ask(apiKey, model, `${TEXT_PROMPT}\n\nЧто съели: ${trimmed}`, signal);
+    const answer = await ask(apiKey, model, `${TEXT_PROMPT}\n\nЧто съели: ${trimmed}`, 'описание', signal);
     if ('kind' in answer) return answer;
     const guesses = toGuesses(extractJson(answer.text));
     return guesses.length === 0 ? { kind: 'error', reason: NO_FOOD_IN_TEXT } : { kind: 'ok', guesses };
@@ -117,6 +147,7 @@ export const anthropic: VisionProvider = {
         { type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.base64 } },
         { type: 'text', text: photoPrompt(context) },
       ],
+      'фото',
       signal,
     );
     if ('kind' in answer) return answer;

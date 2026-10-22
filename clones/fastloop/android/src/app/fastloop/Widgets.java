@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
@@ -157,9 +158,23 @@ final class Widgets {
     canvas.drawArc(box, -90f, 360f, false, paint);
 
     if (ratio > 0) {
+      int lit = context.getColor(ratio >= 1 ? R.color.w_warm : R.color.w_accent);
+      float sweep = (float) (360 * Math.min(1, ratio));
+
+      // The glow is a second, blurred pass under the sharp arc. A widget
+      // cannot carry a shadow layer, so the light has to be painted.
+      Paint halo = new Paint(Paint.ANTI_ALIAS_FLAG);
+      halo.setStyle(Paint.Style.STROKE);
+      halo.setStrokeWidth(stroke * 1.5f);
+      halo.setStrokeCap(Paint.Cap.ROUND);
+      halo.setColor(lit);
+      halo.setAlpha(110);
+      halo.setMaskFilter(new BlurMaskFilter(stroke * 0.9f, BlurMaskFilter.Blur.NORMAL));
+      canvas.drawArc(box, -90f, sweep, false, halo);
+
       paint.setStrokeCap(Paint.Cap.ROUND);
-      paint.setColor(context.getColor(ratio >= 1 ? R.color.w_warm : R.color.w_accent));
-      canvas.drawArc(box, -90f, (float) (360 * Math.min(1, ratio)), false, paint);
+      paint.setColor(lit);
+      canvas.drawArc(box, -90f, sweep, false, paint);
     }
     return bitmap;
   }

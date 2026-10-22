@@ -2,16 +2,25 @@
 <resources>
   <!-- Same value as the stylesheet's background token, so the window does
        not flash a different colour before the page paints. -->
-  <color name="window_bg">#EEF2F1</color>
+  <color name="window_bg">#FFFFFF</color>
 
-  <!-- Widget palette, mirroring the stylesheet tokens so a widget sitting
-       next to the app does not look like a different product. -->
-  <color name="w_surface">#FFFFFF</color>
-  <color name="w_ink">#0F201E</color>
-  <color name="w_ink_2">#42605B</color>
-  <color name="w_ink_3">#78918C</color>
-  <color name="w_accent">#0E7C7B</color>
-  <color name="w_warm">#B85C15</color>
-  <color name="w_track">#DBE5E3</color>
-  <color name="w_line">#D2DEDB</color>
+  <!--
+    Widget palette — neon, and deliberately the same in values/ and
+    values-night/. The widget sits on a wallpaper, not on a page: a card
+    that turns white in the daytime theme becomes a lamp on a dark home
+    screen, which is exactly what this design is not. So it stays dark in
+    both, and the brightness lives in the lines rather than the surface.
+  -->
+  <color name="w_surface">#080C14</color>
+  <color name="w_surface_2">#0E1524</color>
+  <color name="w_ink">#DFF7FF</color>
+  <color name="w_ink_2">#9FB6C4</color>
+  <color name="w_ink_3">#6D8495</color>
+  <color name="w_accent">#C6F94F</color>
+  <color name="w_cyan">#27E0C4</color>
+  <color name="w_warm">#FFB020</color>
+  <color name="w_violet">#8E6BFF</color>
+  <color name="w_track">#17212F</color>
+  <color name="w_line">#1C2A3C</color>
+  <color name="w_glow">#38C6F94F</color>
 </resources>

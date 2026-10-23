@@ -147,8 +147,15 @@ tasks.named("preBuild") {
  * The certificate is checked on the APK itself, not only on the keystore.
  *
  * make-keystore.sh asserts what it produced; this asserts what was actually
- * signed, which is the thing that has to match the phone.
+ * signed, which is the thing the phone compares.
+ *
+ * Read with apksigner rather than keytool: from minSdk 24 the APK carries
+ * only the v2/v3 signature, which lives in a block of its own rather than in
+ * META-INF, and `keytool -printcert -jarfile` — which knows only the old JAR
+ * signature — answers "Not a signed jar file" for a perfectly signed APK.
  */
+val sdkBuildTools = android.sdkDirectory.resolve("build-tools")
+
 val verifySigning by tasks.registering {
   description = "Сверяет отпечаток сертификата в собранном APK."
   dependsOn("assembleRelease")
@@ -157,17 +164,25 @@ val verifySigning by tasks.registering {
       .listFiles { file -> file.extension == "apk" }
       ?.firstOrNull()
       ?: throw GradleException("APK не найден")
-    val expected = "7A6C9128ABAA5E064D496416605C87853F33553D25D20130EECFF56D22C1BEDE"
-    val keytool = ProcessBuilder("keytool", "-printcert", "-jarfile", apk.absolutePath)
+
+    val apksigner = sdkBuildTools.listFiles()
+      ?.sortedBy { it.name }
+      ?.mapNotNull { dir -> dir.resolve("apksigner").takeIf { it.canExecute() } }
+      ?.lastOrNull()
+      ?: throw GradleException("apksigner не найден в $sdkBuildTools")
+
+    val run = ProcessBuilder(apksigner.absolutePath, "verify", "--print-certs", apk.absolutePath)
       .redirectErrorStream(true).start()
-    val printed = keytool.inputStream.bufferedReader().readText()
-    keytool.waitFor()
-    val found = Regex("""SHA256:\s*((?:[0-9A-F]{2}:){31}[0-9A-F]{2})""")
-      .find(printed)?.groupValues?.get(1)?.replace(":", "")
+    val printed = run.inputStream.bufferedReader().readText()
+    run.waitFor()
+
+    val expected = "7A6C9128ABAA5E064D496416605C87853F33553D25D20130EECFF56D22C1BEDE"
+    val found = Regex("""certificate SHA-?256 digest:\s*([0-9a-fA-F]{64})""")
+      .find(printed)?.groupValues?.get(1)?.uppercase()
       ?: throw GradleException("Не удалось прочитать сертификат APK:\n$printed")
     if (found != expected) {
       throw GradleException("Сертификат APK не тот — обновление не встанет поверх установленного.\n  ожидался: $expected\n  получен:  $found")
     }
-    logger.lifecycle("Сертификат совпадает: $found")
+    logger.lifecycle("APK: ${'$'}{apk.name}, сертификат совпадает: $found")
   }
 }

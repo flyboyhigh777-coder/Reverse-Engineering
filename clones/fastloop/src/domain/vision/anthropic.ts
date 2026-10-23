@@ -95,7 +95,12 @@ export const anthropic: VisionProvider = {
   title: 'Claude',
   keyHint: 'sk-ant-…',
   free: false,
-  where: 'console.anthropic.com → Settings → API keys → Create key, и пополнить баланс на минимальную сумму.',
+  url: 'https://console.anthropic.com/settings/keys',
+  steps: [
+    'Нажмите кнопку ниже, войдите и пополните баланс на минимальную сумму.',
+    'Settings → API keys → Create key.',
+    'Скопируйте ключ — он начинается на sk-ant — и вернитесь сюда.',
+  ],
   cost: 'Каждый снимок — платный запрос на вашем счету. Оценивает точнее.',
   model: MODEL,
 

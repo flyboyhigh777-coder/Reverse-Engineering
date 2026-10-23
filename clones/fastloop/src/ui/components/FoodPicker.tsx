@@ -17,6 +17,7 @@ import type { VisionAccess } from '../../state/visionKey';
 import { DishArt } from './DishArt';
 import { Sheet } from './common';
 import { MealTimeProvider, WhenPicker, useMealAt } from './MealTime';
+import { KeyField, KeyHowTo } from './VisionKey';
 
 type Tab = 'search' | 'online' | 'ai' | 'manual';
 
@@ -581,6 +582,7 @@ function KeySetup({ onReady }: { onReady: (access: VisionAccess) => void }): JSX
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const provider = providerById(chosen);
+  const empty = draft.trim() === '';
 
   const save = async () => {
     const candidate = draft.trim();
@@ -622,22 +624,20 @@ function KeySetup({ onReady }: { onReady: (access: VisionAccess) => void }): JSX
           </button>
         ))}
       </div>
-      <p className="banner tiny">
-        <strong>{provider.cost}</strong> {provider.where}
-      </p>
-      <input
+      <KeyHowTo provider={provider} />
+      <KeyField
+        provider={provider}
         id="photo-key"
-        type="password"
-        autoComplete="off"
-        placeholder={provider.keyHint}
         value={draft}
-        onChange={(event) => {
-          setDraft(event.target.value);
+        onChange={(next) => {
+          setDraft(next);
           setError(null);
         }}
       />
-      <button type="button" className="btn block" disabled={draft.trim() === '' || checking} onClick={() => void save()}>
-        {checking ? 'Проверяю ключ…' : 'Включить камеру'}
+      {/* The label carries the reason. A button that only goes dim reads as a
+          broken camera to anyone who has not made an API key before. */}
+      <button type="button" className="btn block" disabled={empty || checking} onClick={() => void save()}>
+        {checking ? 'Проверяю ключ…' : empty ? 'Сначала вставьте ключ ↑' : 'Включить камеру'}
       </button>
       {error ? <p className="banner tiny" style={{ color: 'var(--warn)' }}>{error}</p> : null}
       <p className="tiny muted">{VISION_NOTE}</p>

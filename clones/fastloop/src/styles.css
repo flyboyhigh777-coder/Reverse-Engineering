@@ -313,13 +313,34 @@ button { font: inherit; color: inherit; }
 }
 .btn:active:not(:disabled) { transform: translateY(1px); }
 .btn:hover:not(:disabled) { filter: brightness(1.06); }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+/* A dimmed brand gradient still reads as a working button, which is how a
+   screen that is waiting for something looks broken instead. Flat and grey
+   says "not yet" without needing the label to say it twice. */
+.btn:disabled {
+  background: color-mix(in oklab, var(--ink) 10%, transparent);
+  color: var(--ink-2);
+  border-color: transparent;
+  box-shadow: none;
+  cursor: not-allowed;
+}
 .btn.ghost { background: transparent; color: var(--ink-2); border-color: var(--line); }
 .btn.quiet { background: transparent; color: var(--ink-2); border-color: transparent; padding: 8px 10px; }
 .btn.warm { background: var(--warm); color: #fff; box-shadow: none; }
 .btn.ghost, .btn.quiet { box-shadow: none; }
 .btn.block { width: 100%; }
 .btn.sm { padding: 8px 14px; font-size: 13px; }
+/* An anchor wearing .btn: a link is inline and underlined by default, so the
+   width, the centring and the underline all have to be said out loud. */
+a.btn { display: inline-block; text-align: center; text-decoration: none; }
+a.btn.block { display: block; }
+/* The live action on a screen whose main button is deliberately disabled. */
+.btn.go { background: transparent; color: var(--accent); border-color: color-mix(in oklab, var(--brand-2) 55%, var(--line)); box-shadow: none; }
+
+/* ---------- api key field ---------- */
+
+.keyfield { display: flex; gap: 8px; align-items: stretch; }
+.keyfield input { flex: 1; min-width: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+.keyfield .btn { flex: none; white-space: nowrap; }
 
 .chip {
   white-space: nowrap;

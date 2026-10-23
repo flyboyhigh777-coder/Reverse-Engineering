@@ -223,7 +223,12 @@ export const google: VisionProvider = {
   title: 'Google AI Studio',
   keyHint: 'AIza…',
   free: true,
-  where: 'aistudio.google.com → Get API key → Create API key. Нужен только аккаунт Google, карта не нужна.',
+  url: 'https://aistudio.google.com/apikey',
+  steps: [
+    'Нажмите кнопку ниже и войдите в аккаунт Google. Карта не нужна.',
+    'Нажмите «Get API key», потом «Create API key».',
+    'Скопируйте ключ — он начинается на AIza — и вернитесь сюда.',
+  ],
   cost: 'Бесплатно в пределах дневной квоты. Для дневника её хватает с запасом.',
   model: FALLBACK_MODEL,
 

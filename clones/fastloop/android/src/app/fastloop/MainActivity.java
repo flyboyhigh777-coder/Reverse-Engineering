@@ -13,6 +13,7 @@ import android.provider.MediaStore;
 import android.view.ViewGroup;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -75,6 +76,21 @@ public class MainActivity extends Activity {
         super.onPageFinished(view, url);
         syncTheme();
       }
+
+      /**
+       * Links leave the app instead of replacing it.
+       *
+       * The page is the app: letting a tap load some other site into this
+       * WebView would navigate the app away with nothing to come back to.
+       * And the one link that matters is the page that issues a Google API
+       * key, which Google refuses to serve inside a WebView at all — it
+       * answers a sign-in there with disallowed_useragent. So http(s) goes
+       * to whichever browser the phone uses, and everything else stays here.
+       */
+      @Override
+      public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+        return openExternally(request.getUrl());
+      }
     });
     // Without this a file input inside a WebView does nothing at all: the
     // tap is delivered to the page, the page opens a picker, and the host has
@@ -125,6 +141,28 @@ public class MainActivity extends Activity {
     // uiMode is in configChanges, so the activity survives the switch and
     // only has to tell the page about it.
     syncTheme();
+  }
+
+  /**
+   * Hands an http(s) address to the system browser.
+   *
+   * Returns true when the WebView should not load it itself — which includes
+   * the case where no browser took it, because loading the app away from its
+   * own page is worse than a tap that does nothing.
+   */
+  private boolean openExternally(Uri url) {
+    if (url == null) return false;
+    String scheme = url.getScheme();
+    if (scheme == null) return false;
+    if (!"http".equals(scheme) && !"https".equals(scheme)) return false;
+    try {
+      Intent view = new Intent(Intent.ACTION_VIEW, url);
+      view.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+      startActivity(view);
+    } catch (Exception ignored) {
+      // No browser, or none that would take it. Staying put is the safe end.
+    }
+    return true;
   }
 
   private boolean hasActivityPermission() {

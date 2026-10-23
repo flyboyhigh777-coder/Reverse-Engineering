@@ -14,6 +14,7 @@ import { DEFAULT_URL, refreshContent, setContentUrl, useContent } from '../../st
 import { findAllPhotos, forgetPhotos, setPhotosEnabled, usePhotoStats, usePhotosEnabled } from '../../state/photos';
 import { BackupSheet } from '../components/BackupSheet';
 import { Card, LockPill, Sheet } from '../components/common';
+import { KeyField, KeyHowTo } from '../components/VisionKey';
 
 export function Profile({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
   const state = useAppState();
@@ -390,9 +391,7 @@ function VisionCard(): JSX.Element {
         </div>
       ) : null}
 
-      <p className="tiny muted">
-        <strong>{shown.cost}</strong> Где взять: {shown.where}
-      </p>
+      {!access || editing ? <KeyHowTo provider={shown} /> : null}
 
       {access && !editing ? (
         <>
@@ -435,14 +434,7 @@ function VisionCard(): JSX.Element {
         </>
       ) : (
         <div className="col" style={{ gap: 8 }}>
-          <input
-            id="vision-key"
-            type="password"
-            autoComplete="off"
-            placeholder={shown.keyHint}
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-          />
+          <KeyField provider={shown} id="vision-key" value={draft} onChange={setDraft} />
           <div className="row" style={{ gap: 8 }}>
             <button
               type="button"
@@ -455,7 +447,7 @@ function VisionCard(): JSX.Element {
                 void verify(chosen, candidate);
               }}
             >
-              {checking ? 'Проверяю…' : 'Сохранить и проверить'}
+              {checking ? 'Проверяю…' : draft.trim() === '' ? 'Сначала вставьте ключ ↑' : 'Сохранить и проверить'}
             </button>
             {access ? (
               <button type="button" className="btn ghost sm" onClick={() => setEditing(false)}>

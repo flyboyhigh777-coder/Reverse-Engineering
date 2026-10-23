@@ -78,8 +78,14 @@ export interface VisionProvider {
   readonly keyHint: string;
   /** Whether a key can be had without giving anyone a card. */
   readonly free: boolean;
-  /** Where to get a key, in one line. */
-  readonly where: string;
+  /**
+   * The page that issues the key. Opened in the browser rather than typed:
+   * the key is 39 random characters and nobody types that on a phone, and
+   * Google refuses to sign anyone in inside a WebView.
+   */
+  readonly url: string;
+  /** How to get one, in order, each step short enough to follow one-handed. */
+  readonly steps: readonly string[];
   /** What it costs, honestly. */
   readonly cost: string;
   /** The default model; a check may replace it with one the key can reach. */

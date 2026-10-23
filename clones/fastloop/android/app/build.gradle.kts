@@ -137,6 +137,11 @@ android {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
   }
+
+  // The old build has no unit tests to run and the one file under test/ is a
+  // main() rather than a JUnit case. Wiring it up belongs to its own change.
+  sourceSets.named("test") { java.setSrcDirs(emptyList<String>()) }
+  sourceSets.named("androidTest") { java.setSrcDirs(emptyList<String>()) }
 }
 
 /*
@@ -151,11 +156,6 @@ kotlin {
   compilerOptions {
     jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
   }
-
-  // The old build has no unit tests to run and the one file under test/ is a
-  // main() rather than a JUnit case. Wiring it up belongs to its own change.
-  sourceSets.named("test") { java.setSrcDirs(emptyList<String>()) }
-  sourceSets.named("androidTest") { java.setSrcDirs(emptyList<String>()) }
 }
 
 val healthConnect = "1.1.0-alpha07"

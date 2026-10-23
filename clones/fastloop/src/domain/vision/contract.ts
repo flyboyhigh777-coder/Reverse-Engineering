@@ -113,7 +113,8 @@ export interface VisionProvider {
    */
   probe(apiKey: string, model: string, sample: string, signal?: AbortSignal): Promise<readonly ProbeStep[]>;
   describe(apiKey: string, model: string, text: string, signal?: AbortSignal): Promise<VisionResult>;
-  recognise(apiKey: string, model: string, dataUrl: string, context?: ShotContext, signal?: AbortSignal): Promise<VisionResult>;
+  /** `brief` drops the ingredient breakdown: a shorter answer, sooner. */
+  recognise(apiKey: string, model: string, dataUrl: string, context?: ShotContext, signal?: AbortSignal, brief?: boolean): Promise<VisionResult>;
 }
 
 /**
@@ -193,7 +194,7 @@ ${FAT_RULE}
  * the frame is there because a price tag or a menu behind the plate pulls
  * the answer away from what is actually on it.
  */
-export function photoPrompt(context?: ShotContext): string {
+export function photoPrompt(context?: ShotContext, brief = false): string {
   const facts: string[] = [];
   if (context) {
     const when = context.time === '' ? '' : ` в ${context.time}`;
@@ -211,16 +212,25 @@ export function photoPrompt(context?: ShotContext): string {
 
 Что известно помимо снимка: ${facts.join(' ')}` : '';
 
+  // The breakdown is most of the answer's length, and length is most of the
+  // wait: a plate of several dishes, each itemised by ingredient, is what
+  // ran past the old ceiling. Dropping it is the difference between a slow
+  // answer and none, so it stays available as the shorter question.
+  const shape = brief
+    ? '{"items":[{"name":"","grams":0,"kcal":0,"protein":0,"fat":0,"carbs":0,"fiber":0,"note":"","confidence":"high|medium|low"}]}'
+    : '{"items":[{"name":"","alternatives":[""],"grams":0,"kcal":0,"protein":0,"fat":0,"carbs":0,"fiber":0,"note":"","confidence":"high|medium|low","parts":[{"name":"","grams":0,"kcal":0,"protein":0,"fat":0,"carbs":0,"fiber":0,"kind":"seen|assumed"}]}]}';
+  const short = brief ? '\n- Не разбирай блюдо по ингредиентам и не предлагай других названий: только итог по каждому блюду.' : '';
+
   return `Ты оцениваешь еду на фотографии для дневника питания.
 
 Верни ТОЛЬКО JSON, без markdown и без пояснений вокруг, в таком виде:
-{"items":[{"name":"","alternatives":[""],"grams":0,"kcal":0,"protein":0,"fat":0,"carbs":0,"fiber":0,"note":"","confidence":"high|medium|low","parts":[{"name":"","grams":0,"kcal":0,"protein":0,"fat":0,"carbs":0,"fiber":0,"kind":"seen|assumed"}]}]}
+${shape}
 
 Правила:
 ${SHARED_RULES}
 - grams — оценка веса порции на фото. Меряй размер не на глаз, а относительно видимых предметов: в диаметрах тарелки, длинах вилки или ложки, ширинах пальца. Сначала прикинь объём порции в этих единицах, потом переведи в граммы.
 - Не читай надписи, ценники, меню и цифры, попавшие в кадр: они относятся не к этой тарелке. Оценивай только то, что видно глазами.
-- Если еды на фото нет, верни {"items":[]}.${where}${said}`;
+- Если еды на фото нет, верни {"items":[]}.${short}${where}${said}`;
 }
 
 /** Kept for the rare caller that needs the plain text with no context. */
@@ -410,9 +420,26 @@ export function reasonOf(failure: unknown): string {
   return said;
 }
 
+/**
+ * Whether the server was simply still writing when the clock ran out.
+ *
+ * Android's SocketTimeoutException says "timeout" and nothing else, and
+ * the page's own backstop says so in its own words. Both mean the opposite
+ * of a missing connection: the request arrived, the server took it, and the
+ * answer was still coming.
+ */
+export function ranOutOfTime(failure: unknown): boolean {
+  const said = reasonOf(failure).toLowerCase();
+  return said.includes('timeout') || said.includes('timed out') || said.includes('перестало ждать');
+}
+
+export const TOO_SLOW =
+  'Сервер не успел ответить. Так бывает со сложными блюдами: чем больше на тарелке, тем длиннее ответ.';
+
 /** The transport failure, said once, with its own words kept. */
 export function transportFailed(failure: unknown): string {
   const said = reasonOf(failure);
+  if (ranOutOfTime(failure)) return TOO_SLOW;
   return said === '' ? NO_NETWORK : `${NO_NETWORK}\n${said}`;
 }
 export const UNREADABLE = 'Ответ сервера не читается.';

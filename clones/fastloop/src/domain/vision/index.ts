@@ -3,7 +3,7 @@ import { google } from './google';
 import type { ProviderId, VisionProvider } from './contract';
 
 export type { Component, Guess, KeyCheck, ProbeStep, ProviderId, ShotContext, VisionProvider, VisionResult } from './contract';
-export { VISION_NOTE, scaleGuess, withoutPart } from './contract';
+export { TOO_SLOW, VISION_NOTE, scaleGuess, withoutPart } from './contract';
 export { clearVisionLog, describeLog, subscribeVisionLog, visionLog } from './log';
 export type { Attempt } from './log';
 

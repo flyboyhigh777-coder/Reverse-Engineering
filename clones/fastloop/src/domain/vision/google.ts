@@ -72,6 +72,32 @@ const ANSWER_SCHEMA = {
   required: ['items'],
 };
 
+/** The same answer without the costly half: no breakdown, no alternatives. */
+const BRIEF_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    items: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          name: { type: 'STRING' },
+          grams: { type: 'NUMBER' },
+          kcal: { type: 'NUMBER' },
+          protein: { type: 'NUMBER' },
+          fat: { type: 'NUMBER' },
+          carbs: { type: 'NUMBER' },
+          fiber: { type: 'NUMBER' },
+          note: { type: 'STRING' },
+          confidence: { type: 'STRING', enum: ['high', 'medium', 'low'] },
+        },
+        required: ['name', 'grams', 'kcal', 'protein', 'fat', 'carbs', 'confidence'],
+      },
+    },
+  },
+  required: ['items'],
+};
+
 function headers(apiKey: string): Record<string, string> {
   // The key goes in a header rather than the query string, so it never ends
   // up in anything that logs a URL.
@@ -204,6 +230,7 @@ async function ask(
   // The model list comes from the server, so one that rejects this must
   // still work: an optimisation may not be the thing that breaks a camera.
   mayQuiet = true,
+  brief = false,
 ): Promise<VisionResult | { readonly text: string }> {
   const path = model.startsWith('models/') ? model : `models/${model}`;
   const quiet = mayQuiet && deliberates(model);
@@ -226,7 +253,7 @@ async function ask(
             maxOutputTokens: 3000,
             temperature: 0.2,
             responseMimeType: 'application/json',
-            responseSchema: ANSWER_SCHEMA,
+            responseSchema: brief ? BRIEF_SCHEMA : ANSWER_SCHEMA,
             ...(quiet ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
           },
         }),
@@ -252,7 +279,7 @@ async function ask(
     // A model that will not take the no-thinking field answers 400. Asking
     // again without it keeps such a model working, just slower.
     if (response.status === 400 && quiet && /think/i.test(detail)) {
-      return ask(apiKey, model, parts, what, signal, false);
+      return ask(apiKey, model, parts, what, signal, false, brief);
     }
     noteAttempt({ at: Date.now(), provider: 'Google AI Studio', model, what, ok: false, status: response.status, detail });
     return { kind: 'error', reason: describeStatus(response.status) };
@@ -384,15 +411,17 @@ export const google: VisionProvider = {
     return guesses.length === 0 ? { kind: 'error', reason: NO_FOOD_IN_TEXT } : { kind: 'ok', guesses };
   },
 
-  async recognise(apiKey, model, dataUrl, context, signal) {
+  async recognise(apiKey, model, dataUrl, context, signal, brief = false) {
     const image = parseDataUrl(dataUrl);
     if (!image) return { kind: 'error', reason: 'Снимок не удалось прочитать.' };
     const answer = await ask(
       apiKey,
       model,
-      [{ inline_data: { mime_type: image.mediaType, data: image.base64 } }, { text: photoPrompt(context) }],
+      [{ inline_data: { mime_type: image.mediaType, data: image.base64 } }, { text: photoPrompt(context, brief) }],
       'фото',
       signal,
+      true,
+      brief,
     );
     if ('kind' in answer) return answer;
     const guesses = toGuesses(extractJson(answer.text));

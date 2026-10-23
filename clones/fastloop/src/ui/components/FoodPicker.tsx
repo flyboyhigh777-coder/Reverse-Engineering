@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FOODS, FOOD_TABLE_NOTE } from '../../domain/foods';
 import type { Food } from '../../domain/foods';
 import { searchLibrary } from '../../domain/foodSearch';
@@ -8,7 +8,7 @@ import { SLOT_LABEL, MEAL_SLOTS, forGrams } from '../../domain/nutrition';
 import { OFF_NOTE, lookupBarcode, searchOnline } from '../../domain/openFoodFacts';
 import type { Macros, Recipe } from '../../domain/recipes';
 import type { MealSlot } from '../../domain/types';
-import { DEFAULT_PROVIDER, VISION_NOTE, VISION_PROVIDERS, providerById, scaleGuess, withoutPart } from '../../domain/vision';
+import { DEFAULT_PROVIDER, TOO_SLOW, VISION_NOTE, VISION_PROVIDERS, providerById, scaleGuess, withoutPart } from '../../domain/vision';
 import type { Guess, ProviderId, ShotContext, VisionResult } from '../../domain/vision';
 import { useContent } from '../../state/content';
 import { actions, useAppState } from '../../state/store';
@@ -258,15 +258,7 @@ function OnlineTab({ onPick }: { onPick: (food: Food) => void }): JSX.Element {
       </form>
 
       {busy ? <p className="tiny muted">Ищу…</p> : null}
-      {error ? (
-        <>
-          <p className="banner tiny">{error}</p>
-          {/* The whole history, with the model and the server's own reply,
-              is one screen away — worth saying when a message is not
-              enough to act on. */}
-          <p className="tiny muted">Что именно не прошло — в Профиле, «Что происходило».</p>
-        </>
-      ) : null}
+      {error ? <p className="banner tiny">{error}</p> : null}
 
       {results ? (
         <div className="col" style={{ gap: 7 }}>
@@ -772,10 +764,10 @@ function AiTab({
   };
 
   /** Sends one frame off, with whatever the person added about it. */
-  const look = async (shot: string, said?: string, key?: VisionAccess) => {
+  const look = async (shot: string, said?: string, key?: VisionAccess, brief = false) => {
     const use = key ?? access;
     if (!use) return;
-    await handle(provider.recognise(use.key, model, shot, { ...shotContext(), hint: said ?? hint }));
+    await handle(provider.recognise(use.key, model, shot, { ...shotContext(), hint: said ?? hint }, undefined, brief));
   };
 
   /**
@@ -821,6 +813,20 @@ function AiTab({
     setBusy(false);
     if (access) await look(dataUrl);
   };
+
+  // A hard plate can take most of a minute. A button that says nothing for
+  // that long reads as frozen, and the person shoots again — which starts
+  // the wait over. So the wait is shown.
+  const [waited, setWaited] = useState(0);
+  useEffect(() => {
+    if (!busy) {
+      setWaited(0);
+      return undefined;
+    }
+    const since = Date.now();
+    const tick = window.setInterval(() => setWaited(Math.round((Date.now() - since) / 1000)), 1000);
+    return () => window.clearInterval(tick);
+  }, [busy]);
 
   const pick = (next: AiMode) => {
     setMode(next);
@@ -870,7 +876,7 @@ function AiTab({
               disabled={busy || text.trim().length < 3}
               onClick={() => void handle(provider.describe(access.key, model, text))}
             >
-              {busy ? 'Считаю…' : 'Посчитать'}
+              {busy ? `Считаю… ${waited}с` : 'Посчитать'}
             </button>
           ) : null}
           {!access ? (
@@ -911,7 +917,7 @@ function AiTab({
           {/* Never disabled by a missing key: the frame is the part that
               cannot wait, and it is kept whether or not it can be read. */}
           <button type="button" className="btn block" disabled={busy} onClick={() => input.current?.click()}>
-            {busy ? 'Смотрю на снимок…' : preview ? 'Другой снимок' : 'Сфотографировать блюдо'}
+            {busy ? `Смотрю на снимок… ${waited}с` : preview ? 'Другой снимок' : 'Сфотографировать блюдо'}
           </button>
 
           {!access ? (
@@ -944,6 +950,15 @@ function AiTab({
       {error ? (
         <>
           <p className="banner tiny">{error}</p>
+          {/* Offered under the sentence that explains it, and only where it
+              is the answer: most of the reply, and so most of the wait, is
+              the ingredient breakdown. Without it the same plate comes back
+              in a fraction of the time. */}
+          {access && preview && !busy && error === TOO_SLOW ? (
+            <button type="button" className="btn block" onClick={() => void look(preview, undefined, undefined, true)}>
+              Спросить короче — без разбора по ингредиентам
+            </button>
+          ) : null}
           {/* The whole history, with the model and the server's own reply,
               is one screen away — worth saying when a message is not
               enough to act on. */}

@@ -183,7 +183,7 @@ export const anthropic: VisionProvider = {
     return guesses.length === 0 ? { kind: 'error', reason: NO_FOOD_IN_TEXT } : { kind: 'ok', guesses };
   },
 
-  async recognise(apiKey, model, dataUrl, context, signal) {
+  async recognise(apiKey, model, dataUrl, context, signal, brief = false) {
     const image = parseDataUrl(dataUrl);
     if (!image) return { kind: 'error', reason: 'Снимок не удалось прочитать.' };
     const answer = await ask(
@@ -191,7 +191,7 @@ export const anthropic: VisionProvider = {
       model,
       [
         { type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.base64 } },
-        { type: 'text', text: photoPrompt(context) },
+        { type: 'text', text: photoPrompt(context, brief) },
       ],
       'фото',
       signal,

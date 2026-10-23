@@ -78,13 +78,13 @@ function wrap(status: number, body: string): NetResponse {
 /**
  * Longer than the shell's own ceiling, on purpose.
  *
- * The shell gives a request 15s to connect and 45s to answer. This timer
+ * The shell gives a request 15s to connect and 90s to answer. This timer
  * used to fire at 45s — before that, so a request the shell had already
  * failed on reported a bare "timeout" and the real reason (a refused TLS
  * handshake, a reset, a server that never answered) was lost. It is a
  * backstop for a reply that never arrives at all, not a second deadline.
  */
-const TIMEOUT_MS = 75_000;
+const TIMEOUT_MS = 120_000;
 
 export async function netFetch(url: string, init: NetInit = {}): Promise<NetResponse> {
   const host = bridge();

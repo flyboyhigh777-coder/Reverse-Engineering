@@ -359,10 +359,14 @@ public class MainActivity extends Activity {
           try {
             result.put("id", id);
             connection = (HttpURLConnection) new URL(url).openConnection();
-            // 15 + 45 stays under the page's 75s backstop, so a request
-            // that fails here reports why instead of being cut off blind.
+            // A pomegranate comes back in seconds; a fried egg with kazy,
+            // tomato and onion is several dishes, each broken down by
+            // ingredient, and the reply takes as long as it takes to write.
+            // 45s cut exactly those off — the hard plates, the ones worth
+            // photographing. 15 + 90 stays under the page's 120s backstop,
+            // so a request that fails here still reports why.
             connection.setConnectTimeout(15000);
-            connection.setReadTimeout(45000);
+            connection.setReadTimeout(90000);
             connection.setRequestMethod(method == null || method.isEmpty() ? "GET" : method);
             connection.setInstanceFollowRedirects(true);
 

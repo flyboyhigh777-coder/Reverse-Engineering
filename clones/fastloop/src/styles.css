@@ -391,6 +391,8 @@ a.btn.block { display: block; }
   font-size: 12.5px;
   color: var(--ink-2);
   background: var(--surface-2);
+  /* A failure keeps the server's own words on their own line. */
+  white-space: pre-line;
 }
 
 .lockable { position: relative; }

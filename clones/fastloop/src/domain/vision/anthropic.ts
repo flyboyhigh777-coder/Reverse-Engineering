@@ -2,7 +2,8 @@ import { netFetch } from '../../state/net';
 import {
   NO_FOOD_IN_PHOTO,
   NO_FOOD_IN_TEXT,
-  NO_NETWORK,
+  reasonOf,
+  transportFailed,
   TEXT_PROMPT,
   UNREADABLE,
   extractJson,
@@ -71,9 +72,12 @@ async function ask(apiKey: string, model: string, content: unknown, what: Attemp
       // is, and a table with three dishes on it does not fit in 900.
       body: JSON.stringify({ model, max_tokens: 3000, messages: [{ role: 'user', content }] }),
     });
-  } catch {
-    noteAttempt({ at: Date.now(), provider: 'Claude', model, what, ok: false, status: 0, detail: 'запрос не ушёл: нет сети или хост закрыт' });
-    return { kind: 'error', reason: NO_NETWORK };
+  } catch (failure) {
+    noteAttempt({
+      at: Date.now(), provider: 'Claude', model, what, ok: false, status: 0,
+      detail: reasonOf(failure) || 'запрос не ушёл: нет сети или хост закрыт',
+    });
+    return { kind: 'error', reason: transportFailed(failure) };
   }
   if (!response.ok) {
     const detail = detailOf(await response.text().catch(() => ''));

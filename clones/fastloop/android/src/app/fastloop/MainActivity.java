@@ -359,8 +359,10 @@ public class MainActivity extends Activity {
           try {
             result.put("id", id);
             connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setConnectTimeout(20000);
-            connection.setReadTimeout(40000);
+            // 15 + 45 stays under the page's 75s backstop, so a request
+            // that fails here reports why instead of being cut off blind.
+            connection.setConnectTimeout(15000);
+            connection.setReadTimeout(45000);
             connection.setRequestMethod(method == null || method.isEmpty() ? "GET" : method);
             connection.setInstanceFollowRedirects(true);
 

@@ -2,7 +2,8 @@ import { netFetch } from '../../state/net';
 import {
   NO_FOOD_IN_PHOTO,
   NO_FOOD_IN_TEXT,
-  NO_NETWORK,
+  reasonOf,
+  transportFailed,
   TEXT_PROMPT,
   UNREADABLE,
   extractJson,
@@ -178,33 +179,81 @@ export function chooseModel(payload: unknown): string | null {
   return best;
 }
 
-async function ask(apiKey: string, model: string, parts: unknown[], what: Attempt['what'], signal?: AbortSignal): Promise<VisionResult | { readonly text: string }> {
+/**
+ * Whether this model deliberates before answering unless told not to.
+ *
+ * Gemini 2.5 onwards thinks by default, and those thoughts are billed to
+ * the same output budget and paid for in seconds. Reading a plate into a
+ * fixed schema is extraction, not deliberation, so the thinking buys very
+ * little and costs the wait — long enough on a phone to look like a dead
+ * connection, which is what it looked like.
+ */
+function deliberates(model: string): boolean {
+  const version = /(\d+)\.(\d+)/.exec(model.toLowerCase());
+  if (!version) return false;
+  return Number(version[1]) * 100 + Number(version[2]) >= 205;
+}
+
+async function ask(
+  apiKey: string,
+  model: string,
+  parts: unknown[],
+  what: Attempt['what'],
+  signal?: AbortSignal,
+  // Cleared and the call repeated when the server does not know the field.
+  // The model list comes from the server, so one that rejects this must
+  // still work: an optimisation may not be the thing that breaks a camera.
+  mayQuiet = true,
+): Promise<VisionResult | { readonly text: string }> {
   const path = model.startsWith('models/') ? model : `models/${model}`;
+  const quiet = mayQuiet && deliberates(model);
   let response: Awaited<ReturnType<typeof netFetch>>;
-  try {
-    response = await netFetch(`${BASE}/${path}:generateContent`, {
-      method: 'POST',
-      signal,
-      headers: headers(apiKey),
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts }],
-        generationConfig: {
-          // 900 was not enough for a table with three dishes on it, and a
-          // reply cut off at the limit is unparseable however good the
-          // parser is — the person just saw "не удалось разобрать еду".
-          maxOutputTokens: 3000,
-          temperature: 0.2,
-          responseMimeType: 'application/json',
-          responseSchema: ANSWER_SCHEMA,
-        },
-      }),
-    });
-  } catch {
-    noteAttempt({ at: Date.now(), provider: 'Google AI Studio', model, what, ok: false, status: 0, detail: 'запрос не ушёл: нет сети или хост закрыт' });
-    return { kind: 'error', reason: NO_NETWORK };
+  const started = Date.now();
+  let attempt = 0;
+  for (;;) {
+    try {
+      attempt += 1;
+      response = await netFetch(`${BASE}/${path}:generateContent`, {
+        method: 'POST',
+        signal,
+        headers: headers(apiKey),
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts }],
+          generationConfig: {
+            // 900 was not enough for a table with three dishes on it, and a
+            // reply cut off at the limit is unparseable however good the
+            // parser is — the person just saw "не удалось разобрать еду".
+            maxOutputTokens: 3000,
+            temperature: 0.2,
+            responseMimeType: 'application/json',
+            responseSchema: ANSWER_SCHEMA,
+            ...(quiet ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+          },
+        }),
+      });
+      break;
+    } catch (failure) {
+      const spent = Date.now() - started;
+      // A connection that dies in the first seconds is the kind that comes
+      // back on its own; one that dies after waiting was not a blip, and
+      // asking again would only make somebody hold a cooling plate twice
+      // as long. Retrying costs nothing in the first case and is wrong in
+      // the second, so the clock decides.
+      if (attempt === 1 && spent < 10_000) continue;
+      noteAttempt({
+        at: Date.now(), provider: 'Google AI Studio', model, what, ok: false, status: 0,
+        detail: `${reasonOf(failure) || 'запрос не ушёл'} · через ${Math.round(spent / 1000)}с${attempt > 1 ? ', вторая попытка' : ''}`,
+      });
+      return { kind: 'error', reason: transportFailed(failure) };
+    }
   }
   if (!response.ok) {
     const detail = detailOf(await response.text().catch(() => ''));
+    // A model that will not take the no-thinking field answers 400. Asking
+    // again without it keeps such a model working, just slower.
+    if (response.status === 400 && quiet && /think/i.test(detail)) {
+      return ask(apiKey, model, parts, what, signal, false);
+    }
     noteAttempt({ at: Date.now(), provider: 'Google AI Studio', model, what, ok: false, status: response.status, detail });
     return { kind: 'error', reason: describeStatus(response.status) };
   }
@@ -240,9 +289,13 @@ export const google: VisionProvider = {
     let response: Awaited<ReturnType<typeof netFetch>>;
     try {
       response = await netFetch(`${BASE}/models`, { headers: headers(apiKey), signal });
-    } catch {
-      noteAttempt({ at: Date.now(), provider: 'Google AI Studio', model: '', what: 'ключ', ok: false, status: 0, detail: 'запрос не ушёл: нет сети или хост закрыт' });
-      return { ok: false, reason: 'Нет связи с сервером. Проверьте интернет на телефоне.' };
+    } catch (failure) {
+      const said = reasonOf(failure);
+      noteAttempt({
+        at: Date.now(), provider: 'Google AI Studio', model: '', what: 'ключ', ok: false, status: 0,
+        detail: said || 'запрос не ушёл: нет сети или хост закрыт',
+      });
+      return { ok: false, reason: said === '' ? 'Нет связи с сервером. Проверьте интернет на телефоне.' : `Нет связи с сервером: ${said}` };
     }
     if (!response.ok) {
       const detail = detailOf(await response.text().catch(() => ''));

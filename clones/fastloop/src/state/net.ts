@@ -75,7 +75,16 @@ function wrap(status: number, body: string): NetResponse {
   };
 }
 
-const TIMEOUT_MS = 45_000;
+/**
+ * Longer than the shell's own ceiling, on purpose.
+ *
+ * The shell gives a request 15s to connect and 45s to answer. This timer
+ * used to fire at 45s — before that, so a request the shell had already
+ * failed on reported a bare "timeout" and the real reason (a refused TLS
+ * handshake, a reset, a server that never answered) was lost. It is a
+ * backstop for a reply that never arrives at all, not a second deadline.
+ */
+const TIMEOUT_MS = 75_000;
 
 export async function netFetch(url: string, init: NetInit = {}): Promise<NetResponse> {
   const host = bridge();
@@ -97,7 +106,7 @@ export async function netFetch(url: string, init: NetInit = {}): Promise<NetResp
   return new Promise<NetResponse>((resolve, reject) => {
     const timer = window.setTimeout(() => {
       pending.delete(id);
-      reject(new Error('timeout'));
+      reject(new Error('ответа нет совсем — приложение перестало ждать'));
     }, TIMEOUT_MS);
 
     pending.set(id, (reply) => {

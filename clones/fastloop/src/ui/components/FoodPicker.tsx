@@ -258,7 +258,15 @@ function OnlineTab({ onPick }: { onPick: (food: Food) => void }): JSX.Element {
       </form>
 
       {busy ? <p className="tiny muted">Ищу…</p> : null}
-      {error ? <p className="banner tiny">{error}</p> : null}
+      {error ? (
+        <>
+          <p className="banner tiny">{error}</p>
+          {/* The whole history, with the model and the server's own reply,
+              is one screen away — worth saying when a message is not
+              enough to act on. */}
+          <p className="tiny muted">Что именно не прошло — в Профиле, «Что происходило».</p>
+        </>
+      ) : null}
 
       {results ? (
         <div className="col" style={{ gap: 7 }}>
@@ -933,7 +941,15 @@ function AiTab({
         </>
       )}
 
-      {error ? <p className="banner tiny">{error}</p> : null}
+      {error ? (
+        <>
+          <p className="banner tiny">{error}</p>
+          {/* The whole history, with the model and the server's own reply,
+              is one screen away — worth saying when a message is not
+              enough to act on. */}
+          <p className="tiny muted">Что именно не прошло — в Профиле, «Что происходило».</p>
+        </>
+      ) : null}
 
       {items && guesses ? (
         <>

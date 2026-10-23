@@ -372,6 +372,28 @@ export const NO_FOOD_IN_PHOTO =
 export const NO_FOOD_IN_TEXT =
   'Не удалось разобрать описание. Напишите подробнее — что за блюдо и примерно сколько.';
 export const NO_NETWORK = 'Не получилось связаться с сервером. Проверьте интернет.';
+
+/**
+ * What actually went wrong, kept rather than translated away.
+ *
+ * A request that never reaches the server fails for reasons that look
+ * nothing alike — no route, a refused handshake, a reset mid-upload, a
+ * server that stops answering — and this is the one place that knows which.
+ * Replacing all of them with "проверьте интернет" on a phone whose internet
+ * plainly works sends the owner looking in the wrong place, and leaves me
+ * guessing from a screenshot.
+ */
+export function reasonOf(failure: unknown): string {
+  const said = failure instanceof Error ? failure.message.trim() : String(failure ?? '').trim();
+  if (said === '' || said === 'network' || said === 'bridge') return '';
+  return said;
+}
+
+/** The transport failure, said once, with its own words kept. */
+export function transportFailed(failure: unknown): string {
+  const said = reasonOf(failure);
+  return said === '' ? NO_NETWORK : `${NO_NETWORK}\n${said}`;
+}
 export const UNREADABLE = 'Ответ сервера не читается.';
 
 /**

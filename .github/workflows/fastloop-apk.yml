@@ -55,7 +55,7 @@ jobs:
       # compares against, and an update signed by any other certificate
       # cannot be installed over what is already there.
       - name: Собрать и проверить APK
-        run: gradle -p android --no-daemon :app:assembleRelease :app:verifySigning
+        run: gradle -p android --no-daemon :app:reportHealthConnect :app:assembleRelease :app:verifySigning
 
       - name: Показать, что получилось
         run: ls -la android/app/build/outputs/apk/release/

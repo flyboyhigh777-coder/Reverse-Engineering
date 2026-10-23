@@ -26,6 +26,21 @@
   <uses-permission android:name="android.permission.INTERNET" />
   <!-- Detents on the tape picker. Not a dangerous permission: no prompt. -->
   <uses-permission android:name="android.permission.VIBRATE" />
+  <!--
+    Sleep comes off the watch the only way it can: the watch's own app writes
+    what it recorded into Health Connect, and this reads it from there. Read
+    only — nothing is ever written back — and nothing is read until the owner
+    allows it on Health Connect's own screen, which this app cannot speak for.
+  -->
+  <uses-permission android:name="android.permission.health.READ_SLEEP" />
+
+  <!--
+    Package visibility: without this, Android 11+ hides Health Connect from
+    this app and the client reports it as absent on a phone that has it.
+  -->
+  <queries>
+    <package android:name="com.google.android.apps.healthdata" />
+  </queries>
   <uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false" />
 
   <application

@@ -103,6 +103,7 @@ public class MainActivity extends Activity {
       }
     });
     web.addJavascriptInterface(new Bridge(), "FastLoopNative");
+    attachHealth(web);
     setContentView(web);
     web.loadUrl("file:///android_asset/index.html");
 
@@ -163,6 +164,30 @@ public class MainActivity extends Activity {
       // No browser, or none that would take it. Staying put is the safe end.
     }
     return true;
+  }
+
+  /**
+   * Offers Health Connect to the page, where this build has it.
+   *
+   * Looked up by name rather than imported because there are two builds of
+   * this app: the one assembled by build-apk.sh has neither Kotlin nor
+   * AndroidX, so the class is genuinely absent there and an import would not
+   * compile. The page feature-detects the same way, so a build without it
+   * simply does not offer the import.
+   */
+  private void attachHealth(WebView view) {
+    try {
+      Class<?> bridge = Class.forName("app.fastloop.health.SleepBridge");
+      Object instance = bridge
+          .getConstructor(android.app.Activity.class, WebView.class)
+          .newInstance(this, view);
+      view.addJavascriptInterface(instance, "FastLoopHealth");
+    } catch (ClassNotFoundException absent) {
+      // The build without Health Connect. Nothing to offer, nothing to say.
+    } catch (Exception broken) {
+      // Present but unusable: better a page with no import button than a
+      // host that will not start.
+    }
   }
 
   private boolean hasActivityPermission() {

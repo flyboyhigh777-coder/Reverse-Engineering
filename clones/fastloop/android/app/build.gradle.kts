@@ -1,5 +1,8 @@
 plugins {
   id("com.android.application")
+  // Health Connect's API is suspend functions with no blocking twin, so
+  // there is no reading sleep from Java. This is why the build moved.
+  id("org.jetbrains.kotlin.android")
 }
 
 /*
@@ -92,7 +95,10 @@ android {
   sourceSets.named("main") {
     // Everything stays where build-apk.sh already expects it.
     manifest.srcFile(generatedManifest)
-    java.setSrcDirs(listOf("../src"))
+    // ../src is shared with build-apk.sh, which has neither Kotlin nor
+    // AndroidX; ../src-health is this build's alone and is why it exists.
+    java.setSrcDirs(listOf("../src", "../src-health"))
+    kotlin.setSrcDirs(listOf("../src", "../src-health"))
     res.setSrcDirs(listOf("../res"))
     assets.setSrcDirs(listOf(assetsDir))
   }
@@ -132,11 +138,33 @@ android {
   sourceSets.named("androidTest") { java.setSrcDirs(emptyList<String>()) }
 }
 
+val healthConnect = "1.1.0-alpha07"
+
 dependencies {
-  // One AndroidX artifact, carried for a reason: it is the proof that this
-  // build can resolve AndroidX at all, which the hand-rolled one cannot do
-  // and which everything else — Health Connect above all — waits on.
   implementation("androidx.core:core:1.13.1")
+  implementation("androidx.health.connect:connect-client:$healthConnect")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+}
+
+/*
+ * Prints which Health Connect versions exist.
+ *
+ * maven.google.com is unreachable from the container this is written in, so
+ * the version above is a guess made blind. This resolves the open range on
+ * a machine that can see the repository and says what it found, which turns
+ * the guess into a fact on the next run rather than a build that fails with
+ * nothing to go on.
+ */
+val reportHealthConnect by tasks.registering {
+  description = "Печатает версию Health Connect, которую видит репозиторий."
+  doLast {
+    val open = configurations.detachedConfiguration(
+      dependencies.create("androidx.health.connect:connect-client:+"),
+    )
+    open.isTransitive = false
+    val resolved = runCatching { open.resolvedConfiguration.firstLevelModuleDependencies.map { it.moduleVersion } }
+    logger.lifecycle("Health Connect: закреплено $healthConnect, в репозитории свежая " + resolved.getOrElse { listOf("— не удалось: ${'$'}{it.message}") })
+  }
 }
 
 tasks.named("preBuild") {

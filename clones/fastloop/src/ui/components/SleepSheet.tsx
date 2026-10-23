@@ -4,6 +4,7 @@ import { SLEEP_TARGET_MIN, formatDuration } from '../../domain/sleep';
 import type { SleepEntry } from '../../domain/types';
 import { actions, useAppState } from '../../state/store';
 import { Sheet } from './common';
+import { SleepImport } from './SleepImport';
 
 const DAY = 86_400_000;
 
@@ -178,6 +179,8 @@ export function SleepSheet({ onClose }: { onClose: () => void }): JSX.Element {
           Удалить запись
         </button>
       ) : null}
+      <SleepImport />
+
     </Sheet>
   );
 }

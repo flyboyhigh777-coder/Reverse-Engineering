@@ -71,6 +71,17 @@ export type KeyCheck =
 
 export type ProviderId = 'google' | 'anthropic';
 
+/** One leg of the journey, with what it cost and what came back. */
+export interface ProbeStep {
+  readonly name: string;
+  readonly ok: boolean;
+  /** HTTP status, or 0 when nothing came back at all. */
+  readonly status: number;
+  readonly ms: number;
+  /** The server's or the shell's own words. */
+  readonly detail: string;
+}
+
 export interface VisionProvider {
   readonly id: ProviderId;
   readonly title: string;
@@ -91,6 +102,16 @@ export interface VisionProvider {
   /** The default model; a check may replace it with one the key can reach. */
   readonly model: string;
   check(apiKey: string, signal?: AbortSignal): Promise<KeyCheck>;
+  /**
+   * The same journey a photograph makes, in separable steps.
+   *
+   * A key that checks out and a photograph that will not send are the same
+   * request to the same host, differing only in method, payload and how long
+   * the server takes — so "проверьте интернет" is the one answer that cannot
+   * be right. Running the steps apart says which of those three it is,
+   * without anyone having to cook first.
+   */
+  probe(apiKey: string, model: string, sample: string, signal?: AbortSignal): Promise<readonly ProbeStep[]>;
   describe(apiKey: string, model: string, text: string, signal?: AbortSignal): Promise<VisionResult>;
   recognise(apiKey: string, model: string, dataUrl: string, context?: ShotContext, signal?: AbortSignal): Promise<VisionResult>;
 }

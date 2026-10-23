@@ -11,7 +11,7 @@ import {
   photoPrompt,
   toGuesses,
 } from './contract';
-import type { KeyCheck, VisionProvider, VisionResult } from './contract';
+import type { KeyCheck, ProbeStep, VisionProvider, VisionResult } from './contract';
 import { noteAttempt } from './log';
 import type { Attempt } from './log';
 
@@ -115,6 +115,43 @@ export const anthropic: VisionProvider = {
    * plate is the worst time to find out, and the error a failed photo
    * returns cannot distinguish "bad key" from "bad picture".
    */
+  /** The same three legs, so a failure says which one rather than "интернет". */
+  async probe(apiKey, model, sample, signal): Promise<readonly ProbeStep[]> {
+    const steps: ProbeStep[] = [];
+
+    const leg = async (name: string, content: unknown[]) => {
+      const started = Date.now();
+      try {
+        const response = await netFetch(ENDPOINT, {
+          method: 'POST',
+          signal,
+          headers: headers(apiKey),
+          body: JSON.stringify({ model, max_tokens: 16, messages: [{ role: 'user', content }] }),
+        });
+        const body = await response.text().catch(() => '');
+        steps.push({
+          name,
+          ok: response.ok,
+          status: response.status,
+          ms: Date.now() - started,
+          detail: response.ok ? `${Math.round(body.length / 1024)} КБ ответа` : detailOf(body),
+        });
+        return response.ok;
+      } catch (failure) {
+        steps.push({ name, ok: false, status: 0, ms: Date.now() - started, detail: reasonOf(failure) || 'ответа нет' });
+        return false;
+      }
+    };
+
+    if (!(await leg('Короткий вопрос (POST, 0,1 КБ)', [{ type: 'text', text: 'Ответь одним словом: да' }]))) return steps;
+    const base64 = sample.includes(',') ? sample.slice(sample.indexOf(',') + 1) : sample;
+    await leg(`Снимок (POST, ${Math.round(sample.length / 1024)} КБ)`, [
+      { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
+      { type: 'text', text: 'Что на снимке? Одно слово.' },
+    ]);
+    return steps;
+  },
+
   async check(apiKey, signal): Promise<KeyCheck> {
     let response: Awaited<ReturnType<typeof netFetch>>;
     try {

@@ -7,7 +7,7 @@ import { actions, useAppState } from '../../state/store';
 import { THEME_LABELS, hasNativeTheme } from '../../state/theme';
 import type { ThemePreference } from '../../state/theme';
 import { DEFAULT_PROVIDER, VISION_NOTE, VISION_PROVIDERS, clearVisionLog, describeLog, providerById, subscribeVisionLog, visionLog } from '../../domain/vision';
-import type { ProviderId } from '../../domain/vision';
+import type { ProbeStep, ProviderId } from '../../domain/vision';
 import { maskKey, readVisionAccess, writeVisionAccess } from '../../state/visionKey';
 import type { VisionAccess } from '../../state/visionKey';
 import { DEFAULT_URL, refreshContent, setContentUrl, useContent } from '../../state/content';
@@ -338,9 +338,79 @@ function VisionCard(): JSX.Element {
   const [draft, setDraft] = useState('');
   const [verdict, setVerdict] = useState<{ ok: boolean; text: string } | null>(null);
   const [checking, setChecking] = useState(false);
+  const [probing, setProbing] = useState(false);
+  const [steps, setSteps] = useState<readonly ProbeStep[] | null>(null);
 
   const active = access ? providerById(access.provider) : providerById(chosen);
   const shown = access && !editing ? active : providerById(chosen);
+
+  /**
+   * A frame that weighs what a real one weighs.
+   *
+   * The point of the probe is to carry what a photograph carries, so the
+   * size has to match: flat colour compresses to nothing and proves only
+   * that a small request works, while pure noise does not compress at all
+   * and came out four times heavier than a real plate — which would have
+   * blamed the payload for a failure a real shot never hits. So the quality
+   * is wound down until the frame lands in the range a camera actually
+   * produces, and the probe reports the size it ended up sending.
+   */
+  const SAMPLE_KB = 50;
+
+  const samplePhoto = (): string => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 640;
+    canvas.height = 480;
+    const context = canvas.getContext('2d');
+    if (!context) return '';
+    // Soft blobs over a wash: compresses like a photograph rather than like
+    // a test pattern, which is the only property that matters here.
+    context.fillStyle = '#8a6b3f';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < 90; i += 1) {
+      const x = ((i * 2654435761) >>> 0) % canvas.width;
+      const y = ((i * 40503 + 17) >>> 0) % canvas.height;
+      const r = 18 + (((i * 2246822519) >>> 0) % 70);
+      const blob = context.createRadialGradient(x, y, 0, x, y, r);
+      blob.addColorStop(0, `hsl(${(i * 37) % 360} 70% 62%)`);
+      blob.addColorStop(1, 'rgba(138,107,63,0)');
+      context.fillStyle = blob;
+      context.beginPath();
+      context.arc(x, y, r, 0, Math.PI * 2);
+      context.fill();
+    }
+    // Fine grain over the blobs, so there is something to wind down: with
+    // only soft shapes every quality setting compresses to a fraction of a
+    // real frame, and the probe would understate what it is testing.
+    const grain = context.getImageData(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < grain.data.length; i += 4) {
+      const n = (((i * 2654435761) >>> 0) % 61) - 30;
+      grain.data[i] = Math.max(0, Math.min(255, grain.data[i] + n));
+      grain.data[i + 1] = Math.max(0, Math.min(255, grain.data[i + 1] + n));
+      grain.data[i + 2] = Math.max(0, Math.min(255, grain.data[i + 2] + n));
+    }
+    context.putImageData(grain, 0, 0);
+
+    // Whichever quality lands nearest the weight a real shot has.
+    const target = SAMPLE_KB * 1024;
+    let best = '';
+    for (const quality of [0.3, 0.45, 0.6, 0.72, 0.85]) {
+      const candidate = canvas.toDataURL('image/jpeg', quality);
+      if (best === '' || Math.abs(candidate.length - target) < Math.abs(best.length - target)) best = candidate;
+      if (candidate.length > target) break;
+    }
+    return best;
+  };
+
+  const runProbe = async () => {
+    if (!access) return;
+    setProbing(true);
+    setSteps(null);
+    const provider = providerById(access.provider);
+    const result = await provider.probe(access.key, access.model ?? provider.model, samplePhoto());
+    setProbing(false);
+    setSteps(result);
+  };
 
   const verify = async (provider: ProviderId, candidate: string) => {
     setChecking(true);
@@ -401,6 +471,12 @@ function VisionCard(): JSX.Element {
             <button type="button" className="btn sm" disabled={checking} onClick={() => void verify(access.provider, access.key)}>
               {checking ? 'Проверяю…' : 'Проверить ключ'}
             </button>
+            {/* The key can check out while a photograph still will not send:
+                same host, different method, payload and patience. This walks
+                those apart so the answer is which leg, not "интернет". */}
+            <button type="button" className="btn sm" disabled={probing} onClick={() => void runProbe()}>
+              {probing ? 'Проверяю связь…' : 'Проверить связь'}
+            </button>
             <button
               type="button"
               className="btn ghost sm"
@@ -431,6 +507,7 @@ function VisionCard(): JSX.Element {
               {verdict.text}
             </p>
           ) : null}
+          {steps ? <ProbeResult steps={steps} /> : null}
         </>
       ) : (
         <div className="col" style={{ gap: 8 }}>
@@ -467,6 +544,46 @@ function VisionCard(): JSX.Element {
 
       <p className="tiny muted">{VISION_NOTE}</p>
     </Card>
+  );
+}
+
+/**
+ * Where the journey stopped, and how long each leg took.
+ *
+ * Written to be read aloud or pasted into a message: the leg that failed,
+ * what it was carrying, and the server's own words — which is everything
+ * needed to tell a blocked host from a slow model from a payload that will
+ * not fit, and none of which "проверьте интернет" ever said.
+ */
+function ProbeResult({ steps }: { steps: readonly ProbeStep[] }): JSX.Element {
+  const broke = steps.find((step) => !step.ok);
+  return (
+    <div className="col" style={{ gap: 6 }}>
+      <ol className="steps tiny" style={{ gap: 7 }}>
+        {steps.map((step) => (
+          <li key={step.name}>
+            <span>
+              <b>{step.name}</b>
+              <span className="num" style={{ color: step.ok ? 'var(--good)' : 'var(--warn)', display: 'block' }}>
+                {step.ok ? 'прошло' : `не прошло · ${step.status || 'без ответа'}`} · {(step.ms / 1000).toFixed(1)}с
+              </span>
+              {step.detail === '' ? null : (
+                <span className="tiny muted" style={{ display: 'block' }}>
+                  {step.detail}
+                </span>
+              )}
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p className="banner tiny">
+        {broke === undefined
+          ? 'Всё прошло. Значит связь и ключ в порядке, и дело в самом снимке или в том, что сервер долго думал — попробуйте снять ещё раз.'
+          : broke.status === 0
+            ? `Оборвалось на шаге «${broke.name}». Сервер ничего не ответил — это уже не про интернет: предыдущие шаги прошли.`
+            : `Сервер отказал на шаге «${broke.name}» с кодом ${broke.status}. Это ответ сервера, а не обрыв связи.`}
+      </p>
+    </div>
   );
 }
 

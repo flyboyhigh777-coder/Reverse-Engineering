@@ -11,7 +11,7 @@ import {
   photoPrompt,
   toGuesses,
 } from './contract';
-import type { KeyCheck, VisionProvider, VisionResult } from './contract';
+import type { KeyCheck, ProbeStep, VisionProvider, VisionResult } from './contract';
 import { noteAttempt } from './log';
 import type { Attempt } from './log';
 
@@ -280,6 +280,62 @@ export const google: VisionProvider = {
   ],
   cost: 'Бесплатно в пределах дневной квоты. Для дневника её хватает с запасом.',
   model: FALLBACK_MODEL,
+
+  /**
+   * The journey a photograph makes, walked one leg at a time.
+   *
+   * Listing models is a GET with no body and an instant reply; reading a
+   * plate is a POST carrying fifty kilobytes that the server thinks about
+   * for seconds. Everything between those two can fail on its own, so each
+   * leg is timed and reported separately rather than collapsed into one
+   * sentence about the internet.
+   */
+  async probe(apiKey, model, sample, signal): Promise<readonly ProbeStep[]> {
+    const steps: ProbeStep[] = [];
+
+    const leg = async (name: string, run: () => Promise<Awaited<ReturnType<typeof netFetch>>>) => {
+      const started = Date.now();
+      try {
+        const response = await run();
+        const body = await response.text().catch(() => '');
+        steps.push({
+          name,
+          ok: response.ok,
+          status: response.status,
+          ms: Date.now() - started,
+          detail: response.ok ? `${Math.round(body.length / 1024)} КБ ответа` : detailOf(body),
+        });
+        return response.ok;
+      } catch (failure) {
+        steps.push({
+          name, ok: false, status: 0, ms: Date.now() - started,
+          detail: reasonOf(failure) || 'ответа нет',
+        });
+        return false;
+      }
+    };
+
+    const path = model.startsWith('models/') ? model : `models/${model}`;
+    const generate = (parts: unknown[], quiet: boolean) => () =>
+      netFetch(`${BASE}/${path}:generateContent`, {
+        method: 'POST',
+        signal,
+        headers: headers(apiKey),
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts }],
+          generationConfig: { maxOutputTokens: 40, temperature: 0, ...(quiet ? { thinkingConfig: { thinkingBudget: 0 } } : {}) },
+        }),
+      });
+
+    if (!(await leg('Список моделей (GET, пусто)', () => netFetch(`${BASE}/models`, { headers: headers(apiKey), signal })))) return steps;
+    if (!(await leg('Короткий вопрос (POST, 0,1 КБ)', generate([{ text: 'Ответь одним словом: да' }], deliberates(model))))) return steps;
+    const grams = Math.round(sample.length / 1024);
+    await leg(`Снимок (POST, ${grams} КБ)`, generate(
+      [{ inline_data: { mime_type: 'image/jpeg', data: sample.includes(',') ? sample.slice(sample.indexOf(',') + 1) : sample } }, { text: 'Что на снимке? Одно слово.' }],
+      deliberates(model),
+    ));
+    return steps;
+  },
 
   /**
    * Checks the key by asking which models it can reach, which answers two

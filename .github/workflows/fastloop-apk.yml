@@ -1,0 +1,67 @@
+# Builds the FastLoop APK with the real Android toolchain.
+#
+# It cannot be built where it is written: that container's network policy
+# denies dl.google.com and maven.google.com, which serve the Android SDK and
+# every AndroidX artifact, so the in-container build assembles an APK out of
+# whatever Maven Central happens to carry and is capped at a 2016 dexer with
+# no dependencies at all. A GitHub runner has the SDK installed and no such
+# policy, so this is where Gradle, AGP and AndroidX actually run.
+name: FastLoop APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'clones/fastloop/**'
+      - '.github/workflows/fastloop-apk.yml'
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: clones/fastloop
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: clones/fastloop/package-lock.json
+
+      # The page is the app: without it the APK installs and opens blank.
+      - name: Собрать страницу
+        run: |
+          npm ci
+          npm run build
+          test -s dist/index.html
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      # verifySigning reads the certificate out of the finished APK, not out
+      # of the keystore: the fingerprint that matters is the one the phone
+      # compares against, and an update signed by any other certificate
+      # cannot be installed over what is already there.
+      - name: Собрать и проверить APK
+        run: gradle -p android --no-daemon :app:assembleRelease :app:verifySigning
+
+      - name: Показать, что получилось
+        run: ls -la android/app/build/outputs/apk/release/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fastloop-apk
+          path: clones/fastloop/android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error

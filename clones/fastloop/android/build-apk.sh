@@ -107,27 +107,13 @@ PY
 # fingerprint is asserted here: a silent change would produce an APK that
 # cannot be installed over the previous one, which is worse than a failed
 # build.
-EXPECTED_CERT=7A6C9128ABAA5E064D496416605C87853F33553D25D20130EECFF56D22C1BEDE
+# The key, its seed and the fingerprint it must produce live in
+# tools/make-keystore.sh, which the Gradle build uses too: one certificate
+# with one place that asserts it, rather than two copies to drift apart.
 KEYSTORE="$WORK/debug.p12"
 
 say "Собираю ключ подписи"
-mkdir -p "$WORK/keygen"
-javac -nowarn --add-exports java.base/sun.security.x509=ALL-UNNAMED \
-  -d "$WORK/keygen" "$HERE/tools/KeyGen.java" 2>/dev/null
-CERT="$(java \
-  --add-exports java.base/sun.security.x509=ALL-UNNAMED \
-  --add-exports java.base/sun.security.util=ALL-UNNAMED \
-  -cp "$WORK/keygen" KeyGen "$KEYSTORE" android fastloop | tail -n 1)"
-
-if [ "$CERT" != "$EXPECTED_CERT" ]; then
-  cat >&2 <<EOF
-Сертификат подписи изменился — такой APK не встанет поверх установленного.
-  ожидался: $EXPECTED_CERT
-  получен:  $CERT
-Проверьте tools/KeyGen.java и версию JDK, прежде чем собирать дальше.
-EOF
-  exit 1
-fi
+CERT="$("$HERE/tools/make-keystore.sh" "$KEYSTORE" android fastloop | tail -n 1)"
 
 say "Подписываю"
 mkdir -p "$WORK/signer"

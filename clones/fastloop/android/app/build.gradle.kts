@@ -137,6 +137,20 @@ android {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
   }
+}
+
+/*
+ * Kotlin aims where javac aims.
+ *
+ * Left alone, the Kotlin compiler targets whatever JVM is running the build
+ * — 21 on the runner — while javac is pinned at 17 above, and Gradle refuses
+ * a module whose two halves disagree. Saying it once here beats moving javac
+ * to match a JDK that will change under us.
+ */
+kotlin {
+  compilerOptions {
+    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+  }
 
   // The old build has no unit tests to run and the one file under test/ is a
   // main() rather than a JUnit case. Wiring it up belongs to its own change.

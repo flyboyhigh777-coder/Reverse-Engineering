@@ -19,7 +19,8 @@ OUT="${1:-$APP/build/fastloop.apk}"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-MIN_SDK=24
+# Kept level with the Gradle build, which Health Connect raised to 26.
+MIN_SDK=26
 TARGET_SDK=34
 CENTRAL=https://repo1.maven.org/maven2
 

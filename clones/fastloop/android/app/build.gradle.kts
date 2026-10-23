@@ -86,7 +86,13 @@ android {
 
   defaultConfig {
     applicationId = appNamespace
-    minSdk = 24
+    // 26, not 24, because Health Connect requires it — and so does the
+    // java.time the bridge reads instants with. Android 8.0 is from 2017;
+    // what is given up is Android 7, which no phone that can run Health
+    // Connect is on anyway. Forcing the library past its own floor was the
+    // other option and buys nothing but a crash on a device that could not
+    // have used the feature regardless.
+    minSdk = 26
     targetSdk = 34
     versionCode = appVersionCode
     versionName = appVersionName

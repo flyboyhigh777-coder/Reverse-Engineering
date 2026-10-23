@@ -101,7 +101,7 @@ export function FoodPicker({ slot, onClose }: { slot: MealSlot; onClose: () => v
         />
       ) : null}
       {tab === 'online' ? <OnlineTab onPick={setChosen} /> : null}
-      {tab === 'ai' ? <AiTab slot={slot} seed={seed} onDone={onClose} /> : null}
+      {tab === 'ai' ? <AiTab slot={slot} seed={seed} onDone={onClose} onSwitch={setTab} /> : null}
       {tab === 'manual' ? <ManualTab slot={slot} onDone={onClose} /> : null}
     </Sheet>
     </MealTimeProvider>
@@ -575,8 +575,23 @@ async function toDataUrl(file: File): Promise<string> {
   return canvas.toDataURL('image/jpeg', 0.72);
 }
 
-/** Turning the camera on where the camera is, rather than in a settings screen. */
-function KeySetup({ onReady }: { onReady: (access: VisionAccess) => void }): JSX.Element {
+/**
+ * The key, asked for at the point it is actually needed.
+ *
+ * It used to stand in front of the whole tab, so a person who opened the app
+ * to photograph breakfast met an API key instead of a camera. Now it appears
+ * underneath the thing that is waiting on it — a photograph already taken,
+ * or a description already written — and says which.
+ */
+function KeyGate({
+  need,
+  onReady,
+  onSwitch,
+}: {
+  need: string;
+  onReady: (access: VisionAccess) => void;
+  onSwitch: (tab: Tab) => void;
+}): JSX.Element {
   const [chosen, setChosen] = useState<ProviderId>(DEFAULT_PROVIDER);
   const [draft, setDraft] = useState('');
   const [checking, setChecking] = useState(false);
@@ -602,8 +617,8 @@ function KeySetup({ onReady }: { onReady: (access: VisionAccess) => void }): JSX
   return (
     <>
       <p className="tiny">
-        Распознавание делает не приложение, а модель, и для неё нужен ваш собственный ключ. Пока ключа нет, никуда
-        ничего не уходит.
+        <strong>{need}</strong> Считает не приложение, а модель, и для неё нужен ваш собственный ключ. Пока ключа
+        нет, никуда ничего не уходит.
       </p>
       <div className="row wrap" style={{ gap: 7 }}>
         {VISION_PROVIDERS.map((item) => (
@@ -634,12 +649,17 @@ function KeySetup({ onReady }: { onReady: (access: VisionAccess) => void }): JSX
           setError(null);
         }}
       />
-      {/* The label carries the reason. A button that only goes dim reads as a
-          broken camera to anyone who has not made an API key before. */}
+      {/* The label carries the reason. A button that only goes dim reads as
+          something broken to anyone who has not made an API key before. */}
       <button type="button" className="btn block" disabled={empty || checking} onClick={() => void save()}>
-        {checking ? 'Проверяю ключ…' : empty ? 'Сначала вставьте ключ ↑' : 'Включить камеру'}
+        {checking ? 'Проверяю ключ…' : empty ? 'Сначала вставьте ключ ↑' : 'Сохранить и посчитать'}
       </button>
       {error ? <p className="banner tiny" style={{ color: 'var(--warn)' }}>{error}</p> : null}
+      {/* Nobody should be stuck on this screen. The rest of the sheet needs
+          no key at all, and the meal can be written down right now. */}
+      <button type="button" className="btn quiet block" onClick={() => onSwitch('manual')}>
+        Не сейчас — записать вручную
+      </button>
       <p className="tiny muted">{VISION_NOTE}</p>
     </>
   );
@@ -648,17 +668,52 @@ function KeySetup({ onReady }: { onReady: (access: VisionAccess) => void }): JSX
 type AiMode = 'text' | 'photo';
 
 /**
+ * Which of the two the person used last.
+ *
+ * Somebody who photographs breakfast photographs lunch too, and landing on
+ * the text box every time costs them a tap at every meal. Stored outside the
+ * app state because it is a habit, not data: losing it costs nothing.
+ */
+const MODE_KEY = 'fastloop.ai.mode';
+
+function lastMode(): AiMode {
+  try {
+    return globalThis.localStorage?.getItem(MODE_KEY) === 'photo' ? 'photo' : 'text';
+  } catch {
+    return 'text';
+  }
+}
+
+function rememberMode(mode: AiMode): void {
+  try {
+    globalThis.localStorage?.setItem(MODE_KEY, mode);
+  } catch {
+    /* Storage unavailable — the habit simply does not stick. */
+  }
+}
+
+/**
  * One tab, two ways to ask the model: describe the meal, or photograph it.
  *
  * Words are usually the better of the two. A photo cannot show how much oil
  * went into the pan or how fatty the meat was; a sentence can, and it costs
  * a fraction as much to send.
  */
-function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: () => void }): JSX.Element {
+function AiTab({
+  slot,
+  seed,
+  onDone,
+  onSwitch,
+}: {
+  slot: MealSlot;
+  seed: string;
+  onDone: () => void;
+  onSwitch: (tab: Tab) => void;
+}): JSX.Element {
   const mealAt = useMealAt();
   const state = useAppState();
   const [access, setAccess] = useState<VisionAccess | null>(() => readVisionAccess());
-  const [mode, setMode] = useState<AiMode>('text');
+  const [mode, setMode] = useState<AiMode>(lastMode);
   const [text, setText] = useState(seed);
   /** Said beside the photograph: what the camera cannot see. */
   const [hint, setHint] = useState('');
@@ -672,9 +727,12 @@ function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: (
   const [items, setItems] = useState<readonly Guess[] | null>(null);
   const [where, setWhere] = useState<MealSlot>(slot);
 
-  if (!access) return <KeySetup onReady={setAccess} />;
-  const provider = providerById(access.provider);
-  const model = access.model ?? provider.model;
+  // No key is no reason to keep someone out of the camera. The shot is the
+  // part that cannot wait — breakfast gets cold, and the plate gets eaten —
+  // while a key can be fetched afterwards with the photograph already taken.
+  // Recognition is the only step that actually needs one.
+  const provider = providerById(access?.provider ?? DEFAULT_PROVIDER);
+  const model = access?.model ?? provider.model;
 
   const handle = async (task: Promise<VisionResult>) => {
     setError(null);
@@ -705,6 +763,13 @@ function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: (
     };
   };
 
+  /** Sends one frame off, with whatever the person added about it. */
+  const look = async (shot: string, said?: string, key?: VisionAccess) => {
+    const use = key ?? access;
+    if (!use) return;
+    await handle(provider.recognise(use.key, model, shot, { ...shotContext(), hint: said ?? hint }));
+  };
+
   /**
    * Asks again with the dish named.
    *
@@ -716,66 +781,57 @@ function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: (
    */
   const askAs = async (dish: string) => {
     if (!preview) return;
-    setError(null);
-    setGuesses(null);
-    setItems(null);
-    setBusy(true);
-    const result = await provider.recognise(access.key, model, preview, {
-      ...shotContext(),
-      hint: `на фото это ${dish}${hint.trim() === '' ? '' : `. ${hint.trim()}`}`,
-    });
-    setBusy(false);
-    if (result.kind === 'error') setError(result.reason);
-    else {
-      setGuesses(result.guesses);
-      setItems(result.guesses);
-    }
+    await look(preview, `на фото это ${dish}${hint.trim() === '' ? '' : `. ${hint.trim()}`}`);
   };
 
   /** The frame is almost never useless: two words from the person fix it. */
   const reshoot = async () => {
-    if (!preview) return;
-    setError(null);
-    setGuesses(null);
-    setItems(null);
-    setBusy(true);
-    const result = await provider.recognise(access.key, model, preview, shotContext());
-    setBusy(false);
-    if (result.kind === 'error') setError(result.reason);
-    else {
-      setGuesses(result.guesses);
-      setItems(result.guesses);
-    }
+    if (preview) await look(preview);
   };
 
+  /**
+   * The picture is kept whether or not it can be read yet.
+   *
+   * Someone photographing breakfast has a plate in front of them and no
+   * interest in API keys. The frame is taken and held; if a key arrives
+   * later it is read then, and nothing has to be photographed twice.
+   */
   const shoot = async (file: File) => {
     setError(null);
     setGuesses(null);
     setItems(null);
     setBusy(true);
+    let dataUrl: string;
     try {
-      const dataUrl = await toDataUrl(file);
-      setPreview(dataUrl);
-      const result = await provider.recognise(access.key, model, dataUrl, shotContext());
-      if (result.kind === 'error') setError(result.reason);
-      else {
-        setGuesses(result.guesses);
-        setItems(result.guesses);
-      }
+      dataUrl = await toDataUrl(file);
     } catch {
-      setError('Снимок не удалось обработать на телефоне.');
-    } finally {
       setBusy(false);
+      setError('Снимок не удалось обработать на телефоне.');
+      return;
     }
+    setPreview(dataUrl);
+    setBusy(false);
+    if (access) await look(dataUrl);
+  };
+
+  const pick = (next: AiMode) => {
+    setMode(next);
+    rememberMode(next);
+  };
+
+  /** A key saved with a photograph already waiting reads it straight away. */
+  const keyArrived = (next: VisionAccess) => {
+    setAccess(next);
+    if (preview) void look(preview, undefined, next);
   };
 
   return (
     <>
       <div className="row" style={{ gap: 8 }}>
-        <button type="button" className="chip grow" aria-pressed={mode === 'text'} onClick={() => setMode('text')}>
+        <button type="button" className="chip grow" aria-pressed={mode === 'text'} onClick={() => pick('text')}>
           Описать словами
         </button>
-        <button type="button" className="chip grow" aria-pressed={mode === 'photo'} onClick={() => setMode('photo')}>
+        <button type="button" className="chip grow" aria-pressed={mode === 'photo'} onClick={() => pick('photo')}>
           Сфотографировать
         </button>
       </div>
@@ -799,14 +855,19 @@ function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: (
               resize: 'vertical',
             }}
           />
-          <button
-            type="button"
-            className="btn block"
-            disabled={busy || text.trim().length < 3}
-            onClick={() => void handle(provider.describe(access.key, model, text))}
-          >
-            {busy ? 'Считаю…' : 'Посчитать'}
-          </button>
+          {access ? (
+            <button
+              type="button"
+              className="btn block"
+              disabled={busy || text.trim().length < 3}
+              onClick={() => void handle(provider.describe(access.key, model, text))}
+            >
+              {busy ? 'Считаю…' : 'Посчитать'}
+            </button>
+          ) : null}
+          {!access ? (
+            <KeyGate need="Чтобы посчитать по описанию, нужен ключ." onReady={keyArrived} onSwitch={onSwitch} />
+          ) : null}
           <p className="tiny muted">
             Пишите как говорите: блюдо и из чего оно. Количество можно не указывать — тогда возьмётся обычная домашняя
             порция, и модель об этом скажет.
@@ -839,9 +900,19 @@ function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: (
               порции. Эти три вещи дают больше точности, чем любая модель.
             </p>
           )}
+          {/* Never disabled by a missing key: the frame is the part that
+              cannot wait, and it is kept whether or not it can be read. */}
           <button type="button" className="btn block" disabled={busy} onClick={() => input.current?.click()}>
             {busy ? 'Смотрю на снимок…' : preview ? 'Другой снимок' : 'Сфотографировать блюдо'}
           </button>
+
+          {!access ? (
+            <KeyGate
+              need={preview ? 'Снимок сохранён — чтобы его прочитать, нужен ключ.' : 'Чтобы прочитать снимок, нужен ключ.'}
+              onReady={keyArrived}
+              onSwitch={onSwitch}
+            />
+          ) : null}
 
           <input
             id="ai-hint"
@@ -854,7 +925,7 @@ function AiTab({ slot, seed, onDone }: { slot: MealSlot; seed: string; onDone: (
             Масло в сковороде, жирность молока, заправка в салате — этого на снимке нет, а в калориях это больше
             половины ошибки. Одна фраза здесь весит больше, чем ещё один кадр.
           </p>
-          {preview && !busy ? (
+          {access && preview && !busy ? (
             <button type="button" className="btn ghost sm" onClick={() => void reshoot()}>
               Спросить ещё раз с этим же снимком
             </button>

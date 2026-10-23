@@ -12,8 +12,17 @@ function TaskIcon({ task }: { task: DailyTask }): JSX.Element {
   if (task.tone === 'water') return <DropIcon />;
   if (task.tone === 'steps') return <StepIcon />;
   if (task.tone === 'weight') return <ScaleIcon />;
+  if (task.tone === 'sleep') return <MoonIcon />;
   if (task.tone === 'rate') return <HeartIcon />;
   return <TimerIcon />;
+}
+
+function MoonIcon(): JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20 13.5A7.6 7.6 0 0 1 10.5 4 7.8 7.8 0 1 0 20 13.5z" />
+    </svg>
+  );
 }
 
 function HeartIcon(): JSX.Element {

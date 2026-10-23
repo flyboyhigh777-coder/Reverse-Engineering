@@ -3,21 +3,13 @@ import { elapsedMs, formatDayClock, formatHoursShort, reachedGoal } from '../../
 import { isRated } from '../../domain/wellbeing';
 import type { FastSession } from '../../domain/types';
 import { bmi, bmiBand, fastStats, formatWeight, weightSeries } from '../../domain/metrics';
-import {
-  RANGES,
-  chartGoals,
-  fastHoursSeries,
-  rangeDays,
-  stepsSeries,
-  summarize,
-  waterSeries,
-  weightPoints,
-} from '../../domain/series';
+import { RANGES, chartGoals, fastHoursSeries, rangeDays, sleepSeries, stepsSeries, summarize, waterSeries, weightPoints } from '../../domain/series';
 import type { Range } from '../../domain/series';
 import { actions, useAppState } from '../../state/store';
 import { useNow } from '../useNow';
 import { AchievementsCard } from '../components/Achievements';
 import { BarChart } from '../components/BarChart';
+import { SLEEP_TARGET_MIN, averageMin, describeLink, formatDuration, mealSleepLink, sleepSeries as sleepWindow } from '../../domain/sleep';
 import { BmiBar } from '../components/BmiBar';
 import { WeightChart } from '../components/WeightChart';
 import { Card, LockPill, Sheet, Stat } from '../components/common';
@@ -48,6 +40,9 @@ export function Progress({ onRequestPro }: { onRequestPro: (reason: string) => v
   const fastHours = fastHoursSeries(state, now, days);
   const water = waterSeries(state, now, days);
   const steps = stepsSeries(state, now, days);
+  const nights = sleepSeries(state, now, days);
+  const sleptAvg = averageMin(sleepWindow(state, days, now));
+  const link = mealSleepLink(state);
   const points = weightPoints(state, now, days);
   const fastSummary = summarize(fastHours, null);
   const waterSummary = summarize(water, goals.water);
@@ -95,6 +90,29 @@ export function Progress({ onRequestPro }: { onRequestPro: (reason: string) => v
             ? `Записей за период: ${fastSummary.logged} из ${fastSummary.total} дней. Дольше всего — ${(fastSummary.best ?? 0).toFixed(1)} ч. Столбец стоит на дне, когда окно закрылось.`
             : 'Пустые дни — это дни без записи, а не нулевые голодания.'}
         </p>
+      </Card>
+
+      <Card>
+        <div className="row between">
+          <span className="eyebrow">Сон</span>
+          {sleptAvg !== null ? <span className="pill num">в среднем {formatDuration(sleptAvg)}</span> : null}
+        </div>
+        <BarChart
+          points={nights}
+          goal={SLEEP_TARGET_MIN / 60}
+          tone="accent"
+          format={(value) => `${value.toFixed(1)} ч`}
+          label={`Сон за ${days} дн.`}
+        />
+        {link ? (
+          <p className="tiny">{describeLink(link)}</p>
+        ) : (
+          <p className="tiny muted">
+            Записывайте ночи и приёмы пищи — через пару недель приложение сможет сказать, меняется ли ваш сон от
+            того, насколько поздно был последний приём пищи. Для этого нужно хотя бы по пять ночей с поздним и с
+            ранним ужином.
+          </p>
+        )}
       </Card>
 
       <div className="grid2">

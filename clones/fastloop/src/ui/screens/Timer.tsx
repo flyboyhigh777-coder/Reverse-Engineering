@@ -25,6 +25,7 @@ import { CoachCard } from '../components/CoachCard';
 import { DailyBriefCard, TodayCard } from '../components/Today';
 import { Ring, PhaseRail } from '../components/Ring';
 import { SafetySheet } from '../components/SafetySheet';
+import { SleepSheet } from '../components/SleepSheet';
 import { WellbeingSheet } from '../components/WellbeingSheet';
 import { Ruler, WEIGHT_SCALE } from '../components/Ruler';
 import { Card, InfoIcon, LockPill, Sheet } from '../components/common';
@@ -32,7 +33,7 @@ import { Card, InfoIcon, LockPill, Sheet } from '../components/common';
 export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void }): JSX.Element {
   const state = useAppState();
   const now = useNow(state.current !== null);
-  const [sheet, setSheet] = useState<'plan' | 'start' | 'weight' | 'steps' | 'phase' | 'safety' | null>(null);
+  const [sheet, setSheet] = useState<'plan' | 'start' | 'weight' | 'steps' | 'sleep' | 'phase' | 'safety' | null>(null);
 
   const plan = activePlan(state, now);
   const counter = useStepCounter();
@@ -138,6 +139,7 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
           if (id === 'water') actions.addWater(250);
           else if (id === 'steps') setSheet('steps');
           else if (id === 'weight') setSheet('weight');
+          else if (id === 'sleep') setSheet('sleep');
           else if (id === 'fast' && state.current === null) actions.startFast();
         }}
         controls={{
@@ -216,6 +218,8 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
       <WellbeingSheet />
 
       {sheet === 'safety' ? <SafetySheet onClose={() => setSheet(null)} /> : null}
+
+      {sheet === 'sleep' ? <SleepSheet onClose={() => setSheet(null)} /> : null}
 
       {sheet === 'plan' ? (
         <PlanSheet

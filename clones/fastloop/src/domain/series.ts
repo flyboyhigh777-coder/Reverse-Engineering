@@ -111,3 +111,21 @@ export function chartGoals(state: AppState): { readonly water: number; readonly 
     steps: stepsTarget(state.profile.activity),
   };
 }
+
+/**
+ * Hours slept per night, placed on the morning the night ended.
+ *
+ * A night with no record leaves the slot empty rather than drawing a zero:
+ * «не записал» and «не спал» are different facts, and a chart that merges
+ * them tells the person they had a catastrophic week.
+ */
+export function sleepSeries(state: AppState, now: number, days: number): DayPoint[] {
+  const slots = emptyDays(now, days);
+  return slots.map((slot) => {
+    const night = state.sleep.find((entry) => entry.date === slot.date);
+    if (!night) return slot;
+    const minutes = Math.round((night.wokeAt - night.asleepAt) / 60_000);
+    if (minutes < 60 || minutes > 900) return slot;
+    return { ...slot, value: Math.round((minutes / 60) * 10) / 10 };
+  });
+}

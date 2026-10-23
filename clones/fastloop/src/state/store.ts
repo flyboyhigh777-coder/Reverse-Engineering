@@ -10,7 +10,7 @@ import type { Records } from '../domain/backup';
 import { forGrams } from '../domain/nutrition';
 import type { Food } from '../domain/foods';
 import type { Macros, Recipe } from '../domain/recipes';
-import type { FoodEntry, MealSlot } from '../domain/types';
+import type { FoodEntry, MealSlot, SleepEntry } from '../domain/types';
 import { screen } from '../domain/screening';
 import type { Activity, AppState, Experience, FastSession, Goal, PlanId, Profile, StepSource, Units } from '../domain/types';
 import type { Wellbeing } from '../domain/wellbeing';
@@ -63,6 +63,7 @@ function initialState(): AppState {
     weights: [],
     days: [],
     meals: [],
+    sleep: [],
     calorieGoal: null,
     answers: {},
   };
@@ -118,6 +119,13 @@ function normalize(loaded: AppState): AppState {
     schedule: loaded.schedule ?? base.schedule,
     scheduleEnabled: loaded.scheduleEnabled ?? base.scheduleEnabled,
     days: (loaded.days ?? []).map((day) => ({ ...day, stepSource: day.stepSource ?? 'manual' })),
+    // Spelled out rather than left to the spread: a saved state that carries
+    // the key with an undefined value overrides the default, and the screens
+    // read these without checking.
+    history: loaded.history ?? base.history,
+    weights: loaded.weights ?? base.weights,
+    meals: loaded.meals ?? base.meals,
+    sleep: loaded.sleep ?? base.sleep,
   };
 }
 
@@ -427,6 +435,17 @@ export const actions = {
 
   logManual(name: string, grams: number, macros: Macros, slot: MealSlot, source: FoodEntry['source'] = 'manual', at = Date.now()): void {
     actions.logFood({ date: isoDate(at), at, slot, name, grams, macros, source });
+  },
+
+  /* ─────────────────────────────── sleep ──────────────────────────────── */
+
+  /** One night per morning: writing the same date again replaces it. */
+  logSleep(entry: SleepEntry): void {
+    set({ ...state, sleep: [...state.sleep.filter((night) => night.date !== entry.date), entry] });
+  },
+
+  removeSleep(date: string): void {
+    set({ ...state, sleep: state.sleep.filter((night) => night.date !== date) });
   },
 
   removeFood(id: string): void {

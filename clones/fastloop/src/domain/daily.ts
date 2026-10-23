@@ -14,9 +14,9 @@ import type { AppState } from './types';
  * one glance, not to manufacture activity.
  */
 
-export type TaskId = 'fast' | 'water' | 'steps' | 'weight' | 'rate';
+export type TaskId = 'fast' | 'water' | 'steps' | 'weight' | 'sleep' | 'rate';
 
-export type TaskTone = 'fast' | 'water' | 'steps' | 'weight' | 'rate';
+export type TaskTone = 'fast' | 'water' | 'steps' | 'weight' | 'sleep' | 'rate';
 
 export interface DailyTask {
   readonly id: TaskId;
@@ -30,6 +30,12 @@ export interface DailyTask {
   readonly tone: TaskTone;
   /** Shown instead of the bare count when a number would say less. */
   readonly note?: string;
+}
+
+function formatSleep(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest === 0 ? `${hours} ч` : `${hours} ч ${rest} мин`;
 }
 
 export function dailyTasks(state: AppState, now: number): readonly DailyTask[] {
@@ -67,6 +73,23 @@ export function dailyTasks(state: AppState, now: number): readonly DailyTask[] {
       tone: 'fast',
     });
   }
+
+  // Last night, not tonight: the record belongs to the morning it ended, and
+  // the only moment anyone can fill it in is after waking up.
+  const night = state.sleep.find((entry) => entry.date === today);
+  tasks.push({
+    id: 'sleep',
+    title: 'Сон',
+    hint: night
+      ? 'Ночь записана.'
+      : 'Во сколько легли и во сколько встали. С часов можно добавить и фазы.',
+    note: night ? formatSleep(Math.round((night.wokeAt - night.asleepAt) / 60_000)) : 'не записан',
+    current: night ? 1 : 0,
+    target: 1,
+    unit: '',
+    done: night !== undefined,
+    tone: 'sleep',
+  });
 
   tasks.push({
     id: 'water',

@@ -62,6 +62,32 @@ export interface DayLog {
   readonly stepSource: StepSource;
 }
 
+/**
+ * One night.
+ *
+ * Keyed by the morning it ended, because a night belongs to the day you wake
+ * into — «сколько я спал сегодня» means last night, and putting it on the
+ * evening date makes every chart off by one.
+ *
+ * The stage minutes are optional and stay optional. A watch supplies them; a
+ * person typing at breakfast does not, and a form that asks for four numbers
+ * nobody has is a form nobody fills.
+ */
+export interface SleepEntry {
+  /** ISO date of the morning, YYYY-MM-DD — one night per date, last write wins. */
+  readonly date: string;
+  readonly asleepAt: number;
+  readonly wokeAt: number;
+  /** Minutes per stage, from a watch. null when nobody measured them. */
+  readonly deep: number | null;
+  readonly light: number | null;
+  readonly rem: number | null;
+  readonly awake: number | null;
+  /** How rested, 1 to 5. The only thing a watch cannot measure. */
+  readonly rested: number | null;
+  readonly source: 'manual' | 'watch';
+}
+
 export type Goal = 'lose' | 'maintain' | 'energy' | 'health' | 'clarity';
 export type Activity = 'sedentary' | 'light' | 'moderate' | 'high';
 export type Experience = 'none' | 'tried' | 'regular';
@@ -114,6 +140,7 @@ export interface AppState {
   readonly weights: readonly WeightEntry[];
   readonly days: readonly DayLog[];
   readonly meals: readonly FoodEntry[];
+  readonly sleep: readonly SleepEntry[];
   /** Overrides the computed calorie target when the person sets their own. */
   readonly calorieGoal: number | null;
   /** Quiz answers kept verbatim so the paywall can quote them back. */

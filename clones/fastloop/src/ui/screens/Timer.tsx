@@ -100,16 +100,20 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
 
         {session ? (
           <div className="row between" style={{ alignItems: 'flex-start' }}>
+            {/* Not behind the lock. Correcting a start nobody pressed on
+                time is not a power feature, and gating it here while the
+                same sheet is free before a fast would only mean stopping
+                and starting again to get past it. */}
             <button
               type="button"
               className="col lockbtn"
               style={{ gap: 2, width: 'auto', alignItems: 'flex-start' }}
-              onClick={() => (state.premium ? setSheet('start') : onRequestPro('Сдвигать время старта и финиша можно в PRO.'))}
+              onClick={() => setSheet('start')}
             >
               <span className="eyebrow">Начало</span>
               <span className="row" style={{ gap: 7 }}>
                 <span className="num" style={{ fontWeight: 600 }}>{formatClock(session.startedAt)}</span>
-                {state.premium ? <span className="tiny muted">изменить</span> : <LockPill />}
+                <span className="tiny muted">изменить</span>
               </span>
             </button>
             <div className="col" style={{ gap: 2, alignItems: 'flex-end' }}>
@@ -124,9 +128,18 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
             Завершить голодание
           </button>
         ) : (
-          <button type="button" className="btn block" onClick={() => actions.startFast()}>
-            Начать голодание
-          </button>
+          <>
+            <button type="button" className="btn block" onClick={() => actions.startFast()}>
+              Начать голодание
+            </button>
+            {/* The case the app had no answer for: eaten at half past
+                twelve, remembered at six. Pressing start then threw away
+                the hours already held, and the only way to correct it was
+                to start first and find the sheet afterwards. */}
+            <button type="button" className="btn ghost sm" onClick={() => setSheet('start')}>
+              Я начал раньше — указать время
+            </button>
+          </>
         )}
         <button type="button" className="btn quiet tiny" onClick={() => setSheet('safety')}>
           Стало плохо — что делать
@@ -231,11 +244,13 @@ export function Timer({ onRequestPro }: { onRequestPro: (reason: string) => void
         />
       ) : null}
 
-      {sheet === 'start' && session ? (
+      {sheet === 'start' ? (
         <StartSheet
-          startedAt={session.startedAt}
+          startedAt={session ? session.startedAt : Date.now()}
+          running={session !== null}
           onSave={(ts) => {
-            actions.moveStart(ts);
+            if (session) actions.moveStart(ts);
+            else actions.startFast(ts);
             setSheet(null);
           }}
           onClose={() => setSheet(null)}
@@ -479,39 +494,104 @@ function PlanSheet({ onLocked, onClose }: { onLocked: (reason: string) => void; 
   );
 }
 
+/**
+ * When the fast actually began, which is rarely when the button was pressed.
+ *
+ * The usual case is the one that had no answer at all: somebody ate at half
+ * past twelve, remembered the app at six, and starting it then threw away
+ * five and a half hours they had already held. The same sheet now opens
+ * before a fast as well as during one — before it, saving starts the fast at
+ * that moment rather than at this one.
+ *
+ * The day is a choice rather than an inference. It used to be derived — a
+ * time later than now meant yesterday — which is right most of the time and
+ * silent when it is wrong, and «вчера в 23:00» could not be said at all
+ * before midnight.
+ */
 function StartSheet({
   startedAt,
+  running,
   onSave,
   onClose,
 }: {
   startedAt: number;
+  running: boolean;
   onSave: (ts: number) => void;
   onClose: () => void;
 }): JSX.Element {
+  const now = Date.now();
   const [value, setValue] = useState(() => {
     const d = new Date(startedAt);
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   });
+  const [day, setDay] = useState(() => {
+    const d = new Date(startedAt);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  });
+
+  const today = (() => {
+    const d = new Date(now);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  })();
+
+  const chosen = (() => {
+    const [h, m] = value.split(':').map(Number);
+    if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+    return day + h * 3_600_000 + m * 60_000;
+  })();
+
+  const ahead = chosen !== null && chosen > now;
+  const elapsed = chosen === null ? 0 : now - chosen;
+
   return (
     <Sheet title="Когда вы начали?" onClose={onClose}>
+      <div className="row wrap" style={{ gap: 7 }}>
+        <button type="button" className="chip" aria-pressed={day === today} onClick={() => setDay(today)}>
+          сегодня
+        </button>
+        <button type="button" className="chip" aria-pressed={day === today - 86_400_000} onClick={() => setDay(today - 86_400_000)}>
+          вчера
+        </button>
+      </div>
       <input id="start-time" type="time" value={value} onChange={(event) => setValue(event.target.value)} />
-      <p className="tiny muted">Если время позже текущего, оно отнесётся ко вчерашнему дню.</p>
+
+      {/* The number the choice produces, before it is committed: a wrong day
+          or a mistyped hour shows up here as a count nobody recognises. */}
+      {ahead ? (
+        <p className="banner tiny" style={{ color: 'var(--warn)' }}>
+          Это время ещё не наступило. Выберите «вчера» или более раннее время.
+        </p>
+      ) : chosen === null ? null : (
+        <p className="banner tiny">
+          Отсюда уже прошло <strong>{formatSpan(elapsed)}</strong>
+          {running ? '.' : ' — столько зачтётся сразу.'}
+        </p>
+      )}
+
       <button
         type="button"
         className="btn block"
+        disabled={chosen === null || ahead}
         onClick={() => {
-          const [h, m] = value.split(':').map(Number);
-          if (!Number.isFinite(h) || !Number.isFinite(m)) return;
-          const next = new Date();
-          next.setHours(h, m, 0, 0);
-          const ts = next.getTime() > Date.now() ? next.getTime() - 86_400_000 : next.getTime();
-          onSave(ts);
+          if (chosen === null || ahead) return;
+          onSave(chosen);
         }}
       >
-        Сохранить
+        {running ? 'Сохранить' : 'Начать с этого времени'}
       </button>
     </Sheet>
   );
+}
+
+/** "5 ч 30 мин", and just minutes under an hour. */
+function formatSpan(ms: number): string {
+  const total = Math.max(0, Math.round(ms / 60_000));
+  const hours = Math.floor(total / 60);
+  const minutes = total % 60;
+  if (hours === 0) return `${minutes} мин`;
+  return minutes === 0 ? `${hours} ч` : `${hours} ч ${minutes} мин`;
 }
 
 function WeightSheet({

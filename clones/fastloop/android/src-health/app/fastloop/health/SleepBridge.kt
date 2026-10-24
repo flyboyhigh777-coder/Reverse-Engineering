@@ -1,6 +1,7 @@
 package app.fastloop.health
 
 import android.app.Activity
+import android.content.Intent
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.health.connect.client.HealthConnectClient
@@ -82,14 +83,84 @@ class SleepBridge(private val activity: Activity, private val web: WebView) {
    * from one.
    */
   @JavascriptInterface
-  fun requestPermission(): String {
+  fun requestPermission(): String = onMain {
+    activity.startActivity(
+      PermissionController.createRequestPermissionResultContract().createIntent(activity, permissions),
+    )
+  }
+
+  /**
+   * The apps a watch writes through, in the order they are worth trying.
+   *
+   * There is no connecting to a watch app directly: none of them exposes
+   * anything to a third party. The only road is the one already built —
+   * their app writes to Health Connect and this reads from it — so the help
+   * this can offer is to open the place where that is switched on, rather
+   * than describing a menu whose wording differs between versions.
+   */
+  private val watchApps = listOf(
+    "com.xiaomi.wearable" to "Mi Fitness",
+    "com.xiaomi.hm.health" to "Zepp Life",
+    "com.huami.watch.hmwatchmanager" to "Zepp",
+  )
+
+  /** "com.xiaomi.wearable|Mi Fitness" for the first one installed, else "". */
+  @JavascriptInterface
+  fun watchApp(): String {
+    for ((id, name) in watchApps) {
+      if (activity.packageManager.getLaunchIntentForPackage(id) != null) return "$id|$name"
+    }
+    return ""
+  }
+
+  /** Opens the watch's own app, where writing to Health Connect is turned on. */
+  @JavascriptInterface
+  fun openWatchApp(): String = onMain {
+    val found = watchApps.firstOrNull {
+      activity.packageManager.getLaunchIntentForPackage(it.first) != null
+    } ?: throw IllegalStateException("приложение часов не найдено на телефоне")
+    activity.startActivity(activity.packageManager.getLaunchIntentForPackage(found.first))
+  }
+
+  /**
+   * Opens Health Connect itself.
+   *
+   * Two actions, because it moved: from Android 14 it is part of the system
+   * and answers the platform action, and before that it is an app of its own
+   * with an action of its own. Trying one and falling back to the other is
+   * shorter than deciding by version which of them this phone is.
+   */
+  @JavascriptInterface
+  fun openHealthConnect(): String = onMain {
+    val actions = listOf(
+      "android.health.connect.action.HEALTH_HOME_SETTINGS",
+      "androidx.health.ACTION_HEALTH_CONNECT_SETTINGS",
+    )
+    val opened = actions.any { action ->
+      val intent = Intent(action)
+      if (intent.resolveActivity(activity.packageManager) == null) false
+      else {
+        activity.startActivity(intent)
+        true
+      }
+    }
+    if (!opened) throw IllegalStateException("Health Connect не отвечает на запрос открытия")
+  }
+
+  /**
+   * Runs on the main thread and reports what went wrong, or an empty string.
+   *
+   * A method called over the JavaScript bridge arrives on a binder thread,
+   * which is no place to start an activity from; and a failure that is not
+   * returned here is a button that does nothing and says nothing, which is
+   * how the permission screen hid its own absence for a day.
+   */
+  private fun onMain(work: () -> Unit): String {
     val failed = arrayOfNulls<String>(1)
     val done = java.util.concurrent.CountDownLatch(1)
     activity.runOnUiThread {
       try {
-        val intent = PermissionController.createRequestPermissionResultContract()
-          .createIntent(activity, permissions)
-        activity.startActivity(intent)
+        work()
       } catch (failure: Throwable) {
         failed[0] = describe(failure)
       } finally {

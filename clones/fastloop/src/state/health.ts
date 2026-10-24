@@ -49,6 +49,45 @@ interface Host {
   /** Empty when the screen opened; otherwise why it did not. */
   requestPermission(): string | void;
   read(id: string, from: string, to: string): void;
+  /** "com.xiaomi.wearable|Mi Fitness", or empty if none is installed. */
+  watchApp?(): string;
+  openWatchApp?(): string;
+  openHealthConnect?(): string;
+}
+
+/** The watch app found on the phone, by its own name. */
+export function watchAppName(): string {
+  try {
+    const said = host()?.watchApp?.() ?? '';
+    return said.includes('|') ? said.slice(said.indexOf('|') + 1) : '';
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Opens the watch's own app, or Health Connect, and says why it could not.
+ *
+ * There is nothing to connect to a watch app directly — none of them
+ * exposes anything to a third party, and the road through Health Connect is
+ * the only one there is. What this can do is open the place where that road
+ * is switched on, which beats describing a menu whose wording moves between
+ * versions of the app.
+ */
+export function openWatchApp(): string {
+  try {
+    return host()?.openWatchApp?.() ?? 'Эта сборка не умеет открывать приложение часов.';
+  } catch (failure) {
+    return failure instanceof Error ? failure.message : 'Не удалось открыть.';
+  }
+}
+
+export function openHealthConnect(): string {
+  try {
+    return host()?.openHealthConnect?.() ?? 'Эта сборка не умеет открывать Health Connect.';
+  } catch (failure) {
+    return failure instanceof Error ? failure.message : 'Не удалось открыть.';
+  }
 }
 
 declare global {

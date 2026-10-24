@@ -13,8 +13,8 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="app.fastloop"
-    android:versionCode="50"
-    android:versionName="0.38.0">
+    android:versionCode="51"
+    android:versionName="0.39.0">
 
   <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
   <!--
@@ -40,6 +40,21 @@
   -->
   <queries>
     <package android:name="com.google.android.apps.healthdata" />
+    <!--
+      The watch apps, so the one that is installed can be found and opened.
+      Android 11 and up hides every other app from this one unless it is
+      named here: without these the app cannot even tell that Mi Fitness is
+      on the phone, let alone offer to open it.
+    -->
+    <package android:name="com.xiaomi.wearable" />
+    <package android:name="com.xiaomi.hm.health" />
+    <package android:name="com.huami.watch.hmwatchmanager" />
+    <intent>
+      <action android:name="android.health.connect.action.HEALTH_HOME_SETTINGS" />
+    </intent>
+    <intent>
+      <action android:name="androidx.health.ACTION_HEALTH_CONNECT_SETTINGS" />
+    </intent>
   </queries>
   <uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false" />
 

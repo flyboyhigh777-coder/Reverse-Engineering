@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { actions, useAppState } from '../../state/store';
-import { askHealthPermission, healthStatus, mergeNights, readWatchSleep } from '../../state/health';
+import {
+  askHealthPermission,
+  healthStatus,
+  mergeNights,
+  openHealthConnect,
+  openWatchApp,
+  readWatchSleep,
+  watchAppName,
+} from '../../state/health';
 import type { HealthStatus } from '../../state/health';
 
 const DAY = 86_400_000;
@@ -32,6 +40,13 @@ export function SleepImport(): JSX.Element | null {
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const watch = watchAppName();
+
+  const go = (open: () => string) => {
+    const problem = open();
+    setFailed(problem !== '');
+    setSaid(problem === '' ? null : problem);
+  };
 
   // No host, or a build without it: nothing is offered rather than offered
   // and broken.
@@ -51,7 +66,7 @@ export function SleepImport(): JSX.Element | null {
 
       if (found.length === 0) {
         setSaid(
-          'Health Connect открылся, но ночей в нём нет. Значит часы туда пока ничего не писали — проверьте в приложении часов, включена ли передача в Health Connect.',
+          `Health Connect открылся, но ночей в нём нет. Значит ${watch === '' ? 'приложение часов' : watch} туда пока ничего не писало — включите в нём передачу в Health Connect.`,
         );
       } else {
         const changed = merge.added.length + merge.updated.length;
@@ -126,6 +141,33 @@ export function SleepImport(): JSX.Element | null {
             Фазы берутся как есть: если часы их не измеряли, останется только время засыпания и подъёма. Оценку
             самочувствия не трогаю — её не измеряет ни одна модель часов.
           </p>
+        </>
+      ) : null}
+
+      {/*
+        The other half of the chain, and the half this app cannot do
+        anything about: the watch app has to be writing to Health Connect.
+        No watch app lets a third party ask it to, so the most that can be
+        offered is the door — which beats naming a menu that is in a
+        different place in every version.
+      */}
+      {status !== 'unavailable' ? (
+        <>
+          <p className="tiny muted">
+            {watch === ''
+              ? 'Сон в Health Connect кладут не мы, а приложение ваших часов — включите в нём передачу в Health Connect.'
+              : `Сон в Health Connect кладёт ${watch}. Если в хранилище пусто — передача выключена в самом ${watch}: Профиль → «Сторонние данные» или «Настройки» → Health Connect. Там же должна быть включена синхронизация с облаком.`}
+          </p>
+          <div className="row wrap" style={{ gap: 8 }}>
+            {watch === '' ? null : (
+              <button type="button" className="btn ghost sm grow" onClick={() => go(openWatchApp)}>
+                Открыть {watch}
+              </button>
+            )}
+            <button type="button" className="btn ghost sm grow" onClick={() => go(openHealthConnect)}>
+              Открыть Health Connect
+            </button>
+          </div>
         </>
       ) : null}
 

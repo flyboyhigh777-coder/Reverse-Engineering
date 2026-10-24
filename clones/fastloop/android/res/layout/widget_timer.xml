@@ -7,20 +7,15 @@
   counters as the wide widget go underneath, at two thirds the size, so the
   space is paying for something.
 
-  Two layers, because one view cannot carry two backgrounds: the card, then
-  the halo behind the digits. RemoteViews text has no shadow layer, so the
-  glow has to be something drawn underneath it.
+  The halo behind the digits is part of the card's own background rather
+  than a layer over it: RemoteViews text carries no shadow, so the light has
+  to be drawn, and drawn as a separate rectangle it was cut off square.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg">
-
-  <FrameLayout
-      android:layout_width="match_parent"
-      android:layout_height="match_parent"
-      android:background="@drawable/widget_clock_glow" />
 
   <LinearLayout
       android:layout_width="match_parent"

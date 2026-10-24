@@ -26,7 +26,6 @@
         android:layout_height="match_parent"
         android:layout_weight="1.08"
         android:orientation="vertical"
-        android:background="@drawable/widget_clock_glow"
         android:gravity="center_vertical">
       <TextView
           android:id="@+id/plan"

@@ -1,13 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Near-black card with a lit edge.
+  Near-black card: a lit edge, the surface, and the light on it.
 
-  The neon used to be a straight strip laid across the bottom, which crossed
-  the rounded corners instead of following them and read as a sticker. Here
-  it is the card's own outline: a gradient shape underneath, and the dark
-  surface inset by a hairline on top of it, so the light traces the corners
-  exactly. Held at a third of full strength — an outline at full neon is a
-  highlighter, not a card.
+  All three are layers of the card itself, and that is the point. The glow
+  used to be a separate rectangle laid over the surface, and a radial
+  gradient whose radius is larger than the view it sits in never reaches its
+  transparent end: it was cut off by the view's straight sides, leaving a
+  visibly squared-off patch of colour in the middle of a rounded card. Here
+  it is clipped by the card's own rounded outline instead, and a clip that
+  lands exactly on an edge that was already there cannot be seen.
+
+  The neon is the outline for the same reason: as a strip across the bottom
+  it crossed the corners instead of following them. Held at a third of full
+  strength — an outline at full neon is a highlighter, not a card.
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
   <item>
@@ -21,11 +26,7 @@
       <corners android:radius="24dp" />
     </shape>
   </item>
-  <item
-      android:left="1.5dp"
-      android:top="1.5dp"
-      android:right="1.5dp"
-      android:bottom="1.5dp">
+  <item android:left="1.5dp" android:top="1.5dp" android:right="1.5dp" android:bottom="1.5dp">
     <shape android:shape="rectangle">
       <gradient
           android:type="linear"
@@ -33,6 +34,18 @@
           android:startColor="#101A2B"
           android:centerColor="#0A1120"
           android:endColor="#06090F" />
+      <corners android:radius="23dp" />
+    </shape>
+  </item>
+  <item android:left="1.5dp" android:top="1.5dp" android:right="1.5dp" android:bottom="1.5dp">
+    <shape android:shape="rectangle">
+      <gradient
+          android:type="radial"
+          android:gradientRadius="65%"
+          android:centerX="0.2"
+          android:centerY="0.42"
+          android:startColor="@color/w_glow"
+          android:endColor="#00C6F94F" />
       <corners android:radius="23dp" />
     </shape>
   </item>

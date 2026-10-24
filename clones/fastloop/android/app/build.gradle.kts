@@ -82,7 +82,7 @@ val makeKeystore by tasks.registering(Exec::class) {
 
 android {
   namespace = appNamespace
-  compileSdk = 35
+  compileSdk = 36
 
   defaultConfig {
     applicationId = appNamespace
@@ -93,7 +93,7 @@ android {
     // other option and buys nothing but a crash on a device that could not
     // have used the feature regardless.
     minSdk = 26
-    targetSdk = 34
+    targetSdk = 36
     versionCode = appVersionCode
     versionName = appVersionName
   }

@@ -21,7 +21,7 @@ trap 'rm -rf "$WORK"' EXIT
 
 # Kept level with the Gradle build, which Health Connect raised to 26.
 MIN_SDK=26
-TARGET_SDK=34
+TARGET_SDK=36
 CENTRAL=https://repo1.maven.org/maven2
 
 say() { printf '\033[36m%s\033[0m\n' "$*"; }

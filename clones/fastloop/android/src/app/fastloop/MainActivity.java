@@ -6,11 +6,15 @@ import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.Insets;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebResourceRequest;
@@ -105,6 +109,8 @@ public class MainActivity extends Activity {
     web.addJavascriptInterface(new Bridge(), "FastLoopNative");
     attachHealth(web);
     setContentView(web);
+    fitSystemBars(web);
+    syncBarIcons();
     web.loadUrl("file:///android_asset/index.html");
 
     // Ask first, resolve the sensor afterwards: on API 29+ the step counter
@@ -126,6 +132,56 @@ public class MainActivity extends Activity {
    * The page applies it through its own data-theme attribute, which works on
    * every version this app supports.
    */
+  /**
+   * Keeps the page out from under the system bars.
+   *
+   * From targetSdk 35 Android lays every window out edge to edge, and from
+   * 36 there is no opting out of it: left alone, the diary's header would
+   * start under the clock and its tab bar would end under the gesture
+   * handle. The insets become padding on the WebView, so the page keeps its
+   * own geometry and never has to know any of this — and because the page's
+   * CSS already falls back when env(safe-area-inset-*) is zero, which it now
+   * is, nothing is padded twice.
+   *
+   * The keyboard is taken as the larger of itself and the navigation bar
+   * rather than added to it: it covers that bar rather than sitting on top
+   * of it, and adding them would leave a gap the height of the gesture
+   * handle above the keys.
+   */
+  private void fitSystemBars(final WebView view) {
+    if (Build.VERSION.SDK_INT < 30) return;
+    getWindow().setDecorFitsSystemWindows(false);
+    // The strip behind the bars shows the WebView's own background, so it
+    // has to be the window colour rather than the default white.
+    view.setBackgroundColor(getColor(R.color.window_bg));
+    view.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
+      @Override
+      public WindowInsets onApplyWindowInsets(View target, WindowInsets insets) {
+        Insets bars = insets.getInsets(
+            WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+        Insets keyboard = insets.getInsets(WindowInsets.Type.ime());
+        target.setPadding(bars.left, bars.top, bars.right, Math.max(bars.bottom, keyboard.bottom));
+        return WindowInsets.CONSUMED;
+      }
+    });
+  }
+
+  /**
+   * Dark icons on a light background and light icons on a dark one.
+   *
+   * With the window drawn edge to edge the system no longer tints the bars
+   * for anyone, so a white status bar with white icons is what happens if
+   * nobody says otherwise.
+   */
+  private void syncBarIcons() {
+    if (Build.VERSION.SDK_INT < 30) return;
+    WindowInsetsController bars = getWindow().getInsetsController();
+    if (bars == null) return;
+    int light = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+        | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+    bars.setSystemBarsAppearance(isNightMode() ? 0 : light, light);
+  }
+
   private boolean isNightMode() {
     int mode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
     return mode == Configuration.UI_MODE_NIGHT_YES;
@@ -142,6 +198,7 @@ public class MainActivity extends Activity {
     // uiMode is in configChanges, so the activity survives the switch and
     // only has to tell the page about it.
     syncTheme();
+    syncBarIcons();
   }
 
   /**
@@ -220,12 +277,6 @@ public class MainActivity extends Activity {
   protected void onPause() {
     steps.stop();
     super.onPause();
-  }
-
-  @Override
-  public void onBackPressed() {
-    // The app navigates by state, not by history, so back leaves the app.
-    finish();
   }
 
   /**

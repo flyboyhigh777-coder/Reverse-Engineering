@@ -46,7 +46,8 @@ interface Reply {
 
 interface Host {
   status(): string;
-  requestPermission(): void;
+  /** Empty when the screen opened; otherwise why it did not. */
+  requestPermission(): string | void;
   read(id: string, from: string, to: string): void;
 }
 
@@ -76,17 +77,20 @@ export function healthStatus(): HealthStatus {
 }
 
 /**
- * Opens Health Connect's own permission screen.
+ * Opens Health Connect's own permission screen, and says if it could not.
  *
- * Nothing comes back, by design: the answer is given to Health Connect, not
- * to this app, and the only honest way to learn it is to ask the status
- * again once the person returns.
+ * Whether permission was granted is not knowable here — that answer goes to
+ * Health Connect, and the status is re-read when its owner comes back. But
+ * whether the screen opened at all is knowable, and was being swallowed: a
+ * button that cannot open anything and says nothing is indistinguishable
+ * from a button that is not wired up.
  */
-export function askHealthPermission(): void {
+export function askHealthPermission(): string {
   try {
-    host()?.requestPermission();
-  } catch {
-    /* Nothing to do: the status will still say no_permission. */
+    const said = host()?.requestPermission();
+    return typeof said === 'string' ? said : '';
+  } catch (failure) {
+    return failure instanceof Error ? failure.message : 'Мост не ответил.';
   }
 }
 

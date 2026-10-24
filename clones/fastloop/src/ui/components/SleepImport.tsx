@@ -94,7 +94,19 @@ export function SleepImport(): JSX.Element | null {
             Сон лежит в Health Connect — туда его пишет приложение ваших часов. Читать его приложение не может, пока
             вы не разрешите; разрешение даётся на экране самого Health Connect, не здесь.
           </p>
-          <button type="button" className="btn block" onClick={() => askHealthPermission()}>
+          <button
+            type="button"
+            className="btn block"
+            onClick={() => {
+              const failed = askHealthPermission();
+              setFailed(failed !== '');
+              setSaid(
+                failed === ''
+                  ? null
+                  : `Health Connect не открыл экран разрешения: ${failed}. Разрешение можно дать и вручную — откройте Health Connect, «Разрешения приложений», найдите FastLoop.`,
+              );
+            }}
+          >
             Разрешить чтение сна
           </button>
           {/* The answer is given to Health Connect, not to us, so there is

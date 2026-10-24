@@ -69,20 +69,35 @@ class SleepBridge(private val activity: Activity, private val web: WebView) {
   /**
    * Opens Health Connect's own permission screen.
    *
-   * Nothing is returned: the answer is given to Health Connect, not to this
-   * app, and the only honest way to learn it is to ask again afterwards. The
-   * page therefore re-reads the status when it comes back, rather than
-   * believing a result this could only have guessed at.
+   * Returns what went wrong, or an empty string. It used to return nothing
+   * and push failures into the same channel the reads use, under an id
+   * nothing was waiting for — so every failure here was dropped on the
+   * floor, and a button that could not open anything looked like a button
+   * that did nothing. Whether permission was *granted* still cannot be
+   * returned: that answer is given to Health Connect, not to this app, and
+   * the page re-reads the status when its owner comes back.
+   *
+   * Started on the main thread: a method called over the JavaScript bridge
+   * runs on a binder thread, and an activity has no business being launched
+   * from one.
    */
   @JavascriptInterface
-  fun requestPermission() {
-    try {
-      val intent = PermissionController.createRequestPermissionResultContract()
-        .createIntent(activity, permissions)
-      activity.startActivity(intent)
-    } catch (failure: Throwable) {
-      deliver(JSONObject().put("id", "permission").put("error", describe(failure)))
+  fun requestPermission(): String {
+    val failed = arrayOfNulls<String>(1)
+    val done = java.util.concurrent.CountDownLatch(1)
+    activity.runOnUiThread {
+      try {
+        val intent = PermissionController.createRequestPermissionResultContract()
+          .createIntent(activity, permissions)
+        activity.startActivity(intent)
+      } catch (failure: Throwable) {
+        failed[0] = describe(failure)
+      } finally {
+        done.countDown()
+      }
     }
+    done.await(5, java.util.concurrent.TimeUnit.SECONDS)
+    return failed[0].orEmpty()
   }
 
   /** Reads the nights between two instants and hands them to the page. */

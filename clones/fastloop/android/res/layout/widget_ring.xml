@@ -22,6 +22,17 @@
       android:layout_gravity="center"
       android:orientation="vertical"
       android:gravity="center">
+    <TextView
+        android:id="@+id/plan"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="1dp"
+        android:textSize="10sp"
+        android:textAllCaps="true"
+        android:letterSpacing="0.1"
+        android:singleLine="true"
+        android:textColor="@color/w_cyan"
+        android:text="FastLoop" />
     <Chronometer
         android:id="@+id/clock"
         android:layout_width="wrap_content"

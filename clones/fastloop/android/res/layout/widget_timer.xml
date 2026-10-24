@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The small widget: how long is left, and nothing competing with it.
+  The middle widget: the fast, then the day under it.
+
+  It used to carry a clock, a caption and one rail, and spent the rest of its
+  height on nothing — a lot of home screen for one number. The same three
+  counters as the wide widget go underneath, at two thirds the size, so the
+  space is paying for something.
 
   Two layers, because one view cannot carry two backgrounds: the card, then
   the halo behind the digits. RemoteViews text has no shadow layer, so the
@@ -21,7 +26,7 @@
       android:layout_width="match_parent"
       android:layout_height="match_parent"
       android:orientation="vertical"
-      android:padding="14dp"
+      android:padding="15dp"
       android:gravity="center_vertical">
 
     <TextView
@@ -38,7 +43,7 @@
         android:id="@+id/clock"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="3dp"
         android:textSize="36sp"
         android:textStyle="bold"
         android:includeFontPadding="false"
@@ -50,7 +55,7 @@
         android:id="@+id/idle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="3dp"
         android:textSize="36sp"
         android:textStyle="bold"
         android:includeFontPadding="false"
@@ -61,19 +66,155 @@
         android:id="@+id/caption"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:textSize="14sp"
-        android:textColor="@color/w_ink_2"
+        android:layout_marginTop="1dp"
+        android:textSize="13sp"
+        android:textColor="@color/w_ink_3"
         android:text="голодание не запущено" />
 
     <ProgressBar
         android:id="@+id/bar"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
-        android:layout_height="13dp"
-        android:layout_marginTop="12dp"
+        android:layout_height="12dp"
+        android:layout_marginTop="10dp"
         android:max="100"
         android:progress="0"
         android:progressDrawable="@drawable/widget_bar" />
+
+    <!--
+      Shown only where there is room for it.
+
+      The widget may be dragged down to two cells, and at that height the
+      clock alone fills it: laid out unconditionally, these three would be
+      cut off mid-rail, which is worse than not being there. The host
+      reports the size it has given, and the block is hidden below the
+      height this needs.
+    -->
+    <LinearLayout
+        android:id="@+id/extras"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="9dp"
+        android:orientation="vertical">
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="horizontal"
+          android:baselineAligned="true">
+        <TextView
+            android:id="@+id/row1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="13sp"
+            android:singleLine="true"
+            android:textColor="@color/w_ink_2"
+            android:text="Вода" />
+        <TextView
+            android:id="@+id/val1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:textColor="@color/w_cyan"
+            android:text="—" />
+      </LinearLayout>
+      <ProgressBar
+          android:id="@+id/bar1"
+          style="?android:attr/progressBarStyleHorizontal"
+          android:layout_width="match_parent"
+          android:layout_height="9dp"
+          android:layout_marginTop="4dp"
+          android:max="100"
+          android:progressDrawable="@drawable/widget_bar_cyan" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="9dp"
+        android:orientation="vertical">
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="horizontal"
+          android:baselineAligned="true">
+        <TextView
+            android:id="@+id/row2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="13sp"
+            android:singleLine="true"
+            android:textColor="@color/w_ink_2"
+            android:text="Шаги" />
+        <TextView
+            android:id="@+id/val2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:textColor="@color/w_warm"
+            android:text="—" />
+      </LinearLayout>
+      <ProgressBar
+          android:id="@+id/bar2"
+          style="?android:attr/progressBarStyleHorizontal"
+          android:layout_width="match_parent"
+          android:layout_height="9dp"
+          android:layout_marginTop="4dp"
+          android:max="100"
+          android:progressDrawable="@drawable/widget_bar_warm" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="9dp"
+        android:orientation="vertical">
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="horizontal"
+          android:baselineAligned="true">
+        <TextView
+            android:id="@+id/row3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="13sp"
+            android:singleLine="true"
+            android:textColor="@color/w_ink_2"
+            android:text="Калории" />
+        <TextView
+            android:id="@+id/val3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:textColor="@color/w_accent"
+            android:text="—" />
+      </LinearLayout>
+      <ProgressBar
+          android:id="@+id/bar3"
+          style="?android:attr/progressBarStyleHorizontal"
+          android:layout_width="match_parent"
+          android:layout_height="9dp"
+          android:layout_marginTop="4dp"
+          android:max="100"
+          android:progressDrawable="@drawable/widget_bar" />
+    </LinearLayout>
+    </LinearLayout>
   </LinearLayout>
 </FrameLayout>

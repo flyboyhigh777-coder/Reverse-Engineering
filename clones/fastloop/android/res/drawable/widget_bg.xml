@@ -1,16 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Near-black card with a cold lift towards the top left, so the surface has
-  somewhere to come from instead of being a flat rectangle. The hairline is
-  what keeps it from dissolving into a dark wallpaper.
+  Near-black card with a lit edge.
+
+  The neon used to be a straight strip laid across the bottom, which crossed
+  the rounded corners instead of following them and read as a sticker. Here
+  it is the card's own outline: a gradient shape underneath, and the dark
+  surface inset by a hairline on top of it, so the light traces the corners
+  exactly. Held at a third of full strength — an outline at full neon is a
+  highlighter, not a card.
 -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-  <gradient
-      android:type="linear"
-      android:angle="315"
-      android:startColor="#101A2B"
-      android:centerColor="#0A1120"
-      android:endColor="#06090F" />
-  <corners android:radius="24dp" />
-  <stroke android:width="1dp" android:color="@color/w_line" />
-</shape>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+  <item>
+    <shape android:shape="rectangle">
+      <gradient
+          android:type="linear"
+          android:angle="315"
+          android:startColor="#59C6F94F"
+          android:centerColor="#5927E0C4"
+          android:endColor="#598E6BFF" />
+      <corners android:radius="24dp" />
+    </shape>
+  </item>
+  <item
+      android:left="1.5dp"
+      android:top="1.5dp"
+      android:right="1.5dp"
+      android:bottom="1.5dp">
+    <shape android:shape="rectangle">
+      <gradient
+          android:type="linear"
+          android:angle="315"
+          android:startColor="#101A2B"
+          android:centerColor="#0A1120"
+          android:endColor="#06090F" />
+      <corners android:radius="23dp" />
+    </shape>
+  </item>
+</layer-list>

@@ -21,6 +21,17 @@
   <color name="w_warm">#FFB020</color>
   <color name="w_violet">#8E6BFF</color>
   <color name="w_track">#17212F</color>
+  <!--
+    A rail keeps its own colour even when nothing has filled it.
+
+    Empty, a neutral track is a grey slab: three of them stacked read as
+    three unexplained rectangles rather than as water, steps and calories
+    waiting to be filled. Tinted, an untouched gauge still says which gauge
+    it is, and the lit part reads as the same colour switched on.
+  -->
+  <color name="w_track_lime">#33C6F94F</color>
+  <color name="w_track_cyan">#3327E0C4</color>
+  <color name="w_track_warm">#33FFB020</color>
   <color name="w_line">#1C2A3C</color>
   <color name="w_glow">#38C6F94F</color>
 </resources>

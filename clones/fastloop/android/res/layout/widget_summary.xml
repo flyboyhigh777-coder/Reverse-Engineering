@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The wide widget: the fast plus the three things counted daily.
+  The wide widget: the fast, and the three things counted daily.
 
-  Sizes are deliberate rather than inherited. The clock is the reason the
-  widget exists, so it gets the room; the rows carry layout_weight to spread
-  across whatever height the launcher gives, and their text and rails grew
-  because at 13sp and 9dp they read as a legend rather than as data.
-  Chronometer, unlike TextView, has no autoSizeTextType, hence fixed sizes.
+  Each row is a label on the left and its number on the right rather than one
+  run-on string: left-aligned, "Вода 0 / 1900 мл" left most of the row empty
+  and the rail below it read as an unexplained slab. Split, the row spans its
+  width and the number lands where the eye already goes, in the colour of its
+  own rail. Chronometer has no autoSizeTextType, hence fixed sizes.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
@@ -18,13 +18,13 @@
       android:layout_width="match_parent"
       android:layout_height="match_parent"
       android:orientation="horizontal"
-      android:padding="14dp"
+      android:padding="15dp"
       android:baselineAligned="false">
 
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_weight="1.12"
+        android:layout_weight="1.08"
         android:orientation="vertical"
         android:background="@drawable/widget_clock_glow"
         android:gravity="center_vertical">
@@ -63,8 +63,8 @@
           android:layout_width="wrap_content"
           android:layout_height="wrap_content"
           android:layout_marginTop="2dp"
-          android:textSize="14sp"
-          android:textColor="@color/w_ink_2"
+          android:textSize="13sp"
+          android:textColor="@color/w_ink_3"
           android:text="не запущено" />
     </LinearLayout>
 
@@ -72,7 +72,7 @@
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="13dp"
         android:orientation="vertical">
 
       <LinearLayout
@@ -81,20 +81,37 @@
           android:layout_weight="1"
           android:orientation="vertical"
           android:gravity="center_vertical">
-        <TextView
-            android:id="@+id/row1"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="15sp"
-            android:singleLine="true"
-            android:textColor="@color/w_ink"
-            android:text="Вода" />
+            android:orientation="horizontal"
+            android:baselineAligned="true">
+          <TextView
+              android:id="@+id/row1"
+              android:layout_width="0dp"
+              android:layout_height="wrap_content"
+              android:layout_weight="1"
+              android:textSize="14sp"
+              android:singleLine="true"
+              android:textColor="@color/w_ink_2"
+              android:text="Вода" />
+          <TextView
+              android:id="@+id/val1"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:layout_marginStart="6dp"
+              android:textSize="15sp"
+              android:textStyle="bold"
+              android:singleLine="true"
+              android:textColor="@color/w_cyan"
+              android:text="—" />
+        </LinearLayout>
         <ProgressBar
             android:id="@+id/bar1"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
-            android:layout_height="13dp"
-            android:layout_marginTop="5dp"
+            android:layout_height="12dp"
+            android:layout_marginTop="6dp"
             android:max="100"
             android:progressDrawable="@drawable/widget_bar_cyan" />
       </LinearLayout>
@@ -105,20 +122,37 @@
           android:layout_weight="1"
           android:orientation="vertical"
           android:gravity="center_vertical">
-        <TextView
-            android:id="@+id/row2"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="15sp"
-            android:singleLine="true"
-            android:textColor="@color/w_ink"
-            android:text="Шаги" />
+            android:orientation="horizontal"
+            android:baselineAligned="true">
+          <TextView
+              android:id="@+id/row2"
+              android:layout_width="0dp"
+              android:layout_height="wrap_content"
+              android:layout_weight="1"
+              android:textSize="14sp"
+              android:singleLine="true"
+              android:textColor="@color/w_ink_2"
+              android:text="Шаги" />
+          <TextView
+              android:id="@+id/val2"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:layout_marginStart="6dp"
+              android:textSize="15sp"
+              android:textStyle="bold"
+              android:singleLine="true"
+              android:textColor="@color/w_warm"
+              android:text="—" />
+        </LinearLayout>
         <ProgressBar
             android:id="@+id/bar2"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
-            android:layout_height="13dp"
-            android:layout_marginTop="5dp"
+            android:layout_height="12dp"
+            android:layout_marginTop="6dp"
             android:max="100"
             android:progressDrawable="@drawable/widget_bar_warm" />
       </LinearLayout>
@@ -129,33 +163,40 @@
           android:layout_weight="1"
           android:orientation="vertical"
           android:gravity="center_vertical">
-        <TextView
-            android:id="@+id/row3"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="15sp"
-            android:singleLine="true"
-            android:textColor="@color/w_ink"
-            android:text="Калории" />
+            android:orientation="horizontal"
+            android:baselineAligned="true">
+          <TextView
+              android:id="@+id/row3"
+              android:layout_width="0dp"
+              android:layout_height="wrap_content"
+              android:layout_weight="1"
+              android:textSize="14sp"
+              android:singleLine="true"
+              android:textColor="@color/w_ink_2"
+              android:text="Калории" />
+          <TextView
+              android:id="@+id/val3"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:layout_marginStart="6dp"
+              android:textSize="15sp"
+              android:textStyle="bold"
+              android:singleLine="true"
+              android:textColor="@color/w_accent"
+              android:text="—" />
+        </LinearLayout>
         <ProgressBar
             android:id="@+id/bar3"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
-            android:layout_height="13dp"
-            android:layout_marginTop="5dp"
+            android:layout_height="12dp"
+            android:layout_marginTop="6dp"
             android:max="100"
             android:progressDrawable="@drawable/widget_bar" />
       </LinearLayout>
     </LinearLayout>
   </LinearLayout>
-
-  <ImageView
-      android:layout_width="match_parent"
-      android:layout_height="3dp"
-      android:layout_gravity="bottom"
-      android:layout_marginStart="18dp"
-      android:layout_marginEnd="18dp"
-      android:layout_marginBottom="1dp"
-      android:background="@drawable/widget_edge"
-      android:contentDescription="@null" />
 </FrameLayout>

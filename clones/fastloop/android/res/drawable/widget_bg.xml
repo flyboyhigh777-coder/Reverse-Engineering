@@ -31,20 +31,31 @@
       <gradient
           android:type="linear"
           android:angle="315"
-          android:startColor="#101A2B"
+          android:startColor="#0E1726"
           android:centerColor="#0A1120"
-          android:endColor="#06090F" />
+          android:endColor="#070B12" />
       <corners android:radius="23dp" />
     </shape>
   </item>
   <item android:left="1.5dp" android:top="1.5dp" android:right="1.5dp" android:bottom="1.5dp">
     <shape android:shape="rectangle">
+      <!--
+        Light from the corner, not from the middle.
+
+        Centred inside the card the glow was still bright where it met the
+        card's side, and a bright edge against a dark surface reads as a cut
+        however round the corner behind it is. Anchored near the top left it
+        is brightest where the card's own edge already is, and everything
+        the eye crosses on the way in is falloff. The middle stop is there
+        because two stops ramp straight down and the ramp itself shows.
+      -->
       <gradient
           android:type="radial"
-          android:gradientRadius="65%"
-          android:centerX="0.2"
-          android:centerY="0.42"
-          android:startColor="@color/w_glow"
+          android:gradientRadius="85%"
+          android:centerX="0.1"
+          android:centerY="0.18"
+          android:startColor="#2EC6F94F"
+          android:centerColor="#12C6F94F"
           android:endColor="#00C6F94F" />
       <corners android:radius="23dp" />
     </shape>

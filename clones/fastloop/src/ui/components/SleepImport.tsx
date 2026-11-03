@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { actions, useAppState } from '../../state/store';
 import {
   askHealthPermission,
+  diagnoseHealth,
   healthStatus,
   mergeNights,
   openHealthConnect,
@@ -9,7 +10,7 @@ import {
   readWatchSleep,
   watchAppName,
 } from '../../state/health';
-import type { HealthStatus } from '../../state/health';
+import type { ChainStep, HealthStatus } from '../../state/health';
 
 const DAY = 86_400_000;
 /** Far enough back to fill a new phone, short enough to stay one request. */
@@ -41,6 +42,24 @@ export function SleepImport(): JSX.Element | null {
   const [said, setSaid] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const watch = watchAppName();
+  const [chain, setChain] = useState<readonly ChainStep[] | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const check = async () => {
+    setChecking(true);
+    setChain(null);
+    setSaid(null);
+    setFailed(false);
+    try {
+      setChain(await diagnoseHealth(WINDOW_DAYS));
+    } catch (failure) {
+      setFailed(true);
+      setSaid(failure instanceof Error ? failure.message : 'Проверка не прошла.');
+    } finally {
+      setChecking(false);
+      setStatus(healthStatus());
+    }
+  };
 
   const go = (open: () => string) => {
     const problem = open();
@@ -168,6 +187,31 @@ export function SleepImport(): JSX.Element | null {
               Открыть Health Connect
             </button>
           </div>
+
+          {/* Four different failures look identical from here — a button
+              that does nothing — so the chain is walked link by link and
+              each link says what it found. */}
+          <button type="button" className="btn sm" disabled={checking} onClick={() => void check()}>
+            {checking ? 'Проверяю цепочку…' : 'Проверить связь'}
+          </button>
+
+          {chain ? (
+            <ol className="steps tiny" style={{ gap: 7 }}>
+              {chain.map((step) => (
+                <li key={step.name}>
+                  <span>
+                    <b>{step.name}</b>
+                    <span
+                      className="tiny"
+                      style={{ display: 'block', color: step.ok ? 'var(--good)' : 'var(--warn)' }}
+                    >
+                      {step.detail}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          ) : null}
         </>
       ) : null}
 

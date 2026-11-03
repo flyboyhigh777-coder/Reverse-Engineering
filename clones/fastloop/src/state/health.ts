@@ -38,9 +38,16 @@ export interface WatchNight {
   readonly stages: readonly WatchStage[];
 }
 
+export interface ChainStep {
+  readonly name: string;
+  readonly ok: boolean;
+  readonly detail: string;
+}
+
 interface Reply {
   readonly id: string;
   readonly nights?: readonly WatchNight[];
+  readonly steps?: readonly ChainStep[];
   readonly error?: string;
 }
 
@@ -49,6 +56,7 @@ interface Host {
   /** Empty when the screen opened; otherwise why it did not. */
   requestPermission(): string | void;
   read(id: string, from: string, to: string): void;
+  diagnose?(id: string, days: string): void;
   /** "com.xiaomi.wearable|Mi Fitness", or empty if none is installed. */
   watchApp?(): string;
   openWatchApp?(): string;
@@ -176,6 +184,45 @@ export async function readWatchSleep(fromMs: number, toMs: number): Promise<read
 
     try {
       shell.read(id, String(Math.round(fromMs)), String(Math.round(toMs)));
+    } catch (failure) {
+      window.clearTimeout(timer);
+      pending.delete(id);
+      reject(failure instanceof Error ? failure : new Error('Мост не ответил.'));
+    }
+  });
+}
+
+/**
+ * Walks the chain and reports every link.
+ *
+ * Four things have to hold before a night shows up — Health Connect
+ * present, reachable, readable by this app, written to by the watch's app —
+ * and from the screen all four failures look identical: a button that does
+ * nothing. This asks them one at a time.
+ */
+export async function diagnoseHealth(days: number): Promise<readonly ChainStep[]> {
+  const shell = host();
+  if (!shell || typeof shell.diagnose !== 'function') {
+    throw new Error('Эта сборка не умеет проверять связь. Обновите приложение.');
+  }
+  install();
+  counter += 1;
+  const id = `d${counter}`;
+
+  return new Promise<readonly ChainStep[]>((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      pending.delete(id);
+      reject(new Error('Health Connect не ответил за 30 секунд.'));
+    }, TIMEOUT_MS);
+
+    pending.set(id, (reply) => {
+      window.clearTimeout(timer);
+      if (reply.error !== undefined) reject(new Error(reply.error));
+      else resolve(reply.steps ?? []);
+    });
+
+    try {
+      shell.diagnose!(id, String(Math.round(days)));
     } catch (failure) {
       window.clearTimeout(timer);
       pending.delete(id);

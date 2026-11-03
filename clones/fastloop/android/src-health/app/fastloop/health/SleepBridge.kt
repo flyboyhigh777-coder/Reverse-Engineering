@@ -58,13 +58,102 @@ class SleepBridge(private val activity: Activity, private val web: WebView) {
     else -> if (granted()) "ready" else "no_permission"
   }
 
+  /** Why the last permission check said no, for the probe to report. */
+  @Volatile
+  private var lastRefusal: String = ""
+
   private fun granted(): Boolean = try {
     val client = HealthConnectClient.getOrCreate(activity)
     kotlinx.coroutines.runBlocking {
-      client.permissionController.getGrantedPermissions().containsAll(permissions)
+      val held = client.permissionController.getGrantedPermissions()
+      lastRefusal = if (held.containsAll(permissions)) "" else "выдано: ${held.size} разрешений, нашего среди них нет"
+      held.containsAll(permissions)
     }
   } catch (unavailable: Throwable) {
+    // Swallowing this is what made the screen say "нет разрешения" for
+    // every possible failure, for ever, with nothing to go on. It is still
+    // not granted as far as the caller is concerned, but the reason is kept.
+    lastRefusal = describe(unavailable)
     false
+  }
+
+  /**
+   * The whole chain, walked one link at a time.
+   *
+   * Four things have to be true before a night appears here — Health
+   * Connect installed, reachable, readable by this app, and written to by
+   * the watch's app — and from the screen all four failures look like
+   * nothing happening. Each is asked separately and reports what it found,
+   * including which apps wrote the nights that are there, because "пусто"
+   * and "есть, но не от часов" need different fixing.
+   */
+  @JavascriptInterface
+  fun diagnose(id: String, days: String) {
+    scope.launch {
+      val steps = JSONArray()
+      fun note(name: String, ok: Boolean, detail: String) {
+        steps.put(JSONObject().put("name", name).put("ok", ok).put("detail", detail))
+      }
+
+      val sdk = HealthConnectClient.getSdkStatus(activity)
+      val sdkOk = sdk == HealthConnectClient.SDK_AVAILABLE
+      note(
+        "Health Connect на телефоне",
+        sdkOk,
+        when (sdk) {
+          HealthConnectClient.SDK_AVAILABLE -> "есть"
+          HealthConnectClient.SDK_UNAVAILABLE -> "не установлен"
+          HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> "устарел, нужно обновить"
+          else -> "неизвестное состояние: $sdk"
+        },
+      )
+      if (!sdkOk) return@launch deliver(JSONObject().put("id", id).put("steps", steps))
+
+      val client = try {
+        HealthConnectClient.getOrCreate(activity).also { note("Подключение", true, "ок") }
+      } catch (failure: Throwable) {
+        note("Подключение", false, describe(failure))
+        return@launch deliver(JSONObject().put("id", id).put("steps", steps))
+      }
+
+      val held = try {
+        client.permissionController.getGrantedPermissions()
+      } catch (failure: Throwable) {
+        note("Разрешение на чтение сна", false, describe(failure))
+        return@launch deliver(JSONObject().put("id", id).put("steps", steps))
+      }
+      val allowed = held.containsAll(permissions)
+      note(
+        "Разрешение на чтение сна",
+        allowed,
+        if (allowed) "выдано" else "не выдано. Всего разрешений у приложения: ${held.size}",
+      )
+      if (!allowed) return@launch deliver(JSONObject().put("id", id).put("steps", steps))
+
+      try {
+        val from = Instant.now().minusSeconds(days.toLong() * 86_400L)
+        val found = client.readRecords(
+          ReadRecordsRequest(
+            recordType = SleepSessionRecord::class,
+            timeRangeFilter = TimeRangeFilter.between(from, Instant.now()),
+          ),
+        ).records
+        val writers = found.map { it.metadata.dataOrigin.packageName }.distinct()
+        val withStages = found.count { it.stages.isNotEmpty() }
+        note(
+          "Ночи в хранилище за $days дней",
+          found.isNotEmpty(),
+          if (found.isEmpty()) {
+            "ни одной — значит приложение часов туда ещё ничего не записало"
+          } else {
+            "${found.size}, из них с фазами ${withStages}. Записали: ${writers.joinToString(", ")}"
+          },
+        )
+      } catch (failure: Throwable) {
+        note("Ночи в хранилище", false, describe(failure))
+      }
+      deliver(JSONObject().put("id", id).put("steps", steps))
+    }
   }
 
   /**

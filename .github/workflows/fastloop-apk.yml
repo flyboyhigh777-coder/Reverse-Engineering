@@ -16,7 +16,8 @@ on:
       - '.github/workflows/fastloop-apk.yml'
 
 permissions:
-  contents: read
+  # Writes the release the APK is attached to.
+  contents: write
 
 defaults:
   run:
@@ -65,3 +66,29 @@ jobs:
           name: fastloop-apk
           path: clones/fastloop/android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
+
+      # A link that installs on a phone in one tap.
+      #
+      # An artifact always downloads as a zip, and Android will not install
+      # an APK out of one: it has to be found in a file manager and
+      # extracted first. A release asset downloads as the file itself.
+      #
+      # The asset keeps one name on purpose. GitHub serves
+      # /releases/latest/download/<name>, so a fixed name means one address
+      # that always points at the newest build and never has to be sent
+      # again. The tag carries the version, so older builds stay reachable.
+      - name: Выложить в релиз
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(grep -o 'android:versionName="[^"]*"' android/AndroidManifest.xml | cut -d'"' -f2)
+          cp "$(ls android/app/build/outputs/apk/release/*.apk | head -1)" fastloop.apk
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" fastloop.apk --clobber
+          else
+            gh release create "$tag" fastloop.apk \
+              --title "FastLoop $version" \
+              --notes "Сборка из ветки ${{ github.ref_name }}, коммит ${{ github.sha }}." \
+              --latest
+          fi

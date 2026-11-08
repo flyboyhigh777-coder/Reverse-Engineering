@@ -7,6 +7,26 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+/**
+ * Release signing is opt-in and never committed.
+ *
+ * The key material is read from Gradle properties (`-P`, `~/.gradle/gradle.properties`, or the
+ * matching `ORG_GRADLE_PROJECT_*` environment variables) so that a clone of this repository builds
+ * an unsigned release by default and no keystore or password can end up in version control. When
+ * the properties are absent the release build type simply has no signing config, which is what
+ * produces `app-release-unsigned.apk`.
+ */
+val releaseStoreFile: String? = providers.gradleProperty("speedmeterStoreFile").orNull
+val releaseStorePassword: String? = providers.gradleProperty("speedmeterStorePassword").orNull
+val releaseKeyAlias: String? = providers.gradleProperty("speedmeterKeyAlias").orNull
+val releaseKeyPassword: String? = providers.gradleProperty("speedmeterKeyPassword").orNull
+val hasReleaseSigning = listOf(
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+).all { !it.isNullOrBlank() }
+
 android {
     namespace = "io.github.flyboyhigh777.speedmeter"
     compileSdk = 36
@@ -19,8 +39,23 @@ android {
         versionName = "1.0.0"
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

@@ -76,28 +76,80 @@ gradle :app:assembleRelease  # release APK, R8 + resource shrinking
 
 `gradle wrapper --gradle-version 8.14.3` will generate a wrapper locally if you want one.
 
-The release APK is unsigned; sign it with your own key before installing it anywhere that matters.
+### Signing a release
+
+A release builds unsigned unless four Gradle properties are supplied, so a clone of this repository
+can never pick up someone else's key and no keystore or password belongs in version control:
+
+```sh
+gradle :app:assembleRelease \
+  -PspeedmeterStoreFile=/path/to/keystore.jks \
+  -PspeedmeterStorePassword=... \
+  -PspeedmeterKeyAlias=... \
+  -PspeedmeterKeyPassword=...
+```
+
+The same properties can come from `~/.gradle/gradle.properties` or `ORG_GRADLE_PROJECT_*`
+environment variables. With them the build signs with v1, v2 and v3 schemes; without them it
+produces `app-release-unsigned.apk` as before.
+
+### Real-network checks
+
+Three engine tests talk to the live public backends. They are skipped unless opted in, because
+their figures depend on whoever runs them:
+
+```sh
+SPEEDMETER_REAL_NETWORK=1 gradle :engine:test --tests '*RealBackendTest*'
+```
 
 ## Verified
 
 On a Linux container, Gradle 8.14.3, JDK 21, AGP 8.13.2, Kotlin 2.2.21, Compose BOM 2026.02.01:
 
-- 44 engine tests and 8 app tests pass.
+- 47 engine tests and 8 app tests pass; 3 further engine tests hit the live backends and are
+  skipped unless `SPEEDMETER_REAL_NETWORK=1`. With it set, all 50 pass.
 - The engine's end-to-end tests run full test suites against a local LibreSpeed-compatible server
   with a shared token-bucket cap, and assert the reported rate lands near the served rate, that a
   stable link stops the stage early, that connection scaling opens more connections than it started
-  with, that the byte allowance caps a stage, and that a failing endpoint fails the run with the
-  stage that broke rather than reporting zero.
+  with, that the byte allowance caps a stage, that a refused metadata endpoint costs the run its
+  ISP label and nothing else, that the reported connection count is the peak used, and that a
+  failing endpoint fails the run with the stage that broke rather than reporting zero.
 - `:app:lintDebug` is clean with `abortOnError`.
-- Debug and release APKs build; release is 1.4 MB.
-- The release APK's manifest was read back with the same binary-XML reader used on the Ookla APK,
-  confirming the three permissions and the single activity.
+- Debug and release APKs build; release is 1.4 MB, signed with v1, v2 and v3 schemes.
+- The release APK's manifest and signing block were read back with the same binary-XML reader used
+  on the Ookla APK, confirming the three permissions, the single activity and all three signature
+  schemes.
 
-Not verified: behaviour on a physical device, and the figures against a real wide-area link. No
-Android device or emulator was available in the build environment, so every statement about
-on-device behaviour is untested. Real-network accuracy against the public Cloudflare and LibreSpeed
-endpoints is likewise unverified - the test suite proves the engine measures a known rate
-correctly, not that any particular public server is well provisioned.
+### On a real device
+
+The signed APK was installed and run on an Android phone over Wi-Fi, in Russian. One complete run
+against the Cloudflare backend reported 72.4 Mbps down, 86.7 Mbps up, 138 ms ping, 43.9 ms jitter,
+0.0% loss, 106 ms loaded latency, 11 connections at peak and 209.54 MB used. The dial, the stage
+colour change between download and upload, the progress bar, the result detail card, the bottom
+navigation and the Russian localisation all behaved as intended.
+
+That run also exposed two UI defects, both since fixed: the detail card printed the English unit
+`ms` next to tiles reading `мс`, and the banner's second line fell back to the idle label, so a
+test in progress briefly read "Ready".
+
+### Against the live backends
+
+Measured against `speed.cloudflare.com`, and the reason two engine fixes exist:
+
+- `__down` refuses `bytes=100000000` and above with a **403**, and serves `99999999`. The backend
+  now clamps the request, and the chunk size sits at 90 MB. Before this, every run against the real
+  endpoint failed instantly - the fake-server suite could not have caught it, because the fake
+  server had no such limit.
+- `__up` accepted a 100 MB body with no limit observed.
+- `meta` answers **403** to non-browser clients from some networks, including the one used here.
+  Metadata is optional by design, so the run completes and the ISP and IP lines are simply empty;
+  the LibreSpeed backend's `getIP.php` does report them. A regression test pins this behaviour.
+- The public LibreSpeed list parsed into 22 usable servers.
+
+Still not verified: the LibreSpeed transfer path against a real LibreSpeed server (only its server
+list and the local fake server were exercised), and accuracy against a link whose true capacity is
+known - a public endpoint can only show that the protocol works, not that the number is right. The
+figure the fake-server suite checks against a known rate remains the accuracy evidence.
 
 ## Licensing and provenance
 

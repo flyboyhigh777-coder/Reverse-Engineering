@@ -40,6 +40,13 @@ internal class TransferStage(
     private val stopRequested = AtomicBoolean(false)
     private val openConnections = AtomicInteger(0)
 
+    /**
+     * Highest concurrent connection count seen. Tracked separately because [openConnections] is
+     * back to zero by the time the result is assembled, which would otherwise report every stage
+     * as having used a single connection.
+     */
+    private val peakConnections = AtomicInteger(0)
+
     private val maxStageBytes: Long = when (stage) {
         StageType.DOWNLOAD -> engine.downloadMaxBytes
         else -> engine.uploadMaxBytes
@@ -152,14 +159,15 @@ internal class TransferStage(
             peakBitsPerSecond = calculator.peakBitsPerSecond,
             totalBytes = total,
             elapsedMillis = elapsedMillis,
-            connections = openConnections.get().coerceAtLeast(1),
+            connections = peakConnections.get().coerceAtLeast(1),
             loadedLatency = loadedLatency.result(config.latency.ranking),
             stoppedEarly = stoppedEarly,
         )
     }
 
     private fun startWorker(scope: CoroutineScope): Job {
-        openConnections.incrementAndGet()
+        val open = openConnections.incrementAndGet()
+        peakConnections.accumulateAndGet(open, ::maxOf)
         return scope.launch(Dispatchers.IO) {
             var ownBytes = 0L
             try {

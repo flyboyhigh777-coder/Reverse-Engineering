@@ -12,23 +12,30 @@ import kotlinx.serialization.json.Json
  * client. That makes them a sane default: no server list to download and no server to pick before
  * a first test can run.
  *
- * - `__down?bytes=N` streams N bytes.
- * - `__up` accepts and discards a body.
- * - `meta` reports the client's address, network and the edge that served it.
+ * - `__down?bytes=N` streams N bytes, for N below [MAX_DOWNLOAD_REQUEST_BYTES].
+ * - `__up` accepts and discards a body, with no size limit observed.
+ * - `meta` reports the client's address, network and the edge that served it. It answers 403 to
+ *   non-browser clients from some networks, which costs a run its ISP label and nothing else.
  */
 class CloudflareBackend(override val server: TestServer) : SpeedtestBackend {
 
-    override val downloadChunkBytes: Long = 300L * 1_000_000L
+    // Comfortably under the endpoint's limit, and large enough that re-issuing the request is a
+    // negligible share of a stage even on a fast link.
+    override val downloadChunkBytes: Long = 90L * 1_000_000L
     override val uploadChunkBytes: Long = 40L * 1_000_000L
 
     override fun latencyRequest(nonce: String): HttpRequest = HttpRequest(
         url = joinUrl(server.url, DOWN_PATH).withQuery("bytes" to "0", "r" to nonce),
     )
 
-    override fun downloadRequest(bytes: Long, nonce: String): HttpRequest = HttpRequest(
-        url = joinUrl(server.url, DOWN_PATH)
-            .withQuery("bytes" to bytes.coerceAtLeast(1L).toString(), "r" to nonce),
-    )
+    override fun downloadRequest(bytes: Long, nonce: String): HttpRequest {
+        // The endpoint refuses a request at or above the limit with a 403, so the size is clamped
+        // here rather than left to fail mid-stage: this backend owns what its server will accept.
+        val size = bytes.coerceIn(1L, MAX_DOWNLOAD_REQUEST_BYTES)
+        return HttpRequest(
+            url = joinUrl(server.url, DOWN_PATH).withQuery("bytes" to size.toString(), "r" to nonce),
+        )
+    }
 
     override fun uploadRequest(bytes: Long, nonce: String): HttpRequest = HttpRequest(
         url = joinUrl(server.url, UP_PATH).withQuery("r" to nonce),
@@ -63,7 +70,13 @@ class CloudflareBackend(override val server: TestServer) : SpeedtestBackend {
         @SerialName("colo") val colo: String? = null,
     )
 
-    private companion object {
+    companion object {
+        /**
+         * Largest accepted `bytes` value, measured against the live endpoint: 99,999,999 returns
+         * 200 and 100,000,000 returns 403.
+         */
+        const val MAX_DOWNLOAD_REQUEST_BYTES = 99_999_999L
+
         const val DOWN_PATH = "__down"
         const val UP_PATH = "__up"
         const val META_PATH = "meta"

@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -245,6 +246,43 @@ class SpeedtestEngineTest {
             assertTrue(probes.any { it.latency == null })
         }
     }
+
+    @Test
+    fun `a refused metadata endpoint costs the run a label, not the measurement`() = runBlocking {
+        FakeLibreSpeedServer(bytesPerSecond = 15_000_000L, failIpWithStatus = 403).use { server ->
+            val events = SpeedtestEngine(config()).run(listOf(server.server())).toList()
+
+            val completed = events.filterIsInstance<TestEvent.Completed>().singleOrNull()
+            assertNotNull("metadata failure must not fail the run: ${events.failureMessages()}", completed)
+            val result = completed!!.result
+
+            // No address and no ISP, but the figures are still there.
+            assertNull(result.metadata.ipAddress)
+            assertNull(result.metadata.isp)
+            assertTrue(result.downloadMbps > 0.0)
+            assertTrue(result.idleLatency.sampleCount > 0)
+        }
+    }
+
+    @Test
+    fun `the reported connection count is the peak used, not what is left when the stage ends`() =
+        runBlocking {
+            FakeLibreSpeedServer(bytesPerSecond = 20_000_000L).use { server ->
+                val events = SpeedtestEngine(config(threads = 4)).run(listOf(server.server())).toList()
+
+                val download = events.filterIsInstance<TestEvent.TransferReady>()
+                    .single { it.result.stage == StageType.DOWNLOAD }
+                    .result
+                val peakSeen = events.filterIsInstance<TestEvent.TransferProgress>()
+                    .filter { it.stage == StageType.DOWNLOAD }
+                    .maxOf { it.sample.connections }
+
+                // Workers have already exited by the time the result is built, so a count read from
+                // the live gauge would read as 1 here however many connections the stage opened.
+                assertEquals(4, download.connections)
+                assertEquals(peakSeen, download.connections)
+            }
+        }
 
     private fun List<TestEvent>.failureMessages(): String =
         filterIsInstance<TestEvent.Failed>().joinToString { it.failure.message }

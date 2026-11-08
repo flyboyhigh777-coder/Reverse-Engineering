@@ -93,6 +93,20 @@ class BackendTest {
     }
 
     @Test
+    fun `cloudflare clamps a download request to what the endpoint accepts`() {
+        val backend = CloudflareBackend(cloudflare)
+
+        // Measured against the live endpoint: 99,999,999 is served, 100,000,000 is refused with a
+        // 403, so anything at or above the limit must be clamped before it is sent.
+        assertTrue(
+            backend.downloadRequest(500_000_000, "tok").url
+                .contains("bytes=${CloudflareBackend.MAX_DOWNLOAD_REQUEST_BYTES}"),
+        )
+        assertTrue(backend.downloadRequest(1, "tok").url.contains("bytes=1"))
+        assertTrue(backend.downloadChunkBytes < CloudflareBackend.MAX_DOWNLOAD_REQUEST_BYTES)
+    }
+
+    @Test
     fun `cloudflare metadata maps the edge payload`() {
         val metadata = CloudflareBackend(cloudflare).parseMetadata(
             """{"clientIp":"192.0.2.9","asOrganization":"Example AS","asn":64497,""" +

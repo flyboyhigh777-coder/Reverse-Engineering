@@ -118,21 +118,23 @@ fun TestScreen(
     }
 }
 
+/** The one place a phase is turned into words, so every part of the screen agrees. */
+@Composable
+private fun phaseLabel(phase: Phase): String = when (phase) {
+    Phase.IDLE -> stringResource(R.string.phase_idle)
+    Phase.SELECTING -> stringResource(R.string.phase_selecting)
+    Phase.METADATA -> stringResource(R.string.phase_metadata)
+    Phase.LATENCY -> stringResource(R.string.phase_latency)
+    Phase.DOWNLOAD -> stringResource(R.string.phase_download)
+    Phase.UPLOAD -> stringResource(R.string.phase_upload)
+    Phase.DONE -> stringResource(R.string.phase_done)
+    Phase.FAILED -> stringResource(R.string.error_title)
+}
+
 @Composable
 private fun GaugeReadout(state: TestUiState, accent: Color) {
-    val label = when (state.phase) {
-        Phase.IDLE -> stringResource(R.string.phase_idle)
-        Phase.SELECTING -> stringResource(R.string.phase_selecting)
-        Phase.METADATA -> stringResource(R.string.phase_metadata)
-        Phase.LATENCY -> stringResource(R.string.phase_latency)
-        Phase.DOWNLOAD -> stringResource(R.string.phase_download)
-        Phase.UPLOAD -> stringResource(R.string.phase_upload)
-        Phase.DONE -> stringResource(R.string.phase_done)
-        Phase.FAILED -> stringResource(R.string.error_title)
-    }
-
     Text(
-        text = label,
+        text = phaseLabel(state.phase),
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
@@ -274,7 +276,7 @@ private fun ConnectionBanner(state: TestUiState, onChangeServer: () -> Unit) {
                     text = listOfNotNull(
                         state.server?.label,
                         state.metadata.ipAddress,
-                    ).joinToString(" · ").ifEmpty { stringResource(R.string.phase_idle) },
+                    ).joinToString(" · ").ifEmpty { phaseLabel(state.phase) },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -295,8 +297,12 @@ private fun DetailCard(state: TestUiState) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            val millis = stringResource(R.string.unit_ms)
             state.idleLatency?.let { latency ->
-                DetailLine(stringResource(R.string.metric_jitter), "${Units.formatMillis(latency.jitterMillis)} ms")
+                DetailLine(
+                    stringResource(R.string.metric_jitter),
+                    "${Units.formatMillis(latency.jitterMillis)} $millis",
+                )
                 DetailLine(
                     stringResource(R.string.metric_loss),
                     String.format(java.util.Locale.ROOT, "%.1f %%", latency.lossPercent),
@@ -305,7 +311,7 @@ private fun DetailCard(state: TestUiState) {
             state.download?.loadedLatency?.let { loaded ->
                 DetailLine(
                     stringResource(R.string.metric_loaded_latency),
-                    "${Units.formatMillis(loaded.latencyMillis)} ms",
+                    "${Units.formatMillis(loaded.latencyMillis)} $millis",
                 )
             }
             DetailLine(stringResource(R.string.label_connections), state.openConnections.toString())

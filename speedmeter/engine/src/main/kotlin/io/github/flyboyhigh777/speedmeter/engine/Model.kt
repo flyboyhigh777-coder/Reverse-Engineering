@@ -51,7 +51,7 @@ data class TransferResult(
     val peakBitsPerSecond: Double,
     val totalBytes: Long,
     val elapsedMillis: Long,
-    /** Connections open at the end of the stage. */
+    /** Highest number of connections open at once during the stage. */
     val connections: Int,
     /** Latency measured while the link was saturated, when enabled. */
     val loadedLatency: LatencyStats?,

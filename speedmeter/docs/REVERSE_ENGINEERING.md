@@ -250,6 +250,17 @@ So this project speaks two documented protocols instead:
 A new backend is one interface (`SpeedtestBackend`: four URL builders and a metadata parser). No
 measurement code changes.
 
+Two things the live endpoints taught that no amount of reading the Ookla APK would have:
+
+- Cloudflare's `__down` refuses `bytes` at or above 100,000,000 with a 403. A backend owns what its
+  server will accept, so the request is clamped there - the same rule that already applied to
+  LibreSpeed's `ckSize`. This is exactly the class of bug a fake server cannot surface, because the
+  fake server is written to the implementation's own assumptions.
+- Cloudflare's `meta` answers 403 to non-browser clients from some networks. Because metadata is
+  informational, the run completes without an ISP label rather than failing - which is the
+  behaviour `OoklaErrorType` implies for its own `ErrorMetadataFailed`, and is now pinned by a
+  regression test.
+
 ## 7. Result: the two packages side by side
 
 | | Speedtest by Ookla 7.1.4 | SpeedMeter 1.0.0 |

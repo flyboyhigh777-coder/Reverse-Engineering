@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicLong
 class FakeLibreSpeedServer(
     private val bytesPerSecond: Long? = null,
     private val failDownloadWithStatus: Int? = null,
+    private val failIpWithStatus: Int? = null,
     private val ispJson: String = DEFAULT_ISP_JSON,
 ) : AutoCloseable {
 
@@ -93,6 +94,16 @@ class FakeLibreSpeedServer(
     }
 
     private fun handleIp(exchange: HttpExchange) {
+        failIpWithStatus?.let { status ->
+            // Cloudflare's /meta answers 403 to non-browser clients from some networks, so a
+            // refused metadata endpoint is a real case, not a hypothetical one.
+            val body = "{}".toByteArray()
+            exchange.sendResponseHeaders(status, body.size.toLong())
+            exchange.responseBody.use { it.write(body) }
+            exchange.close()
+            return
+        }
+
         val bytes = ispJson.toByteArray()
         exchange.responseHeaders.add("Content-Type", "application/json")
         exchange.sendResponseHeaders(200, bytes.size.toLong())

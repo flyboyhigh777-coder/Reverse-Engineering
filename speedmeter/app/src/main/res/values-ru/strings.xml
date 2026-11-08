@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_go">СТАРТ</string>
+    <string name="action_stop">СТОП</string>
+    <string name="action_again">ЕЩЁ РАЗ</string>
+    <string name="action_retry">Повторить</string>
+    <string name="action_share">Поделиться результатом</string>
+    <string name="action_back">Назад</string>
+
+    <string name="tab_test">Тест</string>
+    <string name="tab_history">История</string>
+    <string name="tab_settings">Настройки</string>
+
+    <string name="metric_download">Загрузка</string>
+    <string name="metric_upload">Отдача</string>
+    <string name="metric_ping">Пинг</string>
+    <string name="metric_jitter">Джиттер</string>
+    <string name="metric_loss">Потери</string>
+    <string name="metric_loaded_latency">Задержка под нагрузкой</string>
+    <string name="unit_mbps">Мбит/с</string>
+    <string name="unit_ms">мс</string>
+
+    <string name="phase_idle">Готов</string>
+    <string name="phase_selecting">Поиск самого быстрого сервера</string>
+    <string name="phase_metadata">Проверка соединения</string>
+    <string name="phase_latency">Измерение задержки</string>
+    <string name="phase_download">Измерение загрузки</string>
+    <string name="phase_upload">Измерение отдачи</string>
+    <string name="phase_done">Готово</string>
+
+    <string name="label_server">Сервер</string>
+    <string name="label_isp">Провайдер</string>
+    <string name="label_connection">Соединение</string>
+    <string name="label_ip">IP-адрес</string>
+    <string name="label_change_server">Сменить сервер</string>
+    <string name="label_data_used">Израсходовано</string>
+    <string name="label_connections">Соединений</string>
+    <string name="label_stopped_early">остановлено по стабилизации</string>
+
+    <string name="history_empty">Пока нет результатов. Запустите тест — он появится здесь.</string>
+    <string name="history_clear">Очистить историю</string>
+    <string name="history_count">Результатов: %1$d</string>
+
+    <string name="settings_server_title">Сервер</string>
+    <string name="settings_server_builtin">Ближайший узел Cloudflare</string>
+    <string name="settings_server_builtin_summary">Anycast-точка, список серверов не нужен</string>
+    <string name="settings_server_custom">Свой сервер LibreSpeed</string>
+    <string name="settings_server_custom_summary">Тестировать через собственный бэкенд</string>
+    <string name="settings_server_public_list">Публичный список LibreSpeed</string>
+    <string name="settings_server_public_list_summary">Выбрать из серверов сообщества</string>
+    <string name="settings_custom_url_hint">https://speed.example.com/backend</string>
+    <string name="settings_custom_url_invalid">Введите адрес http(s)</string>
+
+    <string name="settings_measurement_title">Измерение</string>
+    <string name="settings_profile">Профиль</string>
+    <string name="settings_profile_standard">Обычный</string>
+    <string name="settings_profile_low_data">Экономный</string>
+    <string name="settings_profile_thorough">Подробный</string>
+    <string name="settings_connections">Начальных соединений</string>
+    <string name="settings_duration">Длительность этапа</string>
+    <string name="settings_duration_value">%1$d с</string>
+    <string name="settings_stable_stop">Останавливать при стабилизации</string>
+    <string name="settings_stable_stop_summary">Завершать этап, когда скорость установилась, не дожидаясь конца</string>
+    <string name="settings_scaling">Наращивать соединения</string>
+    <string name="settings_scaling_summary">Добавлять соединения, пока скорость продолжает расти</string>
+    <string name="settings_loaded_latency">Задержка под нагрузкой</string>
+    <string name="settings_loaded_latency_summary">Измерять задержку во время нагрузки канала</string>
+    <string name="settings_upload_first">Сначала отдача</string>
+
+    <string name="settings_about_title">О приложении</string>
+    <string name="settings_about_body">Независимый тест скорости. Работает с открытыми бэкендами на ваш выбор: публичные точки Cloudflare или любой сервер LibreSpeed, включая ваш собственный. Без аккаунта, без рекламы, без слежки и без доступа к геолокации.</string>
+    <string name="settings_version">Версия %1$s</string>
+
+    <string name="server_picker_title">Выбор сервера</string>
+    <string name="server_picker_loading">Загрузка серверов…</string>
+    <string name="server_picker_failed">Не удалось загрузить список серверов: %1$s</string>
+    <string name="server_picker_probe">Проверка…</string>
+
+    <string name="error_title">Тест не удался</string>
+    <string name="error_no_server">Сервер не ответил. Проверьте соединение и попробуйте снова.</string>
+
+    <string name="connection_wifi">Wi-Fi</string>
+    <string name="connection_cellular">Мобильная сеть</string>
+    <string name="connection_ethernet">Ethernet</string>
+    <string name="connection_vpn">VPN</string>
+    <string name="connection_other">Другое</string>
+    <string name="connection_offline">Нет сети</string>
+
+    <string name="share_subject">Результат SpeedMeter</string>
+</resources>

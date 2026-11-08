@@ -1,0 +1,15 @@
+# Gradle / Android build outputs
+.gradle/
+build/
+local.properties
+*.apk
+*.aab
+.cxx/
+
+# IDE
+.idea/
+*.iml
+captures/
+
+# Kotlin incremental build state
+.kotlin/

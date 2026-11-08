@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">SpeedMeter</string>
+
+    <string name="action_go">GO</string>
+    <string name="action_stop">STOP</string>
+    <string name="action_again">AGAIN</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_share">Share result</string>
+    <string name="action_back">Back</string>
+
+    <string name="tab_test">Test</string>
+    <string name="tab_history">History</string>
+    <string name="tab_settings">Settings</string>
+
+    <string name="metric_download">Download</string>
+    <string name="metric_upload">Upload</string>
+    <string name="metric_ping">Ping</string>
+    <string name="metric_jitter">Jitter</string>
+    <string name="metric_loss">Loss</string>
+    <string name="metric_loaded_latency">Loaded latency</string>
+    <string name="unit_mbps">Mbps</string>
+    <string name="unit_ms">ms</string>
+
+    <string name="phase_idle">Ready</string>
+    <string name="phase_selecting">Finding the fastest server</string>
+    <string name="phase_metadata">Checking your connection</string>
+    <string name="phase_latency">Measuring latency</string>
+    <string name="phase_download">Measuring download</string>
+    <string name="phase_upload">Measuring upload</string>
+    <string name="phase_done">Done</string>
+
+    <string name="label_server">Server</string>
+    <string name="label_isp">Provider</string>
+    <string name="label_connection">Connection</string>
+    <string name="label_ip">IP address</string>
+    <string name="label_change_server">Change server</string>
+    <string name="label_data_used">Data used</string>
+    <string name="label_connections">Connections</string>
+    <string name="label_stopped_early">stopped once stable</string>
+
+    <string name="history_empty">No results yet. Run a test and it will show up here.</string>
+    <string name="history_clear">Clear history</string>
+    <string name="history_count">%1$d results</string>
+
+    <string name="settings_server_title">Server</string>
+    <string name="settings_server_builtin">Nearest Cloudflare edge</string>
+    <string name="settings_server_builtin_summary">Anycast endpoint, no server list needed</string>
+    <string name="settings_server_custom">Custom LibreSpeed server</string>
+    <string name="settings_server_custom_summary">Point the test at your own backend</string>
+    <string name="settings_server_public_list">Public LibreSpeed list</string>
+    <string name="settings_server_public_list_summary">Pick from community servers</string>
+    <string name="settings_custom_url_hint">https://speed.example.com/backend</string>
+    <string name="settings_custom_url_invalid">Enter an http(s) URL</string>
+
+    <string name="settings_measurement_title">Measurement</string>
+    <string name="settings_profile">Profile</string>
+    <string name="settings_profile_standard">Standard</string>
+    <string name="settings_profile_low_data">Low data</string>
+    <string name="settings_profile_thorough">Thorough</string>
+    <string name="settings_connections">Starting connections</string>
+    <string name="settings_duration">Stage duration</string>
+    <string name="settings_duration_value">%1$d s</string>
+    <string name="settings_stable_stop">Stop when stable</string>
+    <string name="settings_stable_stop_summary">End a stage once the rate settles, instead of always running the full duration</string>
+    <string name="settings_scaling">Scale connections</string>
+    <string name="settings_scaling_summary">Add connections while throughput is still climbing</string>
+    <string name="settings_loaded_latency">Loaded latency</string>
+    <string name="settings_loaded_latency_summary">Also measure latency while the link is saturated</string>
+    <string name="settings_upload_first">Upload first</string>
+
+    <string name="settings_about_title">About</string>
+    <string name="settings_about_body">An independent speed test. It talks to open backends you choose: Cloudflare\'s public endpoints or any LibreSpeed server, including your own. No account, no ads, no tracking, and no location access.</string>
+    <string name="settings_version">Version %1$s</string>
+
+    <string name="server_picker_title">Choose a server</string>
+    <string name="server_picker_loading">Loading servers…</string>
+    <string name="server_picker_failed">Could not load the server list: %1$s</string>
+    <string name="server_picker_probe">Probing…</string>
+
+    <string name="error_title">Test failed</string>
+    <string name="error_no_server">No server answered. Check your connection and try again.</string>
+    <string name="error_generic" translatable="false">%1$s</string>
+
+    <string name="connection_wifi">Wi-Fi</string>
+    <string name="connection_cellular">Mobile</string>
+    <string name="connection_ethernet">Ethernet</string>
+    <string name="connection_vpn">VPN</string>
+    <string name="connection_other">Other</string>
+    <string name="connection_offline">Offline</string>
+
+    <string name="share_subject">SpeedMeter result</string>
+</resources>

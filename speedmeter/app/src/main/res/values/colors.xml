@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Only the pre-Compose window background lives here; the palette itself is in Theme.kt. -->
+    <color name="window_background">#070B14</color>
+    <color name="launcher_background">#070B14</color>
+</resources>

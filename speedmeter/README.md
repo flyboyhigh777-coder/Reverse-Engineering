@@ -106,8 +106,8 @@ SPEEDMETER_REAL_NETWORK=1 gradle :engine:test --tests '*RealBackendTest*'
 
 On a Linux container, Gradle 8.14.3, JDK 21, AGP 8.13.2, Kotlin 2.2.21, Compose BOM 2026.02.01:
 
-- 47 engine tests and 8 app tests pass; 3 further engine tests hit the live backends and are
-  skipped unless `SPEEDMETER_REAL_NETWORK=1`. With it set, all 50 pass.
+- 47 engine tests and 8 app tests pass; 4 further engine tests hit the live backends and are
+  skipped unless `SPEEDMETER_REAL_NETWORK=1`. With it set, all 51 pass.
 - The engine's end-to-end tests run full test suites against a local LibreSpeed-compatible server
   with a shared token-bucket cap, and assert the reported rate lands near the served rate, that a
   stable link stops the stage early, that connection scaling opens more connections than it started
@@ -146,10 +146,15 @@ Measured against `speed.cloudflare.com`, and the reason two engine fixes exist:
   the LibreSpeed backend's `getIP.php` does report them. A regression test pins this behaviour.
 - The public LibreSpeed list parsed into 22 usable servers.
 
-Still not verified: the LibreSpeed transfer path against a real LibreSpeed server (only its server
-list and the local fake server were exercised), and accuracy against a link whose true capacity is
-known - a public endpoint can only show that the protocol works, not that the number is right. The
-figure the fake-server suite checks against a known rate remains the accuracy evidence.
+A short, byte-capped run against one of them (Clouvider Amsterdam, from the public list) exercised
+the LibreSpeed transfer path end to end: 337 Mbps down, 419 Mbps up, 117 ms ping, 92.91 MB used.
+Its `getIP.php` returned the address and an ISP string even where Cloudflare's `meta` refuses, and
+it answered with `rawIspInfo: null`, which is the fallback branch of the metadata parser rather
+than the structured one - so both paths are now covered by something real.
+
+Still not verified: accuracy against a link whose true capacity is known. A public endpoint can
+only show that the protocol works, not that the number is right; the figure the fake-server suite
+checks against a known token-bucket rate remains the accuracy evidence.
 
 ## Licensing and provenance
 

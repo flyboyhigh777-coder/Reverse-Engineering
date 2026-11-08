@@ -23,6 +23,10 @@ import org.junit.Test
  */
 class RealBackendTest {
 
+    private companion object {
+        const val LIBRESPEED_SERVER = "https://ams.speedtest.clouvider.net/backend"
+    }
+
     private fun requireOptIn() {
         assumeTrue(
             "set SPEEDMETER_REAL_NETWORK=1 to run the real-network checks",
@@ -93,6 +97,54 @@ class RealBackendTest {
         assertTrue("latency was not measured", result.idleLatency.sampleCount > 0)
         assertTrue(result.idleLatency.latencyMillis.isFinite())
         assertTrue("no bytes moved", result.totalBytes > 1_000_000)
+    }
+
+    @Test
+    fun `a run against a real librespeed server exercises its transfer path`() = runBlocking {
+        requireOptIn()
+        // A server from the public list, which exists to be speed-tested against - but it is
+        // donated capacity, so this run is deliberately short and byte-capped.
+        val server = ServerDirectory.libreSpeed(LIBRESPEED_SERVER, "Clouvider Amsterdam")
+        val polite = SuiteConfig(
+            engine = EngineConfig(
+                threadCount = 2,
+                testDurationSeconds = 4.0,
+                minTestDurationSeconds = 2.0,
+                downloadMaxBytes = 60_000_000,
+                uploadMaxBytes = 25_000_000,
+            ),
+            latency = LatencyConfig(pingCount = 5),
+            loadedLatency = LoadedLatencyConfig(enabled = false),
+            connectionScaling = ConnectionScalingConfig(enabled = false),
+        )
+
+        val events = SpeedtestEngine(polite).run(listOf(server)).toList()
+        val completed = events.filterIsInstance<TestEvent.Completed>().singleOrNull()
+        assertNotNull(
+            "run did not complete: " +
+                events.filterIsInstance<TestEvent.Failed>().joinToString { it.failure.message },
+            completed,
+        )
+        val result = completed!!.result
+
+        println(
+            """
+            |--- real LibreSpeed run (${server.name}) ---
+            |download     ${Units.formatMbps(result.downloadMbps)} Mbps
+            |upload       ${Units.formatMbps(result.uploadMbps)} Mbps
+            |ping         ${Units.formatMillis(result.idleLatency.latencyMillis)} ms
+            |jitter       ${Units.formatMillis(result.idleLatency.jitterMillis)} ms
+            |data used    ${Units.formatBytes(result.totalBytes)}
+            |ip / isp     ${result.metadata.ipAddress ?: "--"} / ${result.metadata.isp ?: "--"}
+            """.trimMargin()
+        )
+
+        assertTrue("download was ${result.downloadMbps} Mbps", result.downloadMbps > 0.5)
+        assertTrue("upload was ${result.uploadMbps} Mbps", result.uploadMbps > 0.1)
+        assertTrue(result.idleLatency.sampleCount > 0)
+        // getIP.php is the reason to prefer LibreSpeed when the ISP label matters: unlike
+        // Cloudflare's /meta it answers non-browser clients, even when it knows only the address.
+        assertNotNull("getIP.php returned no address", result.metadata.ipAddress)
     }
 
     @Test
